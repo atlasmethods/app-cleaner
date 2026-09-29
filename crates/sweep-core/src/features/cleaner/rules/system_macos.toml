@@ -1,0 +1,145 @@
+# macOS system rules.
+
+[[rule]]
+id = "macos.caches"
+name = "User Caches"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Cache folders of your applications in ~/Library/Caches. Apple system caches (com.apple.*) are left alone."
+
+[[rule.targets]]
+kind = "files"
+base = "{cache}"
+recursive = true
+removeEmptyDirs = true
+skipNames = ["com.apple.*"]
+
+[[rule]]
+id = "macos.logs"
+name = "User Log Files"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Application logs in ~/Library/Logs (crash reports are handled separately)."
+
+[[rule.targets]]
+kind = "files"
+base = "{library}/Logs"
+recursive = true
+removeEmptyDirs = true
+skipNames = ["DiagnosticReports"]
+
+[[rule]]
+id = "macos.syslogs"
+name = "System Log Files"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = false
+description = "Logs in /Library/Logs. Needs administrator rights."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Library/Logs"
+recursive = true
+removeEmptyDirs = true
+skipNames = ["DiagnosticReports"]
+
+[[rule]]
+id = "macos.trash"
+name = "Trash"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Files in your Trash. This cannot be undone. macOS may require Full Disk Access."
+
+[[rule.targets]]
+kind = "trash"
+
+[[rule]]
+id = "macos.recent"
+name = "Recent Items"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Recent-documents lists of applications."
+
+[[rule.targets]]
+kind = "files"
+base = "{library}/Application Support/com.apple.sharedfilelist"
+pattern = "*.sfl*"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "macos.temp"
+name = "Temporary Files"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Files in your temporary folder that you own and that are older than the minimum age set in Settings."
+
+[[rule.targets]]
+kind = "files"
+base = "{temp}"
+recursive = true
+removeEmptyDirs = true
+minAgeFromSettings = true
+ownedByUser = true
+
+[[rule]]
+id = "macos.crash"
+name = "Crash Reports"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = false
+description = "Diagnostic crash reports."
+
+[[rule.targets]]
+kind = "files"
+base = "{library}/Logs/DiagnosticReports"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Library/Logs/DiagnosticReports"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "macos.clipboard"
+name = "Clipboard"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = true
+description = "Empties the clipboard."
+
+[[rule.targets]]
+kind = "command"
+program = "osascript"
+args = ["-e", "set the clipboard to \"\""]
+label = "Clear clipboard"
+
+[[rule]]
+id = "macos.dns"
+name = "DNS Cache"
+group = "System"
+category = "system"
+os = ["macos"]
+defaultEnabled = false
+description = "Flushes the DNS resolver cache."
+
+[[rule.targets]]
+kind = "command"
+program = "dscacheutil"
+args = ["-flushcache"]
+label = "Flush DNS cache"

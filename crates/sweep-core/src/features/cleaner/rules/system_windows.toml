@@ -1,0 +1,283 @@
+# Windows system rules.
+
+[[rule]]
+id = "windows.temp"
+name = "Temporary Files"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Files in your temp folder and in C:\\Windows\\Temp older than the minimum age set in Settings. Files in use are skipped and reported."
+
+[[rule.targets]]
+kind = "files"
+base = "{temp}"
+recursive = true
+removeEmptyDirs = true
+minAgeFromSettings = true
+skipNames = ["*.lock", "*.lck"]
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/Temp"
+recursive = true
+removeEmptyDirs = true
+minAgeFromSettings = true
+skipNames = ["*.lock", "*.lck"]
+
+[[rule]]
+id = "windows.recyclebin"
+name = "Recycle Bin"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Everything in the Recycle Bin. This cannot be undone."
+
+[[rule.targets]]
+kind = "trash"
+
+[[rule]]
+id = "windows.clipboard"
+name = "Clipboard"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Empties the clipboard."
+
+[[rule.targets]]
+kind = "command"
+program = "cmd"
+args = ["/c", "echo off | clip"]
+label = "Clear clipboard"
+
+[[rule]]
+id = "windows.memorydumps"
+name = "Memory Dumps"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Crash memory dumps (MEMORY.DMP, Minidump, CrashDumps). System-wide dumps need administrator rights."
+
+[[rule.targets]]
+kind = "file"
+path = "{sys}/Windows/MEMORY.DMP"
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/Minidump"
+pattern = "*.dmp"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{localappdata}/CrashDumps"
+pattern = "*.dmp"
+recursive = true
+
+[[rule]]
+id = "windows.wer"
+name = "Windows Error Reporting"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Queued and archived Windows error reports."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/ProgramData/Microsoft/Windows/WER"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{localappdata}/Microsoft/Windows/WER"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "windows.logs"
+name = "Windows Log Files"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Old servicing (CBS) and DISM logs in C:\\Windows\\Logs. Needs administrator rights."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/Logs/CBS"
+pattern = "CbsPersist_*.log"
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/Logs/CBS"
+pattern = "*.cab"
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/Logs/DISM"
+pattern = "*.log"
+minAgeHours = 168
+
+[[rule]]
+id = "windows.thumbcache"
+name = "Thumbnail Cache"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Explorer thumbnail and icon caches. Explorer keeps them open, so some files may be reported as in use."
+
+[[rule.targets]]
+kind = "files"
+base = "{localappdata}/Microsoft/Windows/Explorer"
+pattern = "thumbcache_*.db"
+
+[[rule.targets]]
+kind = "files"
+base = "{localappdata}/Microsoft/Windows/Explorer"
+pattern = "iconcache_*.db"
+
+[[rule]]
+id = "windows.recentdocs"
+name = "Recent Documents"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Shortcuts to recently opened documents."
+
+[[rule.targets]]
+kind = "files"
+base = "{appdata}/Microsoft/Windows/Recent"
+pattern = "*.lnk"
+
+[[rule]]
+id = "windows.jumplists"
+name = "Jump Lists"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Recent and pinned-item lists shown on taskbar icons (pinned items are lost too)."
+
+[[rule.targets]]
+kind = "files"
+base = "{appdata}/Microsoft/Windows/Recent/AutomaticDestinations"
+pattern = "*.automaticDestinations-ms"
+
+[[rule.targets]]
+kind = "files"
+base = "{appdata}/Microsoft/Windows/Recent/CustomDestinations"
+pattern = "*.customDestinations-ms"
+
+[[rule]]
+id = "windows.dns"
+name = "DNS Cache"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Flushes the Windows DNS resolver cache."
+
+[[rule.targets]]
+kind = "command"
+program = "ipconfig"
+args = ["/flushdns"]
+label = "Flush DNS cache"
+
+[[rule]]
+id = "windows.deliveryopt"
+name = "Delivery Optimization Cache"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Windows Update files cached for peer sharing. Needs administrator rights."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/ServiceProfiles/NetworkService/AppData/Local/Microsoft/Windows/DeliveryOptimization/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/ProgramData/Microsoft/Windows/DeliveryOptimization/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "windows.explorer_mru"
+name = "Explorer Recent Lists"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = true
+description = "Run dialog history, typed addresses, recent-documents lists and Open/Save dialog history in the registry."
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RunMRU"
+values = true
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths"
+values = true
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs"
+values = true
+subkeys = true
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\OpenSavePidlMRU"
+subkeys = true
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\ComDlg32\\LastVisitedPidlMRU"
+values = true
+
+[[rule.targets]]
+kind = "registry"
+key = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\WordWheelQuery"
+values = true
+
+[[rule]]
+id = "windows.wupdate"
+name = "Windows Update Downloads"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Downloaded Windows Update installers in C:\\Windows\\SoftwareDistribution\\Download. Needs administrator rights."
+warning = "Pending updates will be downloaded again. Do not run this while an update is installing."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/SoftwareDistribution/Download"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "windows.fontcache"
+name = "Font Cache"
+group = "System"
+category = "system"
+os = ["windows"]
+defaultEnabled = false
+description = "Cached font data. Needs administrator rights; Windows rebuilds it."
+warning = "The font cache service keeps these files open. Some fonts may look wrong until you restart Windows."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/Windows/ServiceProfiles/LocalService/AppData/Local/FontCache"
+pattern = "*.dat"

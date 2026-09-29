@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
+use crate::procs::{ProcessSource, SystemProcesses};
 use crate::runner::{CommandRunner, MockRunner, SystemRunner};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,7 +35,13 @@ pub struct Env {
     pub home: PathBuf,
     pub config_dir: PathBuf,
     pub cache_dir: PathBuf,
-    /// App data: settings.json, backups, history.
+    /// The OS per-user data dir (`dirs::data_dir`): `~/.local/share`, `%APPDATA%`,
+    /// `~/Library/Application Support`. Not to be confused with [`Env::data_dir`].
+    pub user_data_dir: PathBuf,
+    /// The OS per-user *local* data dir (`dirs::data_local_dir`): `~/.local/share`,
+    /// `%LOCALAPPDATA%`, `~/Library/Application Support`.
+    pub data_local_dir: PathBuf,
+    /// ClearSweep's own app data: settings.json, backups, history.
     pub data_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub os: Os,
@@ -60,24 +67,29 @@ impl Env {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
         let config_dir = dirs::config_dir().unwrap_or_else(|| home.join(".config"));
         let cache_dir = dirs::cache_dir().unwrap_or_else(|| home.join(".cache"));
+        let user_data_dir = dirs::data_dir().unwrap_or_else(|| home.join(".local/share"));
+        let data_local_dir = dirs::data_local_dir().unwrap_or_else(|| user_data_dir.clone());
         let data_dir = std::env::var_os("CLEARSWEEP_DATA_DIR")
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                dirs::data_dir()
-                    .unwrap_or_else(|| home.join(".local/share"))
-                    .join("clearsweep")
-            });
-        let temp_dir = std::env::temp_dir();
-        Env {
+            .unwrap_or_else(|| user_data_dir.join("clearsweep"));
+        let mut env = Env {
             root,
             home,
             config_dir,
             cache_dir,
+            user_data_dir,
+            data_local_dir,
             data_dir,
-            temp_dir,
+            temp_dir: std::env::temp_dir(),
             os: Os::current(),
+        };
+        // A redirected root (sandbox / tests) must never make the cleaner look at the
+        // real temp directory.
+        if std::env::var_os("CLEARSWEEP_ROOT").is_some_and(|v| !v.is_empty()) {
+            env.temp_dir = env.sys_path("/tmp");
         }
+        env
     }
 
     /// Everything under `base` (typically a temp dir). Never touches real user paths.
@@ -87,6 +99,8 @@ impl Env {
             root: base.join("root"),
             config_dir: home.join(".config"),
             cache_dir: home.join(".cache"),
+            user_data_dir: home.join(".local").join("share"),
+            data_local_dir: home.join(".local").join("share"),
             data_dir: base.join("data"),
             temp_dir: base.join("root").join("tmp"),
             home,
@@ -115,11 +129,22 @@ impl Env {
 pub struct Ctx {
     pub env: Env,
     pub runner: Arc<dyn CommandRunner>,
+    /// Running-process source (real system by default; faked in tests).
+    pub procs: Arc<dyn ProcessSource>,
 }
 
 impl Ctx {
     pub fn new(env: Env, runner: Arc<dyn CommandRunner>) -> Self {
-        Self { env, runner }
+        Self {
+            env,
+            runner,
+            procs: Arc::new(SystemProcesses),
+        }
+    }
+    /// Replace the process source (tests).
+    pub fn with_procs(mut self, procs: Arc<dyn ProcessSource>) -> Self {
+        self.procs = procs;
+        self
     }
     pub fn system() -> Self {
         Self::new(Env::detect(), Arc::new(SystemRunner))
@@ -143,6 +168,8 @@ mod tests {
             &e.home,
             &e.config_dir,
             &e.cache_dir,
+            &e.user_data_dir,
+            &e.data_local_dir,
             &e.data_dir,
             &e.temp_dir,
         ] {

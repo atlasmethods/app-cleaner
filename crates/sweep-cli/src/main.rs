@@ -4,6 +4,8 @@ use clap::{Parser, Subcommand};
 use serde_json::Value;
 use std::io::Write;
 use std::process::ExitCode;
+use sweep_core::features::cleaner::{self, CleanOptions, CleanReport, Source};
+use sweep_core::features::settings;
 use sweep_core::{dispatch, ApiError, Ctx, Job};
 use sweep_server::{generate_token, serve, ServeOptions};
 
@@ -38,14 +40,43 @@ enum Command {
         /// JSON parameters (default: null)
         params: Option<String>,
     },
-    /// Run a clean (not implemented yet)
+    /// Clean the selected rules (only `--auto` is available on the command line)
     Clean {
         /// Run with the saved settings without prompting
         #[arg(long)]
         auto: bool,
+        /// Comma separated rule ids (default: the rules enabled in Settings)
+        #[arg(long, value_delimiter = ',')]
+        rules: Option<Vec<String>>,
+        /// Recorded in the cleaning history
+        #[arg(long, value_enum, default_value_t = SourceArg::Auto)]
+        source: SourceArg,
+        /// Print the full report as JSON
+        #[arg(long)]
+        json: bool,
     },
-    /// Analyze without deleting (not implemented yet)
-    Analyze,
+    /// Show what a clean would remove, without deleting anything
+    Analyze {
+        /// Comma separated rule ids (default: the rules enabled in Settings)
+        #[arg(long, value_delimiter = ',')]
+        rules: Option<Vec<String>>,
+        /// Print the full report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Build a fake machine under DIR for end-to-end tests (test builds only)
+    #[cfg(feature = "testutil")]
+    #[command(hide = true)]
+    DevFixture {
+        /// A directory named `clearsweep-e2e-*` or `clearsweep-test-*`
+        dir: std::path::PathBuf,
+    },
+}
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum SourceArg {
+    Auto,
+    Scheduled,
 }
 
 fn print_error(e: &ApiError) {
@@ -55,11 +86,163 @@ fn print_error(e: &ApiError) {
     );
 }
 
-fn not_implemented(what: &str) -> ExitCode {
-    print_error(&ApiError::not_implemented(format!(
-        "`{what}` is not implemented yet"
-    )));
-    ExitCode::from(2)
+fn human_bytes(b: u64) -> String {
+    const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
+    let mut v = b as f64;
+    let mut i = 0;
+    while v >= 1024.0 && i < UNITS.len() - 1 {
+        v /= 1024.0;
+        i += 1;
+    }
+    if i == 0 {
+        format!("{b} B")
+    } else {
+        format!("{v:.1} {}", UNITS[i])
+    }
+}
+
+fn cmd_analyze(rules: Option<Vec<String>>, json: bool) -> ExitCode {
+    let ctx = Ctx::system();
+    match cleaner::analyze(&ctx, rules, &Job::detached()) {
+        Err(e) => {
+            print_error(&e);
+            ExitCode::from(1)
+        }
+        Ok(report) if json => {
+            println!("{}", serde_json::to_string_pretty(&report).unwrap());
+            ExitCode::SUCCESS
+        }
+        Ok(report) => {
+            let mut shown = 0;
+            println!("{:<44} {:>10} {:>8} {:>8}", "Rule", "Size", "Files", "Rows");
+            for it in &report.items {
+                let something = it.files > 0 || it.rows > 0 || !it.actions.is_empty();
+                if !something && it.errors.is_empty() {
+                    continue;
+                }
+                shown += 1;
+                let name = format!("{} - {}", it.group, it.name);
+                let mut note = String::new();
+                if it.app_running {
+                    note.push_str("  [app running]");
+                }
+                if !it.actions.is_empty() {
+                    note.push_str(&format!("  [{}]", it.actions.join(", ")));
+                }
+                println!(
+                    "{:<44} {:>10} {:>8} {:>8}{}",
+                    name,
+                    human_bytes(it.bytes),
+                    it.files,
+                    it.rows,
+                    note
+                );
+                for e in &it.errors {
+                    println!("    ! {}: {}", e.path, e.message);
+                }
+            }
+            if shown == 0 {
+                println!("(nothing to clean)");
+            }
+            println!(
+                "\nTotal: {} in {} files, {} database rows ({} ms)",
+                human_bytes(report.total_bytes),
+                report.total_files,
+                report.total_rows,
+                report.duration_ms
+            );
+            ExitCode::SUCCESS
+        }
+    }
+}
+
+fn print_clean_summary(r: &CleanReport) {
+    for res in &r.results {
+        let what = match res.skipped {
+            Some(sweep_core::features::cleaner::Skipped::AppRunning) => {
+                format!("skipped (app running: {})", res.running_apps.join(", "))
+            }
+            Some(sweep_core::features::cleaner::Skipped::InUse) => "skipped (in use)".to_string(),
+            Some(sweep_core::features::cleaner::Skipped::Unsupported) => {
+                "skipped (not supported here)".to_string()
+            }
+            None => format!(
+                "removed {} in {} files, {} rows{}",
+                human_bytes(res.removed_bytes),
+                res.removed_files,
+                res.removed_rows,
+                if res.failed.is_empty() {
+                    String::new()
+                } else {
+                    format!(", {} failed", res.failed.len())
+                }
+            ),
+        };
+        println!("{:<28} {}", res.rule_id, what);
+    }
+    println!(
+        "\nTotal: removed {} in {} files, {} database rows ({} ms){}",
+        human_bytes(r.total_bytes),
+        r.total_files,
+        r.total_rows,
+        r.duration_ms,
+        if r.cancelled { " - cancelled" } else { "" }
+    );
+}
+
+fn cmd_clean(auto: bool, rules: Option<Vec<String>>, source: SourceArg, json: bool) -> ExitCode {
+    if !auto {
+        print_error(&ApiError::invalid_params(
+            "interactive cleaning is done in the app; pass --auto to clean with the saved settings",
+        ));
+        return ExitCode::from(2);
+    }
+    let ctx = Ctx::system();
+    let s = settings::load(&ctx);
+    // Nobody can answer "ask" here, so it behaves like "skip".
+    let opts = CleanOptions::from_settings(&s, true);
+    let source = match source {
+        SourceArg::Auto => Source::Auto,
+        SourceArg::Scheduled => Source::Scheduled,
+    };
+    match cleaner::run_clean(&ctx, rules, &opts, source, &Job::detached()) {
+        Err(e) => {
+            print_error(&e);
+            ExitCode::from(1)
+        }
+        Ok(report) => {
+            if json {
+                println!("{}", serde_json::to_string_pretty(&report).unwrap());
+            } else {
+                print_clean_summary(&report);
+            }
+            ExitCode::SUCCESS
+        }
+    }
+}
+
+#[cfg(feature = "testutil")]
+fn cmd_dev_fixture(dir: &std::path::Path) -> ExitCode {
+    let name = dir
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    if !(name.starts_with("clearsweep-e2e-") || name.starts_with("clearsweep-test-")) {
+        eprintln!("refusing: directory name must start with clearsweep-e2e- or clearsweep-test-");
+        return ExitCode::from(2);
+    }
+    for sub in ["home", "root", "data"] {
+        let p = dir.join(sub);
+        if p.exists() {
+            if let Err(e) = std::fs::remove_dir_all(&p) {
+                eprintln!("cannot reset {}: {e}", p.display());
+                return ExitCode::from(1);
+            }
+        }
+    }
+    let fx = sweep_core::testutil::Fixture::new(dir);
+    fx.populate_typical();
+    ExitCode::SUCCESS
 }
 
 fn cmd_call(method: &str, params: Option<&str>) -> ExitCode {
@@ -141,7 +324,14 @@ fn main() -> ExitCode {
             print_url,
         } => cmd_ui(port, no_open, no_exit_on_idle, print_url),
         Command::Call { method, params } => cmd_call(&method, params.as_deref()),
-        Command::Clean { auto } => not_implemented(if auto { "clean --auto" } else { "clean" }),
-        Command::Analyze => not_implemented("analyze"),
+        Command::Clean {
+            auto,
+            rules,
+            source,
+            json,
+        } => cmd_clean(auto, rules, source, json),
+        Command::Analyze { rules, json } => cmd_analyze(rules, json),
+        #[cfg(feature = "testutil")]
+        Command::DevFixture { dir } => cmd_dev_fixture(&dir),
     }
 }

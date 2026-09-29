@@ -5,12 +5,35 @@ edition.workspace = true
 license.workspace = true
 description = "ClearSweep core library: pure logic, no UI or transport dependencies"
 
+[features]
+# Test helpers (fixture builder) for downstream crates' tests and the e2e build.
+testutil = ["dep:filetime"]
+
 [dependencies]
 dirs = "7.0.0"
+filetime = { version = "0.2", optional = true }
+globset = "0.4"
+rand = "0.10"
+rusqlite = { version = "0.40", features = ["functions"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sysinfo = "0.38.4"
 thiserror = "2.0.21"
+time = { version = "0.3", features = ["formatting"] }
+toml = "1.1"
+walkdir = "2.5"
+
+# Bundle SQLite everywhere except macOS, where the system libsqlite3 is used (the
+# bundled C build cannot be cross-checked without an Apple toolchain).
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+rusqlite = { version = "0.40", features = ["functions", "bundled"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
 
 [dev-dependencies]
+filetime = "0.2"
 tempfile = "3.27.0"

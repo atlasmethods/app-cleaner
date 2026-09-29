@@ -1,0 +1,528 @@
+# Application rules (chat clients, editors, media apps, developer tool caches).
+
+[[rule]]
+id = "vscode.cache"
+name = "Cache"
+group = "Visual Studio Code"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached data of VS Code. Rebuilt on next start."
+processes = { linux = ["code"], windows = ["Code.exe"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{config}/Code/{Cache,Code Cache,GPUCache,CachedData}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Code/{Cache,Code Cache,GPUCache,CachedData}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "vscode.logs"
+name = "Logs"
+group = "Visual Studio Code"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Log files written by VS Code."
+processes = { linux = ["code"], windows = ["Code.exe"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{config}/Code/logs"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Code/logs"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "slack.cache"
+name = "Cache"
+group = "Slack"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached data of the Slack desktop app."
+processes = { linux = ["slack"], windows = ["slack.exe"], macos = ["Slack"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{config}/Slack/{Cache,Code Cache,GPUCache,logs}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Slack/{Cache,Code Cache,GPUCache,logs}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "discord.cache"
+name = "Cache"
+group = "Discord"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached data of the Discord desktop app."
+processes = { linux = ["discord", "Discord"], windows = ["Discord.exe"], macos = ["Discord"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{config}/discord/{Cache,Code Cache,GPUCache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/discord/{Cache,Code Cache,GPUCache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "spotify.cache"
+name = "Cache"
+group = "Spotify"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Streaming cache of the Spotify desktop app."
+processes = { linux = ["spotify"], windows = ["Spotify.exe"], macos = ["Spotify"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/spotify"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.spotify.Client/cache/spotify"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/spotify/common/.cache/spotify"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Spotify/Data"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/com.spotify.client"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "steam.htmlcache"
+name = "Web Browser Cache"
+group = "Steam"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cache of Steam's built-in web browser."
+processes = { linux = ["steam"], windows = ["steam.exe"], macos = ["steam_osx"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.steam/steam/config/htmlcache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{data}/Steam/config/htmlcache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Steam/htmlcache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Steam/config/htmlcache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "steam.shadercache"
+name = "Shader Cache"
+group = "Steam"
+category = "application"
+os = ["linux"]
+defaultEnabled = false
+description = "Compiled shaders that Steam keeps for each game."
+warning = "Games rebuild their shaders the next time you play, which can cause stutter or long first loads."
+processes = { linux = ["steam"] }
+
+[[rule.targets]]
+kind = "files"
+base = "{data}/Steam/steamapps/shadercache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "teams.cache"
+name = "Cache"
+group = "Microsoft Teams"
+category = "application"
+os = ["windows", "macos"]
+defaultEnabled = true
+description = "Cached data of the classic Microsoft Teams app."
+processes = { windows = ["Teams.exe"], macos = ["Microsoft Teams"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Microsoft/Teams/{Cache,blob_storage,GPUCache,tmp,Code Cache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft/Teams/{Cache,blob_storage,GPUCache,tmp,Code Cache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "zoom.logs"
+name = "Logs"
+group = "Zoom"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Log files written by the Zoom client."
+processes = { linux = ["zoom"], windows = ["Zoom.exe"], macos = ["zoom.us"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.zoom/logs"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Zoom/logs"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{library}/Logs/zoom.us/logs"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "thunderbird.cache"
+name = "Cache"
+group = "Thunderbird"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web content and attachments previews of Thunderbird."
+processes = { linux = ["thunderbird", "thunderbird-bin"], windows = ["thunderbird.exe"], macos = ["thunderbird"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/thunderbird/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Thunderbird/Profiles/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Thunderbird/Profiles/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "libreoffice.backups"
+name = "Document Backups"
+group = "LibreOffice"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Automatic backup copies of documents you were editing."
+warning = "These are recovery copies. Only clean them when you are sure none of your documents needs recovering."
+processes = { linux = ["soffice.bin"], windows = ["soffice.exe", "soffice.bin"], macos = ["soffice"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/libreoffice/*/user/backup"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/LibreOffice/*/user/backup"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/LibreOffice/*/user/backup"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "jetbrains.logs"
+name = "Logs"
+group = "JetBrains IDEs"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Log files written by IntelliJ-based IDEs."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/JetBrains/*/log"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/JetBrains/*/log"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{library}/Logs/JetBrains/*"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "java.cache"
+name = "Deployment Cache"
+group = "Java"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Cached applets and Web Start applications."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.java/deployment/cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{home}/AppData/LocalLow/Sun/Java/Deployment/cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{library}/Application Support/Oracle/Java/Deployment/cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "adobe.mediacache"
+name = "Media Cache"
+group = "Adobe"
+category = "application"
+os = ["windows", "macos"]
+defaultEnabled = false
+description = "Media cache files of Premiere Pro, After Effects and Audition."
+warning = "Adobe apps must re-analyze your media the next time you open a project, which can take a while."
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Adobe/Common/{Media Cache Files,Media Cache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{library}/Application Support/Adobe/Common/{Media Cache Files,Media Cache}"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "pip.cache"
+name = "Download Cache"
+group = "pip"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Packages pip downloaded. Downloaded again when needed."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{cache}/pip"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/pip/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "npm.cache"
+name = "Package Cache"
+group = "npm"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Packages npm downloaded. Downloaded again when needed."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux", "macos"]
+base = "{home}/.npm/_cacache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/npm-cache/_cacache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "yarn.cache"
+name = "Package Cache"
+group = "Yarn"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Packages Yarn downloaded. Downloaded again when needed."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/yarn"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Yarn"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Yarn/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "pnpm.store"
+name = "Package Store"
+group = "pnpm"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "pnpm's content-addressable package store. Downloaded again when needed."
+warning = "Projects keep working, but a fresh install has to download every package again."
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{data}/pnpm/store"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{library}/pnpm/store"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/pnpm/store"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "cargo.registry"
+name = "Registry Cache"
+group = "Cargo"
+category = "application"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Downloaded crate archives and unpacked sources."
+warning = "Cargo downloads and unpacks crates again on the next build, which needs a network connection."
+
+[[rule.targets]]
+kind = "files"
+base = "{home}/.cargo/registry/cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{home}/.cargo/registry/src"
+recursive = true
+removeEmptyDirs = true

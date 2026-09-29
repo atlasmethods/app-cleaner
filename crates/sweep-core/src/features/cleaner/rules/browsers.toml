@@ -1,0 +1,3625 @@
+# Browser rules. Chromium-family browsers (Chrome, Chromium, Edge, Brave, Opera, Vivaldi)
+# share one layout; Firefox profiles are found through `{firefox_profile}`.
+# See README.md for the schema.
+
+[[rule]]
+id = "chrome.cache"
+name = "Internet Cache"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Google Chrome. Rebuilt automatically as you browse."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/google-chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/google-chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/google-chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/google-chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/google-chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/google-chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/google-chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/google-chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/cache/google-chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/cache/google-chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/cache/google-chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/cache/google-chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Google/Chrome/User Data/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Google/Chrome/User Data/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Google/Chrome/User Data/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Google/Chrome/User Data/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Google/Chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Google/Chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Google/Chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Google/Chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Google/Chrome/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Google/Chrome/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Google/Chrome/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Google/Chrome/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "chrome.history"
+name = "Internet History"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Google Chrome. Download history and bookmarks are kept."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/google-chrome/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Google/Chrome/User Data/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Google/Chrome/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "chrome.downloads"
+name = "Download History"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Google Chrome. The downloaded files themselves are not touched."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/google-chrome/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Google/Chrome/User Data/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Google/Chrome/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "chrome.cookies"
+name = "Cookies"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Google Chrome, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/google-chrome/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/google-chrome/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Google/Chrome/User Data/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Google/Chrome/User Data/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Google/Chrome/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Google/Chrome/*/Network/Cookies"
+
+[[rule]]
+id = "chrome.session"
+name = "Session"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Google Chrome restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/google-chrome/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/google-chrome/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Google/Chrome/User Data/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{localappdata}/Google/Chrome/User Data/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Google/Chrome/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/Google/Chrome/*/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "chrome.autofill"
+name = "Saved Form Info"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Google Chrome offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/google-chrome/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Google/Chrome/User Data/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Google/Chrome/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "chrome.passwords"
+name = "Saved Passwords"
+group = "Google Chrome"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Google Chrome saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["chrome", "google-chrome"], windows = ["chrome.exe"], macos = ["Google Chrome"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/google-chrome/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/google-chrome/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.google.Chrome/config/google-chrome/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Google/Chrome/User Data/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Google/Chrome/User Data/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Google/Chrome/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Google/Chrome/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "chromium.cache"
+name = "Internet Cache"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Chromium. Rebuilt automatically as you browse."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/.cache/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/.cache/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/.cache/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/.cache/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/cache/chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/cache/chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/cache/chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/cache/chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Chromium/User Data/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Chromium/User Data/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Chromium/User Data/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Chromium/User Data/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Chromium/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Chromium/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Chromium/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Chromium/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "chromium.history"
+name = "Internet History"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Chromium. Download history and bookmarks are kept."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/chromium/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/snap/chromium/common/chromium/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Chromium/User Data/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Chromium/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "chromium.downloads"
+name = "Download History"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Chromium. The downloaded files themselves are not touched."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/chromium/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/snap/chromium/common/chromium/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Chromium/User Data/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Chromium/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "chromium.cookies"
+name = "Cookies"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Chromium, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/chromium/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/chromium/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/snap/chromium/common/chromium/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/snap/chromium/common/chromium/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Chromium/User Data/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Chromium/User Data/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Chromium/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Chromium/*/Network/Cookies"
+
+[[rule]]
+id = "chromium.session"
+name = "Session"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Chromium restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/chromium/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/chromium/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/chromium/common/chromium/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{home}/snap/chromium/common/chromium/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Chromium/User Data/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{localappdata}/Chromium/User Data/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Chromium/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/Chromium/*/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "chromium.autofill"
+name = "Saved Form Info"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Chromium offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/chromium/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/snap/chromium/common/chromium/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Chromium/User Data/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Chromium/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "chromium.passwords"
+name = "Saved Passwords"
+group = "Chromium"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Chromium saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["chromium", "chromium-browser"], windows = ["chrome.exe"], macos = ["Chromium"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/chromium/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/chromium/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/snap/chromium/common/chromium/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/snap/chromium/common/chromium/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/org.chromium.Chromium/config/chromium/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Chromium/User Data/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Chromium/User Data/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Chromium/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Chromium/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "edge.cache"
+name = "Internet Cache"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Microsoft Edge. Rebuilt automatically as you browse."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/microsoft-edge/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/microsoft-edge/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/microsoft-edge/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/microsoft-edge/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/microsoft-edge/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/microsoft-edge/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/microsoft-edge/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/microsoft-edge/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Microsoft/Edge/User Data/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Microsoft/Edge/User Data/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Microsoft/Edge/User Data/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Microsoft/Edge/User Data/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft Edge/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft Edge/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft Edge/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft Edge/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Microsoft Edge/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Microsoft Edge/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Microsoft Edge/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Microsoft Edge/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "edge.history"
+name = "Internet History"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Microsoft Edge. Download history and bookmarks are kept."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/microsoft-edge/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Microsoft/Edge/User Data/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Microsoft Edge/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "edge.downloads"
+name = "Download History"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Microsoft Edge. The downloaded files themselves are not touched."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/microsoft-edge/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Microsoft/Edge/User Data/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Microsoft Edge/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "edge.cookies"
+name = "Cookies"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Microsoft Edge, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/microsoft-edge/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/microsoft-edge/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Microsoft/Edge/User Data/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Microsoft/Edge/User Data/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Microsoft Edge/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Microsoft Edge/*/Network/Cookies"
+
+[[rule]]
+id = "edge.session"
+name = "Session"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Microsoft Edge restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/microsoft-edge/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/microsoft-edge/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Microsoft/Edge/User Data/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{localappdata}/Microsoft/Edge/User Data/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Microsoft Edge/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/Microsoft Edge/*/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "edge.autofill"
+name = "Saved Form Info"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Microsoft Edge offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/microsoft-edge/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Microsoft/Edge/User Data/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Microsoft Edge/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "edge.passwords"
+name = "Saved Passwords"
+group = "Microsoft Edge"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Microsoft Edge saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["msedge", "microsoft-edge"], windows = ["msedge.exe"], macos = ["Microsoft Edge"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/microsoft-edge/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/microsoft-edge/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Microsoft/Edge/User Data/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Microsoft/Edge/User Data/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Microsoft Edge/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Microsoft Edge/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "brave.cache"
+name = "Internet Cache"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Brave. Rebuilt automatically as you browse."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/cache/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/cache/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/cache/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/cache/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "brave.history"
+name = "Internet History"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Brave. Download history and bookmarks are kept."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "brave.downloads"
+name = "Download History"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Brave. The downloaded files themselves are not touched."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/BraveSoftware/Brave-Browser/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "brave.cookies"
+name = "Cookies"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Brave, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/BraveSoftware/Brave-Browser/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/BraveSoftware/Brave-Browser/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/BraveSoftware/Brave-Browser/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/BraveSoftware/Brave-Browser/*/Network/Cookies"
+
+[[rule]]
+id = "brave.session"
+name = "Session"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Brave restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/BraveSoftware/Brave-Browser/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/BraveSoftware/Brave-Browser/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/BraveSoftware/Brave-Browser/*/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "brave.autofill"
+name = "Saved Form Info"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Brave offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "brave.passwords"
+name = "Saved Passwords"
+group = "Brave"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Brave saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["brave", "brave-browser"], windows = ["brave.exe"], macos = ["Brave Browser"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{home}/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/BraveSoftware/Brave-Browser/User Data/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/BraveSoftware/Brave-Browser/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "opera.cache"
+name = "Internet Cache"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Opera. Rebuilt automatically as you browse."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/opera/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/opera/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/opera/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/opera/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/opera/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/opera/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/opera/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/opera/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Opera Software/Opera Stable/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Opera Software/Opera Stable/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Opera Software/Opera Stable/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Opera Software/Opera Stable/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Opera Software/Opera Stable/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Opera Software/Opera Stable/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Opera Software/Opera Stable/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Opera Software/Opera Stable/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/com.operasoftware.Opera/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/com.operasoftware.Opera/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/com.operasoftware.Opera/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/com.operasoftware.Opera/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/com.operasoftware.Opera/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/com.operasoftware.Opera/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/com.operasoftware.Opera/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/com.operasoftware.Opera/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "opera.history"
+name = "Internet History"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Opera. Download history and bookmarks are kept."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/opera/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{appdata}/Opera Software/Opera Stable/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/com.operasoftware.Opera/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "opera.downloads"
+name = "Download History"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Opera. The downloaded files themselves are not touched."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/opera/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{appdata}/Opera Software/Opera Stable/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/com.operasoftware.Opera/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "opera.cookies"
+name = "Cookies"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Opera, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/opera/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/opera/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{appdata}/Opera Software/Opera Stable/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{appdata}/Opera Software/Opera Stable/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/com.operasoftware.Opera/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/com.operasoftware.Opera/Network/Cookies"
+
+[[rule]]
+id = "opera.session"
+name = "Session"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Opera restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/opera/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/opera/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{appdata}/Opera Software/Opera Stable/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{appdata}/Opera Software/Opera Stable/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/com.operasoftware.Opera/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/com.operasoftware.Opera/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "opera.autofill"
+name = "Saved Form Info"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Opera offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/opera/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{appdata}/Opera Software/Opera Stable/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/com.operasoftware.Opera/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "opera.passwords"
+name = "Saved Passwords"
+group = "Opera"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Opera saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["opera"], windows = ["opera.exe"], macos = ["Opera"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/opera/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/opera/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{appdata}/Opera Software/Opera Stable/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{appdata}/Opera Software/Opera Stable/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/com.operasoftware.Opera/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/com.operasoftware.Opera/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "vivaldi.cache"
+name = "Internet Cache"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web pages, scripts and images stored by Vivaldi. Rebuilt automatically as you browse."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/vivaldi/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/vivaldi/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/vivaldi/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/vivaldi/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/vivaldi/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/vivaldi/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/vivaldi/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/vivaldi/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Vivaldi/User Data/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Vivaldi/User Data/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Vivaldi/User Data/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Vivaldi/User Data/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Vivaldi/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Vivaldi/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Vivaldi/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Vivaldi/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Vivaldi/*/Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Vivaldi/*/Code Cache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Vivaldi/*/GPUCache"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Vivaldi/*/Service Worker/CacheStorage"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "vivaldi.history"
+name = "Internet History"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history (visited pages, searches) of Vivaldi. Download history and bookmarks are kept."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/vivaldi/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Vivaldi/User Data/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Vivaldi/*/History"
+statements = [
+  "DELETE FROM visit_source",
+  "DELETE FROM segment_usage",
+  "DELETE FROM segments",
+  "DELETE FROM keyword_search_terms",
+  "DELETE FROM content_annotations",
+  "DELETE FROM context_annotations",
+  "DELETE FROM cluster_keywords",
+  "DELETE FROM cluster_visit_duplicates",
+  "DELETE FROM clusters_and_visits",
+  "DELETE FROM clusters",
+  "DELETE FROM visits",
+  "DELETE FROM urls",
+]
+countQuery = "SELECT (SELECT COUNT(*) FROM urls) + (SELECT COUNT(*) FROM visits)"
+
+[[rule]]
+id = "vivaldi.downloads"
+name = "Download History"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of files downloaded with Vivaldi. The downloaded files themselves are not touched."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/vivaldi/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Vivaldi/User Data/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Vivaldi/*/History"
+statements = [
+  "DELETE FROM downloads_url_chains",
+  "DELETE FROM downloads_slices",
+  "DELETE FROM downloads",
+]
+countQuery = "SELECT COUNT(*) FROM downloads"
+
+[[rule]]
+id = "vivaldi.cookies"
+name = "Cookies"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Vivaldi, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/vivaldi/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["linux"]
+browserFamily = "chromium"
+db = "{config}/vivaldi/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Vivaldi/User Data/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["windows"]
+browserFamily = "chromium"
+db = "{localappdata}/Vivaldi/User Data/*/Network/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Vivaldi/*/Cookies"
+
+[[rule.targets]]
+kind = "cookies"
+os = ["macos"]
+browserFamily = "chromium"
+db = "{config}/Vivaldi/*/Network/Cookies"
+
+[[rule]]
+id = "vivaldi.session"
+name = "Session"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Vivaldi restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{config}/vivaldi/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["linux"]
+path = "{config}/vivaldi/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Vivaldi/User Data/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["windows"]
+path = "{localappdata}/Vivaldi/User Data/*/{Current,Last} {Session,Tabs}"
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{config}/Vivaldi/*/Sessions"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+os = ["macos"]
+path = "{config}/Vivaldi/*/{Current,Last} {Session,Tabs}"
+
+[[rule]]
+id = "vivaldi.autofill"
+name = "Saved Form Info"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Vivaldi offers to autofill. Saved addresses and cards are kept."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/vivaldi/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Vivaldi/User Data/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Vivaldi/*/Web Data"
+statements = [
+  "DELETE FROM autofill",
+]
+countQuery = "SELECT COUNT(*) FROM autofill"
+
+[[rule]]
+id = "vivaldi.passwords"
+name = "Saved Passwords"
+group = "Vivaldi"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Vivaldi saved for websites."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (password manager, sync) before enabling."
+processes = { linux = ["vivaldi-bin", "vivaldi"], windows = ["vivaldi.exe"], macos = ["Vivaldi"] }
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/vivaldi/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["linux"]
+db = "{config}/vivaldi/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Vivaldi/User Data/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["windows"]
+db = "{localappdata}/Vivaldi/User Data/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Vivaldi/*/Login Data"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule.targets]]
+kind = "sqlite"
+os = ["macos"]
+db = "{config}/Vivaldi/*/Login Data For Account"
+statements = [
+  "DELETE FROM insecure_credentials",
+  "DELETE FROM password_notes",
+  "DELETE FROM stats",
+  "DELETE FROM logins",
+]
+countQuery = "SELECT COUNT(*) FROM logins"
+
+[[rule]]
+id = "firefox.cache"
+name = "Internet Cache"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cached web content stored by Firefox. Rebuilt automatically as you browse."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{cache}/mozilla/firefox/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/snap/firefox/common/.cache/mozilla/firefox/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["linux"]
+base = "{home}/.var/app/org.mozilla.firefox/cache/mozilla/firefox/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["windows"]
+base = "{localappdata}/Mozilla/Firefox/Profiles/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+os = ["macos"]
+base = "{cache}/Firefox/Profiles/*/cache2"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "firefox.history"
+name = "Internet History"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Browsing history and location-bar suggestions. Bookmarks are kept."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "sqlite"
+db = "{firefox_profile}/places.sqlite"
+statements = [
+  "DELETE FROM moz_historyvisits",
+  "DELETE FROM moz_inputhistory",
+  "DELETE FROM moz_places_metadata",
+  "DELETE FROM moz_places WHERE id NOT IN (SELECT fk FROM moz_bookmarks WHERE fk IS NOT NULL) AND id NOT IN (SELECT place_id FROM moz_keywords WHERE place_id IS NOT NULL)",
+  "UPDATE moz_places SET visit_count = 0, last_visit_date = NULL",
+  "DELETE FROM moz_origins WHERE id NOT IN (SELECT origin_id FROM moz_places WHERE origin_id IS NOT NULL)",
+]
+countQuery = "SELECT COUNT(*) FROM moz_historyvisits"
+
+[[rule]]
+id = "firefox.downloads"
+name = "Download History"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "The list of downloaded files. The files themselves are not touched."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "sqlite"
+db = "{firefox_profile}/places.sqlite"
+statements = [
+  "DELETE FROM moz_annos WHERE anno_attribute_id IN (SELECT id FROM moz_anno_attributes WHERE name LIKE 'downloads/%')",
+]
+countQuery = "SELECT COUNT(*) FROM moz_annos WHERE anno_attribute_id IN (SELECT id FROM moz_anno_attributes WHERE name LIKE 'downloads/%')"
+
+[[rule]]
+id = "firefox.cookies"
+name = "Cookies"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = true
+description = "Cookies stored by Firefox, except those of sites on your keep list."
+warning = "Cookies you do not keep will sign you out of websites. Add the sites you want to stay signed in to on the Cookies page first."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "cookies"
+browserFamily = "firefox"
+db = "{firefox_profile}/cookies.sqlite"
+
+[[rule]]
+id = "firefox.session"
+name = "Session"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "The tabs Firefox restores after a restart or crash."
+warning = "Removes the open-tabs snapshot: tabs from your last session cannot be restored afterwards."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "files"
+base = "{firefox_profile}/sessionstore-backups"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "file"
+path = "{firefox_profile}/{sessionstore.js,sessionstore.jsonlz4,sessionCheckpoints.json}"
+
+[[rule]]
+id = "firefox.formhistory"
+name = "Saved Form Info"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Text you typed into web forms that Firefox offers to autofill."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "sqlite"
+db = "{firefox_profile}/formhistory.sqlite"
+statements = [
+  "DELETE FROM moz_formhistory",
+]
+countQuery = "SELECT COUNT(*) FROM moz_formhistory"
+
+[[rule]]
+id = "firefox.passwords"
+name = "Saved Passwords"
+group = "Mozilla Firefox"
+category = "browser"
+os = ["linux", "windows", "macos"]
+defaultEnabled = false
+description = "Logins that Firefox saved for websites (logins.json and its encryption key)."
+warning = "This permanently deletes every password saved in the browser. Make sure you can recover them (Firefox Sync, password manager) before enabling."
+processes = { linux = ["firefox", "firefox-bin", "firefox-esr"], windows = ["firefox.exe"], macos = ["firefox"] }
+
+[[rule.targets]]
+kind = "file"
+path = "{firefox_profile}/{logins.json,logins-backup.json,key4.db,key3.db,signons.sqlite}"

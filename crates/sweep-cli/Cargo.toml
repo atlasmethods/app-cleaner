@@ -9,6 +9,10 @@ description = "ClearSweep command line interface"
 name = "clearsweep"
 path = "src/main.rs"
 
+[features]
+# Hidden `dev-fixture` subcommand that builds a fake machine for end-to-end tests.
+testutil = ["sweep-core/testutil"]
+
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
 serde_json = "1.0.151"
@@ -16,3 +20,7 @@ sweep-core = { version = "0.1.0", path = "../sweep-core" }
 sweep-server = { version = "0.1.0", path = "../sweep-server" }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "signal"] }
 webbrowser = "1.2.4"
+
+[dev-dependencies]
+sweep-core = { version = "0.1.0", path = "../sweep-core", features = ["testutil"] }
+tempfile = "3.27.0"

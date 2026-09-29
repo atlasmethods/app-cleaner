@@ -1,0 +1,242 @@
+# Linux system rules.
+
+[[rule]]
+id = "linux.temp"
+name = "Temporary Files"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = true
+description = "Files in the temporary folders (/tmp, /var/tmp) that you own and that are older than the minimum age set in Settings."
+
+[[rule.targets]]
+kind = "files"
+base = "{temp}"
+recursive = true
+removeEmptyDirs = true
+minAgeFromSettings = true
+ownedByUser = true
+skipNames = [".X11-unix", ".ICE-unix", ".XIM-unix", ".font-unix", ".Test-unix", "systemd-private-*", "snap-private-tmp", "snap.*", "tmux-*", "ssh-*", "pulse-*", "dbus-*", "*.lock", "*.lck", "*.pid", "*.sock", "*.socket", "lost+found"]
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/tmp"
+recursive = true
+removeEmptyDirs = true
+minAgeFromSettings = true
+ownedByUser = true
+skipNames = [".X11-unix", ".ICE-unix", ".XIM-unix", ".font-unix", ".Test-unix", "systemd-private-*", "snap-private-tmp", "snap.*", "tmux-*", "ssh-*", "pulse-*", "dbus-*", "*.lock", "*.lck", "*.pid", "*.sock", "*.socket", "lost+found"]
+
+[[rule]]
+id = "linux.trash"
+name = "Trash"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = true
+description = "Files in your Trash folder. This cannot be undone."
+
+[[rule.targets]]
+kind = "trash"
+
+[[rule]]
+id = "linux.thumbnails"
+name = "Thumbnail Cache"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = true
+description = "Cached preview images made by the file manager. Recreated when needed."
+
+[[rule.targets]]
+kind = "files"
+base = "{cache}/thumbnails"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{home}/.thumbnails"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "linux.recent"
+name = "Recent Documents"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = true
+description = "The list of recently used files kept by GTK applications."
+
+[[rule.targets]]
+kind = "file"
+path = "{data}/recently-used.xbel"
+
+[[rule.targets]]
+kind = "file"
+path = "{home}/.recently-used.xbel"
+
+[[rule]]
+id = "linux.logs"
+name = "Old Log Files"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Rotated and compressed system logs in /var/log. Needs administrator (root) rights; files that cannot be removed are reported."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.gz"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.xz"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.bz2"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.zst"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.old"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.[0-9]"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/log"
+pattern = "*.[0-9][0-9]"
+recursive = true
+
+[[rule]]
+id = "linux.crash"
+name = "Crash Reports"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Crash reports and core dumps. Needs administrator (root) rights for system-wide reports."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/crash"
+recursive = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/lib/systemd/coredump"
+recursive = true
+
+[[rule]]
+id = "linux.apt"
+name = "APT Package Cache"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Downloaded .deb packages in /var/cache/apt/archives. Needs administrator (root) rights."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/cache/apt/archives"
+pattern = "*.deb"
+
+[[rule]]
+id = "linux.dnf"
+name = "DNF / YUM Package Cache"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Downloaded .rpm packages cached by dnf and yum. Needs administrator (root) rights."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/cache/dnf"
+pattern = "*.rpm"
+recursive = true
+removeEmptyDirs = true
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/cache/yum"
+pattern = "*.rpm"
+recursive = true
+removeEmptyDirs = true
+
+[[rule]]
+id = "linux.pacman"
+name = "Pacman Package Cache"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Downloaded packages in /var/cache/pacman/pkg. Needs administrator (root) rights."
+warning = "Removes every cached package file, including the newest ones; downgrading later needs a fresh download."
+
+[[rule.targets]]
+kind = "files"
+base = "{sys}/var/cache/pacman/pkg"
+pattern = "*.pkg.tar.*"
+
+[[rule]]
+id = "linux.clipboard"
+name = "Clipboard"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = true
+description = "Empties the clipboard."
+
+[[rule.targets]]
+kind = "command"
+program = "wl-copy"
+args = ["--clear"]
+label = "Clear clipboard (Wayland)"
+
+[[rule.targets]]
+kind = "command"
+program = "xsel"
+args = ["-bc"]
+label = "Clear clipboard (X11, xsel)"
+
+[[rule.targets]]
+kind = "command"
+program = "xclip"
+args = ["-selection", "clipboard", "-i", "/dev/null"]
+label = "Clear clipboard (X11, xclip)"
+
+[[rule]]
+id = "linux.dns"
+name = "DNS Cache"
+group = "System"
+category = "system"
+os = ["linux"]
+defaultEnabled = false
+description = "Flushes the systemd-resolved DNS cache. May need administrator rights."
+
+[[rule.targets]]
+kind = "command"
+program = "resolvectl"
+args = ["flush-caches"]
+label = "Flush DNS cache"
