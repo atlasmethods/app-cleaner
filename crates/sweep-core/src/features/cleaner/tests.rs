@@ -627,6 +627,7 @@ mod symlinks {
     }
 }
 
+#[cfg(unix)]
 impl Fixture {
     /// Copy a file into the home directory (test helper).
     fn home_copy(&self, from: &Path, name: &str) -> PathBuf {
@@ -864,6 +865,50 @@ fn engine_refuses_a_protected_base_even_if_a_rule_names_it() {
     }
     assert!(docs.join("a.txt").exists());
     assert!(b.fx.env.home.join("top.txt").exists());
+}
+
+fn run_files_rule_without_keep_base(b: &Bed, base: &Path) -> Outcome {
+    let s = settings::load(&b.ctx);
+    let eng = engine(&b.ctx, &s, build_safety(&b.ctx, &s).unwrap(), Mode::Clean);
+    let seed = Settings {
+        include: vec![settings::IncludeEntry {
+            id: "1".into(),
+            path: b.fx.env.home.join("zzz").to_string_lossy().into_owned(),
+            recursive: true,
+            mask: "*".into(),
+            remove_empty_dirs: true,
+        }],
+        ..Settings::default()
+    };
+    let mut rule = custom_rule(&b.ctx, &seed).unwrap();
+    if let Target::Files(f) = &mut rule.targets[0] {
+        f.literal_base = Some(base.to_path_buf());
+        f.keep_base = false;
+    }
+    let mut out = Outcome::default();
+    eng.run_rule(&rule, &Job::detached(), &mut out).unwrap();
+    out
+}
+
+#[test]
+fn keep_base_false_removes_the_emptied_base_but_never_a_non_empty_one() {
+    let b = bed();
+    let gone = b.fx.env.home.join("work/gone");
+    b.fx.file(gone.join("a/b.txt"), 10);
+    assert_eq!(run_files_rule_without_keep_base(&b, &gone).files, 1);
+    assert!(!gone.exists(), "emptied base removed");
+    assert!(b.fx.env.home.join("work").exists(), "its parent stays");
+
+    let kept = b.fx.env.home.join("work/kept");
+    b.fx.file(kept.join("x.txt"), 10);
+    b.set(|s| {
+        s.exclude = vec![settings::ExcludeEntry {
+            id: "e".into(),
+            pattern: kept.join("x.txt").to_string_lossy().into_owned(),
+        }]
+    });
+    assert_eq!(run_files_rule_without_keep_base(&b, &kept).files, 0);
+    assert!(kept.join("x.txt").exists() && kept.exists());
 }
 
 // ------------------------------------------------------------------ temp files
@@ -1224,6 +1269,80 @@ fn windows_rules_resolve_localappdata_and_appdata() {
 }
 
 #[test]
+fn every_rule_runs_cleanly_on_an_empty_machine_for_each_os() {
+    for os in [Os::Linux, Os::Windows, Os::MacOs] {
+        let b = bed_for(os);
+        let ids = all_rule_ids(&b);
+        assert!(ids.len() > 30, "{os:?}: only {} rules", ids.len());
+        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+        let rep = b.analyze(&ids);
+        assert_eq!(
+            (rep.total_files, rep.total_bytes, rep.total_rows),
+            (0, 0, 0),
+            "{os:?}"
+        );
+        for it in &rep.items {
+            assert!(
+                it.errors.is_empty(),
+                "{os:?} {}: {:?}",
+                it.rule_id,
+                it.errors
+            );
+        }
+        let done = b.clean(&ids);
+        for r in &done.results {
+            assert!(r.failed.is_empty(), "{os:?} {}: {:?}", r.rule_id, r.failed);
+            assert_eq!(r.removed_files + r.removed_rows, 0);
+        }
+        // No program is available in the mock, so no command may have run.
+        assert!(b.mock.calls().is_empty(), "{os:?}: {:?}", b.mock.calls());
+    }
+}
+
+#[test]
+fn other_operating_systems_find_browser_data_in_their_own_layout() {
+    for os in [Os::Windows, Os::MacOs] {
+        let b = bed_for(os);
+        b.fx.populate_chromium(Chromium::Chrome, "Default");
+        b.fx.populate_chromium(Chromium::Edge, "Profile 2");
+        b.fx.populate_chromium(Chromium::Brave, "Default");
+        b.fx.populate_chromium(Chromium::Vivaldi, "Default");
+        b.fx.populate_chromium(Chromium::Chromium, "Default");
+        b.fx.populate_firefox("abcd1234.default-release");
+        for browser in ["chrome", "edge", "brave", "vivaldi", "chromium"] {
+            assert_eq!(
+                b.item(&format!("{browser}.cache")).files,
+                5,
+                "{os:?} {browser}"
+            );
+            assert_eq!(
+                b.item(&format!("{browser}.history")).rows,
+                7,
+                "{os:?} {browser}"
+            );
+            assert_eq!(
+                b.item(&format!("{browser}.cookies")).rows,
+                7,
+                "{os:?} {browser}"
+            );
+            assert_eq!(
+                b.item(&format!("{browser}.session")).files,
+                3,
+                "{os:?} {browser}"
+            );
+        }
+        assert_eq!(b.item("firefox.cache").files, 3, "{os:?}");
+        assert_eq!(b.item("firefox.history").rows, 4, "{os:?}");
+        assert_eq!(b.item("firefox.cookies").rows, 5, "{os:?}");
+        // and a clean really removes them there too
+        let r = b.clean(&["chrome.cache", "firefox.cache", "edge.history"]);
+        assert_eq!(b.result(&r, "chrome.cache").removed_files, 5, "{os:?}");
+        assert_eq!(b.result(&r, "firefox.cache").removed_files, 3, "{os:?}");
+        assert_eq!(b.result(&r, "edge.history").removed_rows, 7, "{os:?}");
+    }
+}
+
+#[test]
 fn windows_recycle_bin_uses_powershell_via_the_runner() {
     let b = bed_for(Os::Windows);
     // not installed: nothing runs, rule is unsupported
@@ -1330,28 +1449,59 @@ fn macos_trash_and_logs() {
 #[cfg(unix)]
 #[test]
 fn secure_mode_overwrites_file_contents_before_unlinking() {
+    use std::io::{Read, Seek, SeekFrom};
     for secure in [false, true] {
         let b = bed();
         let p = b.fx.populate_chromium(Chromium::Chrome, "Default");
         let victim = p.cache.join("Cache/Cache_Data/data_0");
-        // A second hard link keeps the inode alive so we can see what happened to its data.
-        let alias = b.fx.env.home.join("alias-of-data_0");
-        fs::hard_link(&victim, &alias).unwrap();
-        let original = fs::read(&alias).unwrap();
+        // An open handle keeps the inode alive after the unlink so we can see what the
+        // cleaner did to the data itself.
+        let mut handle = fs::File::open(&victim).unwrap();
+        let mut original = Vec::new();
+        handle.read_to_end(&mut original).unwrap();
+        assert!(!original.is_empty());
         b.set(|s| {
             s.secure_delete.enabled = secure;
             s.secure_delete.passes = 3;
         });
-        b.clean(&["chrome.cache"]);
+        let r = b.clean(&["chrome.cache"]);
         assert!(!victim.exists());
-        let now = fs::read(&alias).unwrap();
+        assert!(b.result(&r, "chrome.cache").failed.is_empty());
+        handle.seek(SeekFrom::Start(0)).unwrap();
+        let mut now = Vec::new();
+        handle.read_to_end(&mut now).unwrap();
         if secure {
-            // the final DoD pass is random, and the file was truncated before unlinking
-            assert!(now != original, "content should have been overwritten");
+            assert!(
+                now != original,
+                "content should have been overwritten/truncated"
+            );
         } else {
             assert_eq!(now, original, "plain delete leaves the inode's data alone");
         }
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn secure_mode_never_overwrites_files_that_have_other_hard_links() {
+    let b = bed();
+    let p = b.fx.populate_chromium(Chromium::Chrome, "Default");
+    let victim = p.cache.join("Cache/Cache_Data/data_0");
+    let alias = b.fx.env.home.join("precious-alias");
+    fs::hard_link(&victim, &alias).unwrap();
+    let original = fs::read(&alias).unwrap();
+    b.set(|s| {
+        s.secure_delete.enabled = true;
+        s.secure_delete.passes = 7;
+    });
+    let r = b.clean(&["chrome.cache"]);
+    assert!(b.result(&r, "chrome.cache").failed.is_empty());
+    assert!(!victim.exists(), "the cache name is still removed");
+    assert_eq!(
+        fs::read(&alias).unwrap(),
+        original,
+        "the other name keeps its data"
+    );
 }
 
 // ------------------------------------------------------------------ history, listing, options

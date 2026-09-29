@@ -193,6 +193,20 @@ fn random_name(len: usize) -> String {
         .collect()
 }
 
+/// Number of directory entries (names) pointing at this file; 1 where it cannot be told.
+pub fn link_count(meta: &fs::Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        meta.nlink()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = meta;
+        1
+    }
+}
+
 /// Overwrite `path` with `passes` passes (each fsynced), rename it to a random name of
 /// the same length, truncate to zero and unlink. Refuses symlinks and non-regular
 /// files. Returns the number of bytes that were overwritten.
@@ -205,7 +219,16 @@ pub fn secure_delete_file(path: &Path, passes: u32, job: &Job) -> Result<u64> {
             format!("{}: {}", path.display(), io_message(&e)),
         ))
     })?;
-    let len = f.metadata()?.len();
+    let meta = f.metadata()?;
+    if link_count(&meta) > 1 {
+        // Overwriting would destroy the content behind the file's other names too.
+        return Err(ApiError::invalid_params(format!(
+            "{}: the file has {} hard links; overwriting it would change the other names as well",
+            path.display(),
+            link_count(&meta)
+        )));
+    }
+    let len = meta.len();
     let patterns = overwrite_passes(passes);
     let total_passes = patterns.len();
     let mut rng: StdRng = rand::make_rng();
@@ -297,6 +320,9 @@ fn delete_one(
     let path = safety::normalize(&path);
     if safety.protected.is_protected(&path) {
         return Err("refused: path is protected".into());
+    }
+    if safety.protected.in_system_tree(&path) {
+        return Err("refused: path is inside an operating system folder".into());
     }
     let parent = path.parent().ok_or("refused: path has no parent")?;
     let deleter = SafeDeleter::for_selection(safety.clone(), parent)
@@ -530,6 +556,20 @@ mod tests {
         assert_eq!(fs::read(&target).unwrap(), b"important");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn hard_linked_files_are_refused_and_left_intact() {
+        let d = tempfile::tempdir().unwrap();
+        let a = d.path().join("a");
+        let b = d.path().join("b");
+        fs::write(&a, vec![9u8; 100]).unwrap();
+        fs::hard_link(&a, &b).unwrap();
+        let e = secure_delete_file(&a, 1, &Job::detached()).unwrap_err();
+        assert!(e.message.contains("hard links"), "{}", e.message);
+        assert_eq!(fs::read(&a).unwrap(), vec![9u8; 100]);
+        assert_eq!(fs::read(&b).unwrap(), vec![9u8; 100]);
+    }
+
     #[test]
     fn secure_delete_file_removes_it_and_leaves_no_renamed_leftover() {
         let d = tempfile::tempdir().unwrap();
@@ -589,6 +629,27 @@ mod tests {
         assert!(c.env.home.exists());
         assert!(c.env.home.join("Documents").exists());
         assert_eq!(out["totalBytes"], 3 + 3 + 1);
+    }
+
+    #[test]
+    fn delete_method_refuses_operating_system_trees() {
+        let (_d, c) = ctx();
+        let f = c.env.sys_path("/usr/lib/thing.so");
+        fs::create_dir_all(f.parent().unwrap()).unwrap();
+        fs::write(&f, "x").unwrap();
+        let out = dispatch(
+            &c,
+            "secure_delete.delete",
+            json!({"paths": [f]}),
+            &Job::detached(),
+        )
+        .unwrap();
+        assert_eq!(out["results"][0]["ok"], false);
+        assert!(out["results"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("operating system"));
+        assert!(f.exists());
     }
 
     #[cfg(unix)]

@@ -64,11 +64,14 @@ pub const CUSTOM_RULE_ID: &str = "custom.include";
 
 /// The synthetic rule built from the user's include entries.
 pub fn custom_rule(ctx: &Ctx, s: &Settings) -> Option<Rule> {
+    let protected = crate::safety::Protected::new(&ctx.env);
     let targets: Vec<Target> = s
         .include
         .iter()
         .filter_map(|e| {
             let base = settings::resolve_user_path(&ctx.env, &e.path).ok()?;
+            // Defense in depth: settings validation already refuses these.
+            protected.include_violation(&base).is_none().then_some(())?;
             Some(Target::Files(FilesTarget {
                 os: Vec::new(),
                 base: String::new(),

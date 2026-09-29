@@ -123,6 +123,10 @@ pub fn expand_tilde(env: &Env, s: &str) -> PathBuf {
 pub struct Protected {
     exact: HashSet<Vec<String>>,
     trees: Vec<Vec<String>>,
+    /// Operating system trees: nothing inside may be added as a user include or shredded.
+    system_trees: Vec<Vec<String>>,
+    /// Per-user configuration roots: must not be added as a user include.
+    config_roots: HashSet<Vec<String>>,
 }
 
 impl Protected {
@@ -198,10 +202,82 @@ impl Protected {
                 tree_keys.push(key_of(&c));
             }
         }
+
+        let sys_tree_names: &[&str] = match env.os {
+            Os::Windows => &["/Windows", "/Program Files", "/Program Files (x86)"],
+            Os::Linux => &[
+                "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/proc", "/sbin",
+                "/sys", "/usr",
+            ],
+            Os::MacOs => &[
+                "/bin",
+                "/dev",
+                "/etc",
+                "/sbin",
+                "/usr",
+                "/System",
+                "/Library",
+                "/Applications",
+                "/private/etc",
+            ],
+        };
+        let mut system_trees = Vec::new();
+        for d in sys_tree_names {
+            let p = env.sys_path(d);
+            system_trees.push(key_of(&normalize(&p)));
+            if let Ok(c) = canonicalize(&p) {
+                system_trees.push(key_of(&c));
+            }
+        }
+
+        let mut config: Vec<PathBuf> = vec![
+            env.config_dir.clone(),
+            env.user_data_dir.clone(),
+            env.data_local_dir.clone(),
+            env.home.join(".config"),
+            env.home.join(".local"),
+            env.home.join(".local").join("share"),
+            env.home.join("AppData"),
+            env.home.join("AppData").join("Roaming"),
+            env.home.join("AppData").join("Local"),
+            env.home.join("Library").join("Application Support"),
+        ];
+        config.push(env.cache_dir.clone());
+        let mut config_roots = HashSet::new();
+        for p in &config {
+            config_roots.insert(key_of(&normalize(p)));
+            if let Ok(c) = canonicalize(p) {
+                config_roots.insert(key_of(&c));
+            }
+        }
         Protected {
             exact: set,
             trees: tree_keys,
+            system_trees,
+            config_roots,
         }
+    }
+
+    /// Is `path` inside an operating-system tree (`/usr`, `C:\Windows`, ...)?
+    pub fn in_system_tree(&self, path: &Path) -> bool {
+        let k = key_of(&normalize(path));
+        self.system_trees.iter().any(|t| key_starts_with(&k, t))
+    }
+
+    /// Why `path` may not be used as a user-defined "include" folder, if it may not.
+    /// Stricter than [`Protected::is_protected`]: user rules run without our own vetting,
+    /// so they may not reach into OS trees or wipe whole configuration/cache roots.
+    pub fn include_violation(&self, path: &Path) -> Option<&'static str> {
+        if self.is_protected(path) {
+            return Some("is a protected folder");
+        }
+        if self.in_system_tree(path) {
+            return Some("is inside an operating system folder");
+        }
+        if self.config_roots.contains(&key_of(&normalize(path))) {
+            return Some("is an application data root; choose a folder inside it");
+        }
+        None
     }
 
     /// Lexical check (the caller resolves symlinks in the parent first when it matters).
@@ -542,7 +618,9 @@ impl SafeDeleter {
             return Err(SafeError::Refused(Refusal::IsDirectory, path.to_path_buf()));
         }
         let bytes = if ft.is_file() { r.meta.len() } else { 0 };
-        if ft.is_file() {
+        // A file with several hard links is only unlinked: overwriting it would also
+        // destroy the content behind its other names.
+        if ft.is_file() && crate::features::secure_delete::link_count(&r.meta) <= 1 {
             if let Some(passes) = self.secure_passes {
                 crate::features::secure_delete::secure_delete_file(
                     &r.path,
@@ -648,6 +726,53 @@ mod tests {
             assert!(!p.is_protected(&path), "{path:?} should be allowed");
         }
         assert!(is_protected(&e, &e.home));
+    }
+
+    #[test]
+    fn user_includes_may_not_reach_into_system_trees_or_config_roots() {
+        let (_d, e) = env();
+        let p = Protected::new(&e);
+        for bad in [
+            e.sys_path("/usr/share/fonts"),
+            e.sys_path("/etc/ssh"),
+            e.sys_path("/boot/efi"),
+            e.sys_path("/usr"),
+            e.home.clone(),
+            e.home.join(".ssh/keys"),
+            e.home.join(".config"),
+            e.home.join(".local/share"),
+            e.home.join(".cache"),
+            e.config_dir.clone(),
+            e.sys_path("/"),
+        ] {
+            assert!(p.include_violation(&bad).is_some(), "{bad:?}");
+        }
+        for ok in [
+            e.home.join("scratch"),
+            e.home.join(".config/myapp/cache"),
+            e.home.join(".cache/myapp"),
+            e.home.join("Downloads/old"),
+            e.sys_path("/var/tmp/build"),
+            e.sys_path("/opt/app/cache"),
+            e.sys_path("/var/cache/myservice"),
+            e.temp_dir.join("mine"),
+        ] {
+            assert!(p.include_violation(&ok).is_none(), "{ok:?}");
+        }
+        // The Windows system trees, checked with the OS forced to Windows.
+        let (_d2, mut w) = env();
+        w.os = Os::Windows;
+        let pw = Protected::new(&w);
+        for bad in [
+            "/Windows/System32/config",
+            "/Program Files/App/x",
+            "/Program Files (x86)/A",
+        ] {
+            assert!(pw.include_violation(&w.sys_path(bad)).is_some(), "{bad}");
+        }
+        assert!(pw
+            .include_violation(&w.sys_path("/ProgramData/Vendor/cache"))
+            .is_none());
     }
 
     #[test]

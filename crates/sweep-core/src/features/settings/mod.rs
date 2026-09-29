@@ -232,8 +232,8 @@ impl Settings {
                         )));
                     }
                     let p = resolve_user_path(env, &e.path)?;
-                    if protected.is_protected(&p) {
-                        return Err(err(format!("`{}` is a protected folder", e.path)));
+                    if let Some(why) = protected.include_violation(&p) {
+                        return Err(err(format!("`{}` {why}", e.path)));
                     }
                     e.path = e.path.trim().to_string();
                     e.mask = e.mask.trim().to_string();
@@ -680,6 +680,9 @@ mod tests {
             json!({"include": [{"path": "~/.ssh"}]}),
             json!({"include": [{"path": "~/.ssh/keys"}]}), // inside .ssh
             json!({"include": [{"path": c.env.sys_path("/etc")}]}),
+            json!({"include": [{"path": c.env.sys_path("/usr/local/share")}]}),
+            json!({"include": [{"path": "~/.config"}]}),
+            json!({"include": [{"path": "~/.local/share"}]}),
             json!({"include": [{"path": "~/a/../.."}]}),
             json!({"include": [{"path": "~/a/*"}]}),
             json!({"include": [{"path": "~/a", "mask": "a/b"}]}),
