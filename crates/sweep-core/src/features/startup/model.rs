@@ -80,7 +80,7 @@ impl StartupItem {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WinHive {
     Hkcu,
     Hklm,

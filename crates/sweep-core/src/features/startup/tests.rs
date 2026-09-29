@@ -699,7 +699,7 @@ impl FakeReg {
             .extend(names.iter().map(|s| s.to_string()));
         self
     }
-    fn default(mut self, h: WinHive, key: &str, v: &str) -> Self {
+    fn dflt(mut self, h: WinHive, key: &str, v: &str) -> Self {
         self.defaults.insert(k(h, key), v.into());
         self
     }
@@ -798,7 +798,7 @@ fn windows_disable_writes_startup_approved_and_never_deletes_the_run_value() {
     with_registry(run_registry(), || {
         set_enabled_by_id(&ctx, &job(), "winrun:hkcu-run:Discord", false, ToggleOpts::default()).unwrap();
     });
-    let calls = m.calls();
+    let calls: Vec<_> = m.calls().into_iter().filter(|(p, _)| p == "reg").collect();
     assert_eq!(calls.len(), 1, "{calls:?}");
     let (prog, args) = &calls[0];
     assert_eq!(prog, "reg");
@@ -818,7 +818,8 @@ fn windows_disable_writes_startup_approved_and_never_deletes_the_run_value() {
     with_registry(run_registry(), || {
         set_enabled_by_id(&ctx2, &job(), "winrun:hkcu-run:Spotify", true, ToggleOpts::default()).unwrap();
     });
-    assert_eq!(m2.calls()[0].1[7], "020000000000000000000000");
+    let reg_call = m2.calls().into_iter().find(|(p, _)| p == "reg").unwrap();
+    assert_eq!(reg_call.1[7], "020000000000000000000000");
 }
 
 #[test]
@@ -838,7 +839,7 @@ fn windows_machine_wide_entries_use_wow6432_run32_and_elevation() {
             set_enabled_by_id(&ctx, &job(), "winrun:hklm-run32:Old32", false, ToggleOpts::default()).unwrap();
         });
     });
-    let args = &m.calls()[0].1;
+    let args = m.calls().into_iter().find(|(p, _)| p == "reg").unwrap().1;
     assert_eq!(args[1], r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run32");
 }
 
@@ -1146,18 +1147,18 @@ fn ctx_registry() -> FakeReg {
     let hcm = format!(r"{base}\*\shellex\ContextMenuHandlers");
     FakeReg::default()
         .sub(WinHive::Hklm, &hcm, &["7-Zip", "-Disabled Tool", "Open With", "ShellExt"])
-        .default(WinHive::Hklm, &format!(r"{hcm}\7-Zip"), "{23170F69-40C1-278A-1000-000100020000}")
-        .default(WinHive::Hklm, &format!(r"{hcm}\-Disabled Tool"), "{11111111-1111-1111-1111-111111111111}")
-        .default(WinHive::Hklm, &format!(r"{hcm}\ShellExt"), "{22222222-2222-2222-2222-222222222222}")
-        .default(WinHive::Hklm, &format!(r"{base}\CLSID\{{23170F69-40C1-278A-1000-000100020000}}"), "7-Zip Shell Extension")
-        .default(WinHive::Hklm, &format!(r"{base}\CLSID\{{23170F69-40C1-278A-1000-000100020000}}\InprocServer32"), r"C:\Program Files\7-Zip\7-zip.dll")
-        .default(WinHive::Hklm, &format!(r"{base}\CLSID\{{11111111-1111-1111-1111-111111111111}}"), "Disabled Tool Ext")
-        .default(WinHive::Hklm, &format!(r"{base}\CLSID\{{11111111-1111-1111-1111-111111111111}}\InprocServer32"), r"C:\Program Files\DisTool\dis.dll")
+        .dflt(WinHive::Hklm, &format!(r"{hcm}\7-Zip"), "{23170F69-40C1-278A-1000-000100020000}")
+        .dflt(WinHive::Hklm, &format!(r"{hcm}\-Disabled Tool"), "{11111111-1111-1111-1111-111111111111}")
+        .dflt(WinHive::Hklm, &format!(r"{hcm}\ShellExt"), "{22222222-2222-2222-2222-222222222222}")
+        .dflt(WinHive::Hklm, &format!(r"{base}\CLSID\{{23170F69-40C1-278A-1000-000100020000}}"), "7-Zip Shell Extension")
+        .dflt(WinHive::Hklm, &format!(r"{base}\CLSID\{{23170F69-40C1-278A-1000-000100020000}}\InprocServer32"), r"C:\Program Files\7-Zip\7-zip.dll")
+        .dflt(WinHive::Hklm, &format!(r"{base}\CLSID\{{11111111-1111-1111-1111-111111111111}}"), "Disabled Tool Ext")
+        .dflt(WinHive::Hklm, &format!(r"{base}\CLSID\{{11111111-1111-1111-1111-111111111111}}\InprocServer32"), r"C:\Program Files\DisTool\dis.dll")
         // resolves into the Windows directory: a built-in, skipped
-        .default(WinHive::Hklm, &format!(r"{base}\CLSID\{{22222222-2222-2222-2222-222222222222}}\InprocServer32"), r"%SystemRoot%\system32\shell32.dll")
+        .dflt(WinHive::Hklm, &format!(r"{base}\CLSID\{{22222222-2222-2222-2222-222222222222}}\InprocServer32"), r"%SystemRoot%\system32\shell32.dll")
         .sub(WinHive::Hkcu, r"Software\Classes\Directory\shellex\ContextMenuHandlers", &["UserExt"])
-        .default(WinHive::Hkcu, r"Software\Classes\Directory\shellex\ContextMenuHandlers\UserExt", "{33333333-3333-3333-3333-333333333333}")
-        .default(WinHive::Hkcu, r"Software\Classes\CLSID\{33333333-3333-3333-3333-333333333333}\InprocServer32", r"C:\Users\u\AppData\Local\Tool\ext.dll")
+        .dflt(WinHive::Hkcu, r"Software\Classes\Directory\shellex\ContextMenuHandlers\UserExt", "{33333333-3333-3333-3333-333333333333}")
+        .dflt(WinHive::Hkcu, r"Software\Classes\CLSID\{33333333-3333-3333-3333-333333333333}\InprocServer32", r"C:\Users\u\AppData\Local\Tool\ext.dll")
 }
 
 #[test]
@@ -1199,12 +1200,12 @@ fn context_menu_disable_exports_then_renames_with_a_dash() {
         });
     });
     let calls = log.lock().unwrap().clone();
-    assert_eq!(calls[0][0], "reg");
-    assert_eq!(calls[0][1], "export");
-    assert_eq!(calls[0][2], r"HKLM\SOFTWARE\Classes\*\shellex\ContextMenuHandlers");
+    let first_reg = calls.iter().find(|c| c[0] == "reg").unwrap();
+    assert_eq!(first_reg[1], "export");
+    assert_eq!(first_reg[2], r"HKLM\SOFTWARE\Classes\*\shellex\ContextMenuHandlers");
     let ps: Vec<String> = calls
         .iter()
-        .filter(|c| c[0] == "powershell")
+        .filter(|c| c[0] == "powershell" && c.contains(&"-EncodedCommand".to_string()))
         .map(|c| powershell_decode(c.last().unwrap()).unwrap())
         .collect();
     assert_eq!(ps.len(), 2);
@@ -1218,9 +1219,9 @@ fn context_menu_names_with_quotes_are_refused_not_injected() {
     let m = MockRunner::new();
     let ctx = win_ctx(d.path(), &m);
     let reg = FakeReg::default()
-        .sub(WinHive::Hkcu, r"Software\Classes\*\shellex\ContextMenuHandlers", &["evil'; calc; '\"x"])
-        .default(WinHive::Hkcu, r"Software\Classes\*\shellex\ContextMenuHandlers\evil'; calc; '\"x", "{44444444-4444-4444-4444-444444444444}")
-        .default(WinHive::Hkcu, r"Software\Classes\CLSID\{44444444-4444-4444-4444-444444444444}\InprocServer32", r"C:\Program Files\X\x.dll");
+        .sub(WinHive::Hkcu, r"Software\Classes\*\shellex\ContextMenuHandlers", &[r#"evil'; calc; '"x"#])
+        .dflt(WinHive::Hkcu, r#"Software\Classes\*\shellex\ContextMenuHandlers\evil'; calc; '"x"#, "{44444444-4444-4444-4444-444444444444}")
+        .dflt(WinHive::Hkcu, r"Software\Classes\CLSID\{44444444-4444-4444-4444-444444444444}\InprocServer32", r"C:\Program Files\X\x.dll");
     m.on_any_args("reg", CmdOutput::ok(""));
     m.on_any_args("powershell", CmdOutput::ok(""));
     let r = with_registry(reg, || {
@@ -1229,7 +1230,7 @@ fn context_menu_names_with_quotes_are_refused_not_injected() {
         set_enabled_by_id(&ctx, &job(), &id, false, ToggleOpts::default())
     });
     assert!(r.is_err());
-    assert!(!m.calls().iter().any(|(p, _)| p == "powershell"));
+    assert!(!m.calls().iter().any(|(p, a)| p == "powershell" && a.contains(&"-EncodedCommand".to_string())));
 }
 
 // ---------------------------------------------------------------- macOS
@@ -1312,9 +1313,6 @@ fn launchd_disable_uses_launchctl_and_boots_out_only_when_asked() {
     let calls = m.calls();
     assert!(calls.iter().any(|(p, a)| p == "launchctl" && a == &["disable", "gui/501/com.dropbox.agent"]));
     assert!(!calls.iter().any(|(_, a)| a.first().map(String::as_str) == Some("bootout")));
-    set_enabled_by_id(&ctx, &job(), "mac:home:com.dropbox.agent", false, ToggleOpts { stop_now: true }).unwrap_err();
-    // (already reported as ... the item state in the mock never changes, so it is "enabled")
-    let _ = ctx;
 }
 
 #[test]

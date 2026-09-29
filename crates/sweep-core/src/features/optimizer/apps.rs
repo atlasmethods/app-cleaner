@@ -12,7 +12,6 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
 
 use crate::ctx::{Ctx, Os};
 use crate::features::startup::impact::{base_key, exe_from_command, proc_matches};
@@ -124,7 +123,7 @@ pub fn is_session_process(p: &ProcDetail) -> bool {
 }
 
 /// Security software is never put to sleep.
-const SECURITY_EXACT: &[&str] = &["avg", "avp", "ns", "ekrn", "wrsa", "vsserv", "savservice"];
+const SECURITY_EXACT: &[&str] = &["avg", "avp", "ns", "eset", "ekrn", "wrsa", "vsserv", "savservice"];
 const SECURITY_FRAGMENTS: &[&str] = &[
     "defender",
     "msmpeng",
@@ -143,7 +142,6 @@ const SECURITY_FRAGMENTS: &[&str] = &[
     "mfemms",
     "bitdefender",
     "bdservicehost",
-    "eset",
     "sophos",
     "crowdstrike",
     "falcon-sensor",
@@ -481,10 +479,4 @@ fn pretty(key: &str) -> String {
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
         None => String::new(),
     }
-}
-
-/// Convenience for tests / callers: does `dir` look like an existing directory?
-#[allow(dead_code)]
-pub fn is_dir(p: &Path) -> bool {
-    p.is_dir()
 }

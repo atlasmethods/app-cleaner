@@ -18,6 +18,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -52,8 +53,19 @@ pub fn register(r: &mut Registry) {
     r.add("optimizer.enforce", enforce_handler);
 }
 
-/// How long a process gets to quit after being asked to. Never followed by a kill.
-pub const QUIT_WAIT: Duration = Duration::from_secs(5);
+/// How long a process gets to quit after being asked to (milliseconds). Never followed by
+/// a kill.
+static QUIT_WAIT_MS: AtomicU64 = AtomicU64::new(5000);
+
+pub fn quit_wait() -> Duration {
+    Duration::from_millis(QUIT_WAIT_MS.load(Ordering::Relaxed))
+}
+
+/// Shorten the wait (tests only).
+#[cfg(test)]
+pub fn set_quit_wait_ms(ms: u64) {
+    QUIT_WAIT_MS.store(ms, Ordering::Relaxed);
+}
 
 // ---------------------------------------------------------------- state
 
@@ -289,7 +301,7 @@ fn stop_processes(ctx: &Ctx, app: &App, job: &Job) -> (usize, usize, usize) {
         }
     }
     if delivered > 0 {
-        let left = QUIT_WAIT.saturating_sub(start.elapsed());
+        let left = quit_wait().saturating_sub(start.elapsed());
         wait_gone(ctx, &still_same(ctx), left, job);
     }
     let remaining = still_same(ctx).len();
@@ -435,7 +447,7 @@ fn sleep_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> {
                 format!(
                     "{remaining} process{} did not quit within {} seconds. They are left running; close the app yourself.",
                     if remaining == 1 { "" } else { "es" },
-                    QUIT_WAIT.as_secs()
+                    quit_wait().as_secs()
                 )
             });
         }
