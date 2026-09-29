@@ -127,7 +127,10 @@ pub fn keys_to_export(selected: &[Found]) -> Vec<(Root, String)> {
     let mut keys: Vec<(Root, String)> = Vec::new();
     for f in selected {
         if let Some((r, k)) = key_of_action(&f.action) {
-            if !keys.iter().any(|(r2, k2)| *r2 == r && k2.eq_ignore_ascii_case(k)) {
+            if !keys
+                .iter()
+                .any(|(r2, k2)| *r2 == r && k2.eq_ignore_ascii_case(k))
+            {
                 keys.push((r, k.to_string()));
             }
         }
@@ -183,7 +186,10 @@ fn fix_windows(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<
     let mut m = Manifest::new(
         KIND_REGISTRY,
         Os::Windows,
-        selected.iter().map(|f| ManifestIssue::from(&f.issue)).collect(),
+        selected
+            .iter()
+            .map(|f| ManifestIssue::from(&f.issue))
+            .collect(),
     );
     m.keys = entries;
     if let Err(e) = write_manifest(&dir, &m) {
@@ -201,15 +207,23 @@ fn fix_windows(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<
             Action::RegDeleteValue { root, key, name } => {
                 (*root, RegCmd::delete_value(&reg_path(*root, key), name))
             }
-            Action::RegDeleteKey { root, key } => (*root, RegCmd::delete_key(&reg_path(*root, key))),
+            Action::RegDeleteKey { root, key } => {
+                (*root, RegCmd::delete_key(&reg_path(*root, key)))
+            }
             _ => {
-                results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "not a registry item"));
+                results.insert(
+                    f.issue.id.clone(),
+                    IssueResult::fail(&f.issue.id, "not a registry item"),
+                );
                 continue;
             }
         };
         if cancelled || job.is_cancelled() {
             cancelled = true;
-            results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."));
+            results.insert(
+                f.issue.id.clone(),
+                IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."),
+            );
             continue;
         }
         if cmd.0 == Root::Hklm {
@@ -232,7 +246,9 @@ fn fix_windows(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<
         }
     }
     if !admin.is_empty() && !cancelled {
-        job.progress(ProgressEvent::new("fix").message("Waiting for administrator approval".to_string()));
+        job.progress(
+            ProgressEvent::new("fix").message("Waiting for administrator approval".to_string()),
+        );
         let cmds: Vec<RegCmd> = admin.iter().map(|(_, c)| c.clone()).collect();
         let rs = run_privileged_batch(ctx, &cmds);
         for ((f, _), r) in admin.iter().zip(rs) {
@@ -247,7 +263,10 @@ fn fix_windows(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<
         }
     } else {
         for (f, _) in &admin {
-            results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."));
+            results.insert(
+                f.issue.id.clone(),
+                IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."),
+            );
         }
     }
     let ordered = selected
@@ -281,7 +300,10 @@ fn fix_unix(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<Iss
     let mut m = Manifest::new(
         KIND_CONFIG,
         ctx.env.os,
-        selected.iter().map(|f| ManifestIssue::from(&f.issue)).collect(),
+        selected
+            .iter()
+            .map(|f| ManifestIssue::from(&f.issue))
+            .collect(),
     );
     let mut capture = || -> Result<()> {
         let mut done: HashSet<PathBuf> = HashSet::new();
@@ -317,7 +339,10 @@ fn fix_unix(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<Iss
         abandon(ctx, &id);
         return Err(ApiError::new(
             e.code,
-            format!("Could not back up first, so nothing was changed. {}", e.message),
+            format!(
+                "Could not back up first, so nothing was changed. {}",
+                e.message
+            ),
         ));
     }
 
@@ -342,7 +367,10 @@ fn fix_unix(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<Iss
             Action::MimeRemove { file, .. } => mime.entry(file.clone()).or_default().push(f),
             Action::RemovePackage { .. } => packages.push(f),
             _ => {
-                results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "not a file item"));
+                results.insert(
+                    f.issue.id.clone(),
+                    IssueResult::fail(&f.issue.id, "not a file item"),
+                );
             }
         }
     }
@@ -356,7 +384,10 @@ fn fix_unix(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<Iss
     if !system_files.is_empty() {
         if job.is_cancelled() {
             for f in &system_files {
-                results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."));
+                results.insert(
+                    f.issue.id.clone(),
+                    IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."),
+                );
             }
         } else {
             remove_system_files(ctx, &system_files, &mut results);
@@ -367,7 +398,10 @@ fn fix_unix(ctx: &Ctx, selected: &[Found], job: &Job) -> Result<(String, Vec<Iss
     if !packages.is_empty() {
         if job.is_cancelled() {
             for f in &packages {
-                results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."));
+                results.insert(
+                    f.issue.id.clone(),
+                    IssueResult::fail(&f.issue.id, "Cancelled before this item was changed."),
+                );
             }
         } else {
             remove_packages(ctx, &packages, &mut results);
@@ -452,8 +486,7 @@ fn edit_mimeapps(file: &Path, items: &[&Found], results: &mut HashMap<String, Is
         return fail_all(results, NOT_IN_SCAN);
     }
     if new != content {
-        let write = atomic_write(file, new.as_bytes())
-            .and_then(|_| restore_mode(file, &meta));
+        let write = atomic_write(file, new.as_bytes()).and_then(|_| restore_mode(file, &meta));
         if let Err(e) = write {
             return fail_all(results, &format!("could not write the file: {e}"));
         }
@@ -539,9 +572,9 @@ fn remove_packages(ctx: &Ctx, items: &[&Found], results: &mut HashMap<String, Is
         let group: Vec<(&Found, &str)> = items
             .iter()
             .filter_map(|f| match &f.action {
-                Action::RemovePackage { manager, package, .. } if *manager == mgr => {
-                    Some((*f, package.as_str()))
-                }
+                Action::RemovePackage {
+                    manager, package, ..
+                } if *manager == mgr => Some((*f, package.as_str())),
                 _ => None,
             })
             .collect();
@@ -553,7 +586,10 @@ fn remove_packages(ctx: &Ctx, items: &[&Found], results: &mut HashMap<String, Is
             if valid_pkg_name(n) {
                 names.push(n);
             } else {
-                results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, "unsafe package name"));
+                results.insert(
+                    f.issue.id.clone(),
+                    IssueResult::fail(&f.issue.id, "unsafe package name"),
+                );
             }
         }
         if names.is_empty() {
@@ -562,7 +598,10 @@ fn remove_packages(ctx: &Ctx, items: &[&Found], results: &mut HashMap<String, Is
         let fail_group = |results: &mut HashMap<String, IssueResult>, msg: String| {
             for (f, n) in &group {
                 if names.contains(n) {
-                    results.insert(f.issue.id.clone(), IssueResult::fail(&f.issue.id, msg.clone()));
+                    results.insert(
+                        f.issue.id.clone(),
+                        IssueResult::fail(&f.issue.id, msg.clone()),
+                    );
                 }
             }
         };
@@ -581,13 +620,19 @@ fn remove_packages(ctx: &Ctx, items: &[&Found], results: &mut HashMap<String, Is
                     if !extra.is_empty() {
                         fail_group(
                             results,
-                            format!("Removing these would also remove: {}. Nothing was removed.", extra.join(", ")),
+                            format!(
+                                "Removing these would also remove: {}. Nothing was removed.",
+                                extra.join(", ")
+                            ),
                         );
                         continue;
                     }
                 }
                 Ok(o) => {
-                    fail_group(results, format!("apt could not plan the removal: {}", summarize(&o)));
+                    fail_group(
+                        results,
+                        format!("apt could not plan the removal: {}", summarize(&o)),
+                    );
                     continue;
                 }
                 Err(e) => {

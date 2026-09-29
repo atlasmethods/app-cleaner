@@ -140,8 +140,8 @@ pub struct RealRegistry;
 mod real {
     use super::*;
     use winreg::enums::{
-        HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_64KEY, REG_DWORD,
-        REG_EXPAND_SZ, REG_SZ,
+        HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WOW64_64KEY, REG_DWORD, REG_EXPAND_SZ,
+        REG_SZ,
     };
     use winreg::types::FromRegValue;
     use winreg::RegKey;

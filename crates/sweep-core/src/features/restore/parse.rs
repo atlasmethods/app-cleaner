@@ -29,7 +29,14 @@ pub fn wmi_date_to_iso(s: &str) -> Option<String> {
         return None;
     }
     let n = |r: std::ops::Range<usize>| s.get(r)?.parse::<u32>().ok();
-    let (y, mo, d, h, mi, se) = (n(0..4)?, n(4..6)?, n(6..8)?, n(8..10)?, n(10..12)?, n(12..14)?);
+    let (y, mo, d, h, mi, se) = (
+        n(0..4)?,
+        n(4..6)?,
+        n(6..8)?,
+        n(8..10)?,
+        n(10..12)?,
+        n(12..14)?,
+    );
     let sign = match s.as_bytes().get(21)? {
         b'+' => 1i32,
         b'-' => -1i32,
@@ -48,9 +55,15 @@ pub fn wmi_date_to_iso(s: &str) -> Option<String> {
 /// PowerShell 5's `/Date(1700000000000)/` form.
 fn ms_date_to_iso(s: &str) -> Option<String> {
     let inner = s.trim().strip_prefix("/Date(")?.strip_suffix(")/")?;
-    let digits: String = inner.chars().take_while(|c| c.is_ascii_digit() || *c == '-').collect();
+    let digits: String = inner
+        .chars()
+        .take_while(|c| c.is_ascii_digit() || *c == '-')
+        .collect();
     let ms: i64 = digits.parse().ok()?;
-    OffsetDateTime::from_unix_timestamp(ms / 1000).ok()?.format(&Rfc3339).ok()
+    OffsetDateTime::from_unix_timestamp(ms / 1000)
+        .ok()?
+        .format(&Rfc3339)
+        .ok()
 }
 
 fn restore_point_type(n: i64) -> Option<&'static str> {
@@ -80,15 +93,16 @@ pub fn parse_windows_points(json: &str) -> Vec<RawPoint> {
     };
     let mut out = Vec::new();
     for it in items {
-        let Some(seq) = it
-            .get("SequenceNumber")
-            .and_then(|s| s.as_i64().or_else(|| s.as_str().and_then(|x| x.trim().parse().ok())))
-        else {
+        let Some(seq) = it.get("SequenceNumber").and_then(|s| {
+            s.as_i64()
+                .or_else(|| s.as_str().and_then(|x| x.trim().parse().ok()))
+        }) else {
             continue;
         };
-        let created = it.get("CreationTime").and_then(|c| c.as_str()).and_then(|c| {
-            wmi_date_to_iso(c).or_else(|| ms_date_to_iso(c))
-        });
+        let created = it
+            .get("CreationTime")
+            .and_then(|c| c.as_str())
+            .and_then(|c| wmi_date_to_iso(c).or_else(|| ms_date_to_iso(c)));
         out.push(RawPoint {
             key: seq.to_string(),
             description: it
@@ -200,7 +214,8 @@ pub fn parse_snapper_configs(out: &str) -> Vec<String> {
         let c = cells(line);
         if let Some(n) = c.first() {
             if !n.is_empty()
-                && n.chars().all(|ch| ch.is_ascii_alphanumeric() || "_-.".contains(ch))
+                && n.chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || "_-.".contains(ch))
                 && !n.starts_with('-')
             {
                 names.push((*n).to_string());
@@ -212,7 +227,9 @@ pub fn parse_snapper_configs(out: &str) -> Vec<String> {
 
 /// `snapper --iso list`: skips the separator rows and snapshot 0 ("current").
 pub fn parse_snapper_list(config: &str, out: &str) -> Vec<RawPoint> {
-    let mut idx: Option<(usize, Option<usize>, Option<usize>, Option<usize>)> = None; // (#, date, description, type)
+    // column indexes of (date, description, type), known once the header row was seen
+    type Cols = (Option<usize>, Option<usize>, Option<usize>);
+    let mut idx: Option<Cols> = None;
     let mut v = Vec::new();
     for line in out.lines() {
         if !line.contains('|') || is_separator(line) {
@@ -222,11 +239,11 @@ pub fn parse_snapper_list(config: &str, out: &str) -> Vec<RawPoint> {
         if idx.is_none() {
             if c.first().is_some_and(|h| h.starts_with('#')) {
                 let find = |name: &str| c.iter().position(|h| h.eq_ignore_ascii_case(name));
-                idx = Some((0, find("Date"), find("Description"), find("Type")));
+                idx = Some((find("Date"), find("Description"), find("Type")));
             }
             continue;
         }
-        let (_, date_i, desc_i, type_i) = idx.unwrap();
+        let (date_i, desc_i, type_i) = idx.unwrap();
         // "1*" (default snapshot), "3-" (active), "4+" : strip the marker
         let num_text = c[0].trim_end_matches(['*', '-', '+']).trim();
         let Ok(num) = num_text.parse::<u32>() else {
@@ -240,7 +257,11 @@ pub fn parse_snapper_list(config: &str, out: &str) -> Vec<RawPoint> {
         let ty = type_i.and_then(|i| c.get(i)).copied().unwrap_or("");
         v.push(RawPoint {
             key: format!("{config}:{num}"),
-            description: desc_i.and_then(|i| c.get(i)).copied().unwrap_or("").to_string(),
+            description: desc_i
+                .and_then(|i| c.get(i))
+                .copied()
+                .unwrap_or("")
+                .to_string(),
             created_at: created,
             order: num as i128,
             note: (!ty.is_empty()).then(|| ty.to_string()),
@@ -262,8 +283,13 @@ fn iso_from_snapper_date(s: &str) -> Option<String> {
         && tb.len() >= 8
         && tb[2] == b':'
         && tb[5] == b':'
-        && d.bytes().enumerate().all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
-        && t.trim()[..8].bytes().enumerate().all(|(i, b)| i == 2 || i == 5 || b.is_ascii_digit());
+        && d.bytes()
+            .enumerate()
+            .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
+        && t.trim()[..8]
+            .bytes()
+            .enumerate()
+            .all(|(i, b)| i == 2 || i == 5 || b.is_ascii_digit());
     ok.then(|| format!("{d}T{}", &t.trim()[..8]))
 }
 
@@ -287,7 +313,13 @@ pub fn parse_tmutil(out: &str) -> Vec<RawPoint> {
         if !ok {
             continue;
         }
-        let iso = format!("{}T{}:{}:{}", &date[..10], &date[11..13], &date[13..15], &date[15..17]);
+        let iso = format!(
+            "{}T{}:{}:{}",
+            &date[..10],
+            &date[11..13],
+            &date[13..15],
+            &date[15..17]
+        );
         let num: String = date.chars().filter(char::is_ascii_digit).collect();
         v.push(RawPoint {
             key: date.to_string(),
@@ -318,10 +350,21 @@ mod tests {
             wmi_date_to_iso("20240615083000.000000-480").as_deref(),
             Some("2024-06-15T08:30:00-08:00")
         );
-        for bad in ["", "2024", "not a date at all....", "20241301120000.000000-000", "20240230120000.000000-000", "20240101250000.000000-000", "20240101120000.000000*000"] {
+        for bad in [
+            "",
+            "2024",
+            "not a date at all....",
+            "20241301120000.000000-000",
+            "20240230120000.000000-000",
+            "20240101250000.000000-000",
+            "20240101120000.000000*000",
+        ] {
             assert_eq!(wmi_date_to_iso(bad), None, "{bad}");
         }
-        assert_eq!(ms_date_to_iso("/Date(1700000000000)/").as_deref(), Some("2023-11-14T22:13:20Z"));
+        assert_eq!(
+            ms_date_to_iso("/Date(1700000000000)/").as_deref(),
+            Some("2023-11-14T22:13:20Z")
+        );
         assert_eq!(ms_date_to_iso("/Date(x)/"), None);
     }
 
@@ -344,7 +387,9 @@ mod tests {
     #[test]
     fn windows_json_single_object_and_odd_inputs() {
         // ConvertTo-Json unwraps a one-element result
-        let p = parse_windows_points(r#"{"SequenceNumber": 7, "Description": "Only one", "CreationTime": "20240301000000.000000-000", "RestorePointType": 13}"#);
+        let p = parse_windows_points(
+            r#"{"SequenceNumber": 7, "Description": "Only one", "CreationTime": "20240301000000.000000-000", "RestorePointType": 13}"#,
+        );
         assert_eq!(p.len(), 1);
         assert_eq!(p[0].key, "7");
         assert_eq!(p[0].note.as_deref(), Some("Cancelled operation"));
@@ -354,7 +399,9 @@ mod tests {
         assert!(parse_windows_points("not json").is_empty());
         assert!(parse_windows_points("\u{feff}[]").is_empty());
         // missing pieces are tolerated, an entry without a sequence number is dropped
-        let p = parse_windows_points(r#"[{"SequenceNumber":"9"},{"Description":"no seq"},{"SequenceNumber":10,"CreationTime":"/Date(1700000000000)/"}]"#);
+        let p = parse_windows_points(
+            r#"[{"SequenceNumber":"9"},{"Description":"no seq"},{"SequenceNumber":10,"CreationTime":"/Date(1700000000000)/"}]"#,
+        );
         assert_eq!(p.len(), 2);
         assert_eq!(p[0].key, "9");
         assert_eq!(p[0].description, "");

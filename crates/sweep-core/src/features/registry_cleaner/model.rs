@@ -119,35 +119,173 @@ const fn cat(
 }
 
 pub const WINDOWS_CATEGORIES: &[CategoryInfo] = &[
-    cat("shared_dlls", "Missing shared DLLs", "Shared libraries whose file no longer exists", Severity::Low, true),
-    cat("file_extensions", "Unused file extensions", "File types that point to nothing", Severity::Low, true),
-    cat("activex", "ActiveX and COM", "Components whose program file is gone", Severity::Low, true),
-    cat("type_libs", "Type libraries", "Type libraries whose file is gone", Severity::Low, true),
-    cat("applications", "Applications", "Program entries whose executable is gone", Severity::Low, true),
-    cat("fonts", "Fonts", "Font entries whose font file is gone", Severity::Low, true),
-    cat("app_paths", "Application paths", "Program locations that no longer exist", Severity::Low, true),
-    cat("help_files", "Help files", "Help entries whose file is gone", Severity::Low, true),
-    cat("installer", "Installer", "Installer folders that no longer exist", Severity::Low, true),
-    cat("obsolete_software", "Obsolete software", "Uninstall entries of programs that are gone", Severity::Medium, false),
-    cat("startup", "Startup entries", "Programs set to start with Windows that are gone", Severity::Low, true),
-    cat("menu_order", "Start menu ordering", "Sort order of Start menu folders that no longer exist", Severity::Low, true),
-    cat("mui_cache", "MUI cache", "Cached names of programs that are gone", Severity::Low, true),
-    cat("sound_events", "Sound events", "Sounds assigned to files that are gone", Severity::Low, true),
-    cat("services", "Windows services", "Services whose program is gone", Severity::Medium, false),
+    cat(
+        "shared_dlls",
+        "Missing shared DLLs",
+        "Shared libraries whose file no longer exists",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "file_extensions",
+        "Unused file extensions",
+        "File types that point to nothing",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "activex",
+        "ActiveX and COM",
+        "Components whose program file is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "type_libs",
+        "Type libraries",
+        "Type libraries whose file is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "applications",
+        "Applications",
+        "Program entries whose executable is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "fonts",
+        "Fonts",
+        "Font entries whose font file is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "app_paths",
+        "Application paths",
+        "Program locations that no longer exist",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "help_files",
+        "Help files",
+        "Help entries whose file is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "installer",
+        "Installer",
+        "Installer folders that no longer exist",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "obsolete_software",
+        "Obsolete software",
+        "Uninstall entries of programs that are gone",
+        Severity::Medium,
+        false,
+    ),
+    cat(
+        "startup",
+        "Startup entries",
+        "Programs set to start with Windows that are gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "menu_order",
+        "Start menu ordering",
+        "Sort order of Start menu folders that no longer exist",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "mui_cache",
+        "MUI cache",
+        "Cached names of programs that are gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "sound_events",
+        "Sound events",
+        "Sounds assigned to files that are gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "services",
+        "Windows services",
+        "Services whose program is gone",
+        Severity::Medium,
+        false,
+    ),
 ];
 
 pub const LINUX_CATEGORIES: &[CategoryInfo] = &[
-    cat("desktop_entries", "Broken launchers", "Application launchers whose program is gone", Severity::Low, true),
-    cat("autostart", "Broken autostart entries", "Autostart entries whose program is gone", Severity::Low, true),
-    cat("broken_symlinks", "Broken links", "Symbolic links pointing to nothing", Severity::Low, true),
-    cat("mime_associations", "File associations", "Default applications that are no longer installed", Severity::Low, true),
-    cat("user_services", "Stale user services", "systemd user services whose program is gone", Severity::Low, true),
-    cat("orphaned_packages", "Orphaned packages", "Packages nothing depends on any more", Severity::Medium, false),
+    cat(
+        "desktop_entries",
+        "Broken launchers",
+        "Application launchers whose program is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "autostart",
+        "Broken autostart entries",
+        "Autostart entries whose program is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "broken_symlinks",
+        "Broken links",
+        "Symbolic links pointing to nothing",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "mime_associations",
+        "File associations",
+        "Default applications that are no longer installed",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "user_services",
+        "Stale user services",
+        "systemd user services whose program is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "orphaned_packages",
+        "Orphaned packages",
+        "Packages nothing depends on any more",
+        Severity::Medium,
+        false,
+    ),
 ];
 
 pub const MACOS_CATEGORIES: &[CategoryInfo] = &[
-    cat("launch_agents", "Broken launch agents", "Launch agents whose program is gone", Severity::Low, true),
-    cat("broken_symlinks", "Broken links", "Symbolic links pointing to nothing", Severity::Low, true),
+    cat(
+        "launch_agents",
+        "Broken launch agents",
+        "Launch agents whose program is gone",
+        Severity::Low,
+        true,
+    ),
+    cat(
+        "broken_symlinks",
+        "Broken links",
+        "Symbolic links pointing to nothing",
+        Severity::Low,
+        true,
+    ),
 ];
 
 pub fn categories_for(os: crate::ctx::Os) -> &'static [CategoryInfo] {
@@ -221,6 +359,7 @@ impl Found {
     }
 
     /// A file-system issue.
+    #[allow(clippy::too_many_arguments)]
     pub fn file(
         category: &str,
         description: String,

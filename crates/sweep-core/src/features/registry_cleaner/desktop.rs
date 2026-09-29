@@ -168,7 +168,8 @@ fn is_env_assignment(a: &str) -> bool {
     match a.split_once('=') {
         Some((k, _)) => {
             let mut c = k.chars();
-            c.next().is_some_and(|f| f.is_ascii_alphabetic() || f == '_')
+            c.next()
+                .is_some_and(|f| f.is_ascii_alphabetic() || f == '_')
                 && c.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
         }
         None => false,
@@ -179,7 +180,9 @@ pub fn is_flatpak_app_id(s: &str) -> bool {
     s.len() <= 255
         && s.contains('.')
         && s.split('.').all(|p| {
-            !p.is_empty() && p.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+            !p.is_empty()
+                && p.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
         })
 }
 
@@ -190,9 +193,7 @@ pub fn exec_target(args: &[String]) -> ExecTarget {
         i = 1;
         while i < args.len() {
             let a = &args[i];
-            if a == "-i" || a == "--ignore-environment" {
-                i += 1;
-            } else if is_env_assignment(a) {
+            if a == "-i" || a == "--ignore-environment" || is_env_assignment(a) {
                 i += 1;
             } else if a.starts_with('-') {
                 return ExecTarget::Unknown; // -u, -S, -C, ...: not judged
@@ -210,7 +211,10 @@ pub fn exec_target(args: &[String]) -> ExecTarget {
             if a.starts_with("--") && a.contains('=') {
                 continue;
             }
-            if matches!(a.as_str(), "--user" | "--system" | "--devel" | "-d" | "--sandbox") {
+            if matches!(
+                a.as_str(),
+                "--user" | "--system" | "--devel" | "-d" | "--sandbox"
+            ) {
                 continue;
             }
             if a.starts_with('-') {
@@ -254,14 +258,20 @@ mod tests {
         assert_eq!(e.try_exec.as_deref(), Some("/usr/bin/foo"));
         assert_eq!(e.path.as_deref(), Some("/opt/foo"));
         // first definition wins
-        assert_eq!(parse("[Desktop Entry]\nExec=a\nExec=b\n").exec.as_deref(), Some("a"));
+        assert_eq!(
+            parse("[Desktop Entry]\nExec=a\nExec=b\n").exec.as_deref(),
+            Some("a")
+        );
         assert_eq!(parse("Exec=a\n").exec, None);
     }
 
     #[test]
     fn field_codes_are_placeholders() {
         assert_eq!(args("foo %U"), ["foo"]);
-        assert_eq!(args("foo %f %F %u %d %D %n %N %i %c %k %v %m --x"), ["foo", "--x"]);
+        assert_eq!(
+            args("foo %f %F %u %d %D %n %N %i %c %k %v %m --x"),
+            ["foo", "--x"]
+        );
         assert_eq!(args("foo --file=%f"), ["foo", "--file="]);
         assert_eq!(args("foo 100%% sure"), ["foo", "100%", "sure"]);
         assert_eq!(args("foo --icon %i --name %c"), ["foo", "--icon", "--name"]);
@@ -269,8 +279,14 @@ mod tests {
 
     #[test]
     fn quoting_and_escapes() {
-        assert_eq!(args(r#""/opt/My App/bin/app" --flag %F"#), ["/opt/My App/bin/app", "--flag"]);
-        assert_eq!(args(r#"sh -c "echo \"hi\" \$HOME""#), ["sh", "-c", r#"echo "hi" $HOME"#]);
+        assert_eq!(
+            args(r#""/opt/My App/bin/app" --flag %F"#),
+            ["/opt/My App/bin/app", "--flag"]
+        );
+        assert_eq!(
+            args(r#"sh -c "echo \"hi\" \$HOME""#),
+            ["sh", "-c", r#"echo "hi" $HOME"#]
+        );
         // the value-level `\s` is applied first, so it can be part of a quoted argument...
         assert_eq!(args(r#""/opt/a\sb/app" x"#), ["/opt/a b/app", "x"]);
         // ...and separates arguments when it is not quoted
@@ -285,8 +301,14 @@ mod tests {
     #[test]
     fn env_wrapper() {
         let t = |s: &str| exec_target(&args(s));
-        assert_eq!(t("env FOO=bar /usr/bin/prog %U"), ExecTarget::Program("/usr/bin/prog".into()));
-        assert_eq!(t("/usr/bin/env A=1 B=2 prog"), ExecTarget::Program("prog".into()));
+        assert_eq!(
+            t("env FOO=bar /usr/bin/prog %U"),
+            ExecTarget::Program("/usr/bin/prog".into())
+        );
+        assert_eq!(
+            t("/usr/bin/env A=1 B=2 prog"),
+            ExecTarget::Program("prog".into())
+        );
         assert_eq!(t("env -i A=1 prog"), ExecTarget::Program("prog".into()));
         assert_eq!(t("env -u FOO prog"), ExecTarget::Unknown);
         assert_eq!(t("env"), ExecTarget::Unknown);
@@ -301,12 +323,18 @@ mod tests {
             t("/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=gimp org.gimp.GIMP @@u %U @@"),
             ExecTarget::Flatpak("org.gimp.GIMP".into())
         );
-        assert_eq!(t("flatpak run org.mozilla.firefox"), ExecTarget::Flatpak("org.mozilla.firefox".into()));
+        assert_eq!(
+            t("flatpak run org.mozilla.firefox"),
+            ExecTarget::Flatpak("org.mozilla.firefox".into())
+        );
         assert_eq!(t("flatpak run --command foo org.x.Y"), ExecTarget::Unknown);
         assert_eq!(t("flatpak run notanid"), ExecTarget::Unknown);
         assert_eq!(t("flatpak run"), ExecTarget::Unknown);
         assert_eq!(t("flatpak list"), ExecTarget::Program("flatpak".into()));
-        assert_eq!(t("env BAMF_DESKTOP_FILE_HINT=/x.desktop /snap/bin/foo %U"), ExecTarget::Program("/snap/bin/foo".into()));
+        assert_eq!(
+            t("env BAMF_DESKTOP_FILE_HINT=/x.desktop /snap/bin/foo %U"),
+            ExecTarget::Program("/snap/bin/foo".into())
+        );
         assert_eq!(t("snap run foo"), ExecTarget::Program("snap".into()));
         assert!(is_flatpak_app_id("org.gimp.GIMP"));
         assert!(!is_flatpak_app_id("gimp"));

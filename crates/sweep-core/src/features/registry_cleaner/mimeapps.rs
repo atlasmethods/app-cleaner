@@ -138,7 +138,11 @@ mod tests {
             SAMPLE,
             &[
                 r("Default Applications", "image/png", "gone.desktop"),
-                r("Default Applications", "x-scheme-handler/http", "gone.desktop"),
+                r(
+                    "Default Applications",
+                    "x-scheme-handler/http",
+                    "gone.desktop",
+                ),
                 r("Added Associations", "text/plain", "gone.desktop"),
             ],
         );
@@ -151,11 +155,17 @@ mod tests {
 
     #[test]
     fn same_mime_in_another_section_is_untouched() {
-        let (out, n) = remove_ids(SAMPLE, &[r("Removed Associations", "text/html", "gone.desktop")]);
+        let (out, n) = remove_ids(
+            SAMPLE,
+            &[r("Removed Associations", "text/html", "gone.desktop")],
+        );
         assert_eq!(n, 1);
         assert!(!out.contains("text/html"));
         assert!(out.contains("text/plain=gone.desktop;gedit.desktop;"));
-        let (same, n) = remove_ids(SAMPLE, &[r("Default Applications", "text/html", "gone.desktop")]);
+        let (same, n) = remove_ids(
+            SAMPLE,
+            &[r("Default Applications", "text/html", "gone.desktop")],
+        );
         assert_eq!((same.as_str(), n), (SAMPLE, 0));
     }
 
@@ -164,12 +174,18 @@ mod tests {
         let src = "[Default Applications]\r\na/b=x.desktop;y.desktop\r\nc/d=z.desktop";
         let (out, n) = remove_ids(
             src,
-            &[r("Default Applications", "a/b", "y.desktop"), r("Default Applications", "c/d", "z.desktop")],
+            &[
+                r("Default Applications", "a/b", "y.desktop"),
+                r("Default Applications", "c/d", "z.desktop"),
+            ],
         );
         assert_eq!(n, 2);
         assert_eq!(out, "[Default Applications]\r\na/b=x.desktop\r\n");
         let (out, _) = remove_ids(src, &[r("Default Applications", "a/b", "x.desktop")]);
-        assert_eq!(out, "[Default Applications]\r\na/b=y.desktop\r\nc/d=z.desktop");
+        assert_eq!(
+            out,
+            "[Default Applications]\r\na/b=y.desktop\r\nc/d=z.desktop"
+        );
     }
 
     #[test]

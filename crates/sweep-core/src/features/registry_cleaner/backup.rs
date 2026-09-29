@@ -152,7 +152,7 @@ pub fn valid_backup_id(id: &str) -> bool {
     };
     let mut it = rest.split('-');
     let (first, second, third) = (it.next(), it.next(), it.next());
-    first.is_some_and(digits) && second.map_or(true, digits) && third.is_none()
+    first.is_some_and(digits) && second.is_none_or(digits) && third.is_none()
 }
 
 /// Every name in the backups folder that ClearSweep creates, and what it is.
@@ -180,7 +180,7 @@ pub fn classify_name(name: &str) -> Option<BackupKind> {
     {
         let mut it = rest.split('-');
         let (first, second, third) = (it.next(), it.next(), it.next());
-        if first.is_some_and(digits) && second.map_or(true, digits) && third.is_none() {
+        if first.is_some_and(digits) && second.is_none_or(digits) && third.is_none() {
             return Some(BackupKind::UninstallEntry);
         }
     }
@@ -241,17 +241,23 @@ fn backup_deleter(ctx: &Ctx) -> Result<SafeDeleter> {
 /// Remove one backup (folder or file) created by ClearSweep, by name.
 pub fn delete_backup_entry(ctx: &Ctx, name: &str) -> Result<u64> {
     if classify_name(name).is_none() {
-        return Err(ApiError::invalid_params(format!("`{name}` is not a ClearSweep backup")));
+        return Err(ApiError::invalid_params(format!(
+            "`{name}` is not a ClearSweep backup"
+        )));
     }
     let path = backups_dir(ctx).join(name);
     let meta = fs::symlink_metadata(&path)
         .map_err(|_| ApiError::not_found(format!("backup `{name}` does not exist")))?;
     if meta.file_type().is_symlink() {
-        return Err(ApiError::permission_denied("refusing to delete a symbolic link"));
+        return Err(ApiError::permission_denied(
+            "refusing to delete a symbolic link",
+        ));
     }
     let deleter = backup_deleter(ctx)?;
     let mut freed = 0u64;
-    let fail = |e: crate::safety::SafeError, p: &Path| ApiError::io(format!("{}: {}", p.display(), e.message()));
+    let fail = |e: crate::safety::SafeError, p: &Path| {
+        ApiError::io(format!("{}: {}", p.display(), e.message()))
+    };
     if meta.is_dir() {
         // contents first, then the folders themselves
         for e in walkdir::WalkDir::new(&path)
@@ -261,9 +267,13 @@ pub fn delete_backup_entry(ctx: &Ctx, name: &str) -> Result<u64> {
             .filter_map(|e| e.ok())
         {
             if e.file_type().is_dir() {
-                deleter.remove_empty_dir(e.path()).map_err(|er| fail(er, e.path()))?;
+                deleter
+                    .remove_empty_dir(e.path())
+                    .map_err(|er| fail(er, e.path()))?;
             } else {
-                freed += deleter.remove_file(e.path()).map_err(|er| fail(er, e.path()))?;
+                freed += deleter
+                    .remove_file(e.path())
+                    .map_err(|er| fail(er, e.path()))?;
             }
         }
     } else {
@@ -339,7 +349,9 @@ fn make_symlink(target: &str, link: &Path) -> std::io::Result<()> {
 }
 #[cfg(not(unix))]
 fn make_symlink(_target: &str, _link: &Path) -> std::io::Result<()> {
-    Err(std::io::Error::other("symbolic links are not supported here"))
+    Err(std::io::Error::other(
+        "symbolic links are not supported here",
+    ))
 }
 
 /// Copy `src` (a regular file or a symlink) into the backup and describe it. Directories and
@@ -372,7 +384,10 @@ pub fn capture_path(ctx: &Ctx, dir: &Path, index: usize, src: &Path) -> Result<F
     fs::copy(src, &dest)?;
     // The copy must be byte-identical before we let anything be deleted.
     if fs::metadata(&dest)?.len() != meta.len() {
-        return Err(ApiError::io(format!("could not copy {} completely", src.display())));
+        return Err(ApiError::io(format!(
+            "could not copy {} completely",
+            src.display()
+        )));
     }
     Ok(FileEntry {
         original_path,
@@ -425,14 +440,18 @@ fn item(target: impl Into<String>, r: std::result::Result<(), String>) -> Restor
 /// the few system folders the cleaner works on. The manifest is data on disk, so its paths are
 /// validated again instead of trusted.
 pub fn restore_path_allowed(ctx: &Ctx, p: &Path) -> bool {
-    if !p.is_absolute() || p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+    if !p.is_absolute()
+        || p.components()
+            .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
         return false;
     }
     if crate::safety::is_protected(&ctx.env, p) {
         return false;
     }
     if p.starts_with(&ctx.env.home) {
-        return !(p.starts_with(ctx.env.home.join(".ssh")) || p.starts_with(ctx.env.home.join(".gnupg")));
+        return !(p.starts_with(ctx.env.home.join(".ssh"))
+            || p.starts_with(ctx.env.home.join(".gnupg")));
     }
     [
         "/usr/share/applications",
@@ -450,7 +469,10 @@ fn restore_user_file(dir: &Path, e: &FileEntry, dest: &Path) -> std::result::Res
     }
     match e.kind.as_str() {
         "file" => {
-            let stored = e.stored.as_deref().ok_or("the backup has no copy of this file")?;
+            let stored = e
+                .stored
+                .as_deref()
+                .ok_or("the backup has no copy of this file")?;
             if stored.contains("..") || stored.starts_with('/') {
                 return Err("the backup entry is damaged".into());
             }
@@ -466,7 +488,10 @@ fn restore_user_file(dir: &Path, e: &FileEntry, dest: &Path) -> std::result::Res
             Ok(())
         }
         "symlink" => {
-            let target = e.link_target.as_deref().ok_or("the backup has no link target")?;
+            let target = e
+                .link_target
+                .as_deref()
+                .ok_or("the backup has no link target")?;
             match fs::symlink_metadata(dest) {
                 Ok(m) if m.file_type().is_symlink() => {
                     if fs::read_link(dest).ok().as_deref() == Some(Path::new(target)) {
@@ -483,11 +508,19 @@ fn restore_user_file(dir: &Path, e: &FileEntry, dest: &Path) -> std::result::Res
     }
 }
 
-fn restore_system_file(ctx: &Ctx, dir: &Path, e: &FileEntry, dest: &Path) -> std::result::Result<(), String> {
+fn restore_system_file(
+    ctx: &Ctx,
+    dir: &Path,
+    e: &FileEntry,
+    dest: &Path,
+) -> std::result::Result<(), String> {
     let dest_s = dest.to_string_lossy().into_owned();
     let out = match e.kind.as_str() {
         "file" => {
-            let stored = e.stored.as_deref().ok_or("the backup has no copy of this file")?;
+            let stored = e
+                .stored
+                .as_deref()
+                .ok_or("the backup has no copy of this file")?;
             if stored.contains("..") || stored.starts_with('/') {
                 return Err("the backup entry is damaged".into());
             }
@@ -496,7 +529,10 @@ fn restore_system_file(ctx: &Ctx, dir: &Path, e: &FileEntry, dest: &Path) -> std
             run_privileged(ctx, "install", &["-m", &mode, &src, &dest_s])
         }
         "symlink" => {
-            let target = e.link_target.as_deref().ok_or("the backup has no link target")?;
+            let target = e
+                .link_target
+                .as_deref()
+                .ok_or("the backup has no link target")?;
             if target.starts_with('-') && !target.contains('/') {
                 return Err("unsafe link target".into());
             }
@@ -543,7 +579,9 @@ fn restore_packages(ctx: &Ctx, packages: &[PackageEntry]) -> Vec<RestoreItem> {
 /// Put everything in backup `id` back.
 pub fn restore(ctx: &Ctx, id: &str, job: &Job) -> Result<RestoreOutcome> {
     if !valid_backup_id(id) {
-        return Err(ApiError::invalid_params(format!("`{id}` is not a backup id")));
+        return Err(ApiError::invalid_params(format!(
+            "`{id}` is not a backup id"
+        )));
     }
     let dir = backups_dir(ctx).join(id);
     if fs::symlink_metadata(&dir).is_err() {
@@ -598,7 +636,10 @@ pub fn restore(ctx: &Ctx, id: &str, job: &Job) -> Result<RestoreOutcome> {
         job.check_cancelled()?;
         let dest = PathBuf::from(&e.original_path);
         if !restore_path_allowed(ctx, &dest) {
-            results.push(item(&e.original_path, Err("this location is not one ClearSweep restores to".into())));
+            results.push(item(
+                &e.original_path,
+                Err("this location is not one ClearSweep restores to".into()),
+            ));
             continue;
         }
         let r = if is_user_path(ctx, &dest) {
@@ -639,12 +680,25 @@ mod tests {
 
     #[test]
     fn backup_id_validation() {
-        for ok in ["registry-1700000000", "config-1700000000", "config-1700000000-3"] {
+        for ok in [
+            "registry-1700000000",
+            "config-1700000000",
+            "config-1700000000-3",
+        ] {
             assert!(valid_backup_id(ok), "{ok}");
         }
         for bad in [
-            "", "registry-", "registry-x", "config-1-", "config-1-2-3", "config-1/../x", "../config-1", "uninstall-1.reg",
-            "registry-1700000000000000", "config--1", "Config-1",
+            "",
+            "registry-",
+            "registry-x",
+            "config-1-",
+            "config-1-2-3",
+            "config-1/../x",
+            "../config-1",
+            "uninstall-1.reg",
+            "registry-1700000000000000",
+            "config--1",
+            "Config-1",
         ] {
             assert!(!valid_backup_id(bad), "{bad}");
         }
@@ -654,10 +708,27 @@ mod tests {
     fn name_classification() {
         assert_eq!(classify_name("registry-5"), Some(BackupKind::Registry));
         assert_eq!(classify_name("config-5-1"), Some(BackupKind::Config));
-        assert_eq!(classify_name("uninstall-1700000000.reg"), Some(BackupKind::UninstallEntry));
-        assert_eq!(classify_name("uninstall-1700000000-2.reg"), Some(BackupKind::UninstallEntry));
-        assert_eq!(classify_name("drivers-1700000000"), Some(BackupKind::Drivers));
-        for bad in ["uninstall-1.txt", "uninstall-.reg", "drivers-", "drivers-1/x", "settings.json", "..", "uninstall-1-2-3.reg"] {
+        assert_eq!(
+            classify_name("uninstall-1700000000.reg"),
+            Some(BackupKind::UninstallEntry)
+        );
+        assert_eq!(
+            classify_name("uninstall-1700000000-2.reg"),
+            Some(BackupKind::UninstallEntry)
+        );
+        assert_eq!(
+            classify_name("drivers-1700000000"),
+            Some(BackupKind::Drivers)
+        );
+        for bad in [
+            "uninstall-1.txt",
+            "uninstall-.reg",
+            "drivers-",
+            "drivers-1/x",
+            "settings.json",
+            "..",
+            "uninstall-1-2-3.reg",
+        ] {
             assert_eq!(classify_name(bad), None, "{bad}");
         }
     }
@@ -694,9 +765,15 @@ mod tests {
         assert_eq!(fs::read(&f).unwrap(), original);
         {
             use std::os::unix::fs::PermissionsExt;
-            assert_eq!(fs::metadata(&f).unwrap().permissions().mode() & 0o7777, 0o750);
+            assert_eq!(
+                fs::metadata(&f).unwrap().permissions().mode() & 0o7777,
+                0o750
+            );
         }
-        assert_eq!(fs::read_link(&l).unwrap(), Path::new("../nowhere/x.desktop"));
+        assert_eq!(
+            fs::read_link(&l).unwrap(),
+            Path::new("../nowhere/x.desktop")
+        );
         // restoring twice is harmless
         let again = restore(&c, &id, &Job::detached()).unwrap();
         assert!(again.ok);
@@ -709,7 +786,11 @@ mod tests {
         fs::create_dir_all(dir.join("files")).unwrap();
         fs::write(dir.join("files/000"), b"x").unwrap();
         let mut m = Manifest::new(KIND_CONFIG, Os::Linux, vec![]);
-        for p in ["/etc/passwd", "relative/x", &format!("{}/../etc/x", c.env.home.display())] {
+        for p in [
+            "/etc/passwd",
+            "relative/x",
+            &format!("{}/../etc/x", c.env.home.display()),
+        ] {
             m.files.push(FileEntry {
                 original_path: p.into(),
                 kind: "file".into(),
@@ -722,7 +803,12 @@ mod tests {
         }
         // inside home but secrets
         m.files.push(FileEntry {
-            original_path: c.env.home.join(".ssh/authorized_keys").to_string_lossy().into_owned(),
+            original_path: c
+                .env
+                .home
+                .join(".ssh/authorized_keys")
+                .to_string_lossy()
+                .into_owned(),
             kind: "file".into(),
             mode: 0o644,
             stored: Some("files/000".into()),
@@ -775,7 +861,17 @@ mod tests {
     fn listing_ignores_incomplete_and_foreign_folders() {
         let (_d, c) = ctx();
         let (id1, d1) = new_backup_dir(&c, KIND_CONFIG).unwrap();
-        let mut m = Manifest::new(KIND_CONFIG, Os::Linux, vec![ManifestIssue { id: "a".into(), category: "x".into(), description: "d".into(), location: "l".into(), value: None }]);
+        let mut m = Manifest::new(
+            KIND_CONFIG,
+            Os::Linux,
+            vec![ManifestIssue {
+                id: "a".into(),
+                category: "x".into(),
+                description: "d".into(),
+                location: "l".into(),
+                value: None,
+            }],
+        );
         m.created_at = "2024-01-01T00:00:00Z".into();
         write_manifest(&d1, &m).unwrap();
         let (_id2, _d2) = new_backup_dir(&c, KIND_CONFIG).unwrap(); // no manifest: aborted attempt
@@ -816,10 +912,20 @@ mod tests {
     fn deleting_refuses_bad_names_links_and_missing() {
         let (_d, c) = ctx();
         fs::create_dir_all(backups_dir(&c)).unwrap();
-        for bad in ["..", "../data", "settings.json", "config-1/../..", "registry-x", ""] {
+        for bad in [
+            "..",
+            "../data",
+            "settings.json",
+            "config-1/../..",
+            "registry-x",
+            "",
+        ] {
             assert!(delete_backup_entry(&c, bad).is_err(), "{bad}");
         }
-        assert_eq!(delete_backup_entry(&c, "config-99").unwrap_err().code, crate::error::ErrorCode::NotFound);
+        assert_eq!(
+            delete_backup_entry(&c, "config-99").unwrap_err().code,
+            crate::error::ErrorCode::NotFound
+        );
         // a symlink posing as a backup is not followed or removed
         let victim = c.env.home.join("victim");
         fs::create_dir_all(&victim).unwrap();

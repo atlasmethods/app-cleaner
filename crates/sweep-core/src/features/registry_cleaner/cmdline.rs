@@ -39,8 +39,8 @@ impl Located {
 /// Extensions that mark the end of a program / library path in a command line.
 const KNOWN_EXTS: &[&str] = &[
     "exe", "com", "bat", "cmd", "scr", "cpl", "msc", "lnk", "dll", "sys", "ocx", "vbs", "wsf",
-    "js", "ps1", "msi", "tlb", "olb", "wav", "hlp", "chm", "ttf", "ttc", "otf", "fon", "ax",
-    "drv", "mui",
+    "js", "ps1", "msi", "tlb", "olb", "wav", "hlp", "chm", "ttf", "ttc", "otf", "fon", "ax", "drv",
+    "mui",
 ];
 
 fn has_known_ext(token: &str) -> bool {
@@ -150,7 +150,7 @@ fn alternates(path: &str, windir: Option<&str>, try_exe: bool) -> Vec<String> {
     let segs: Vec<&str> = path.split('\\').collect();
     let swap = |from: &str, to: &[&str], idx: Option<usize>, v: &mut Vec<String>| {
         for (i, s) in segs.iter().enumerate() {
-            if s.eq_ignore_ascii_case(from) && idx.map_or(true, |w| w == i) {
+            if s.eq_ignore_ascii_case(from) && idx.is_none_or(|w| w == i) {
                 for t in to {
                     let mut c = segs.clone();
                     c[i] = t;
@@ -429,7 +429,10 @@ pub fn strip_resource_index(path: &str) -> &str {
     if let Some((head, tail)) = t.rsplit_once('\\') {
         if !tail.is_empty()
             && tail.bytes().all(|b| b.is_ascii_digit())
-            && head.rsplit('\\').next().is_some_and(|seg| seg.contains('.'))
+            && head
+                .rsplit('\\')
+                .next()
+                .is_some_and(|seg| seg.contains('.'))
         {
             return head;
         }
@@ -471,7 +474,10 @@ mod tests {
         assert_eq!(expand_env(&w, "100%"), "100%");
         assert_eq!(expand_env(&w, r"%NOPE%\x"), r"%NOPE%\x");
         assert_eq!(expand_env(&w, "a%%b"), "a%%b");
-        assert_eq!(expand_env(&w, r"%ProgramFiles(x86)%\a"), r"C:\Program Files (x86)\a");
+        assert_eq!(
+            expand_env(&w, r"%ProgramFiles(x86)%\a"),
+            r"C:\Program Files (x86)\a"
+        );
         // "%1 %SystemRoot%" : the first % cannot start a reference (whitespace inside)
         assert_eq!(expand_env(&w, r"%1 %SystemRoot%"), r"%1 C:\Windows");
     }
@@ -495,7 +501,10 @@ mod tests {
             locate_command(&w, r"\\?\C:\Windows\System32\gone.exe"),
             missing(r"C:\Windows\System32\gone.exe")
         );
-        assert_eq!(locate_command(&w, r"\\?\UNC\srv\share\a.exe"), Located::Unknown);
+        assert_eq!(
+            locate_command(&w, r"\\?\UNC\srv\share\a.exe"),
+            Located::Unknown
+        );
         assert_eq!(
             locate_command(&w, r"\SystemRoot\System32\gone.exe"),
             missing(r"C:\Windows\System32\gone.exe")
@@ -524,7 +533,10 @@ mod tests {
             locate_command(&w, r#""C:\Program Files\Acme App\acme.exe" "%1" --x="a b""#),
             Located::Present
         );
-        assert_eq!(locate_command(&w, r#""C:\unterminated\a.exe"#), Located::Unknown);
+        assert_eq!(
+            locate_command(&w, r#""C:\unterminated\a.exe"#),
+            Located::Unknown
+        );
         assert_eq!(locate_command(&w, r#"""  /x"#), Located::Unknown);
     }
 
@@ -585,7 +597,10 @@ mod tests {
             locate_command(&w, r#""C:\Tools\gone.exe /s""#),
             Located::Unknown
         );
-        assert_eq!(locate_command(&w, r#""C:\Tools\tool.exe /s""#), Located::Unknown);
+        assert_eq!(
+            locate_command(&w, r#""C:\Tools\tool.exe /s""#),
+            Located::Unknown
+        );
     }
 
     // ---------------- redirection
@@ -665,11 +680,17 @@ mod tests {
         );
         // unquoted path with spaces: the library ends at the comma
         assert_eq!(
-            locate_command(&w, r"rundll32.exe C:\Program Files\Acme App\gone.dll,Entry 1"),
+            locate_command(
+                &w,
+                r"rundll32.exe C:\Program Files\Acme App\gone.dll,Entry 1"
+            ),
             missing(r"C:\Program Files\Acme App\gone.dll")
         );
         assert_eq!(
-            locate_command(&w, r"C:\Windows\System32\rundll32.exe C:\Program Files\Acme App\acme.dll,Entry"),
+            locate_command(
+                &w,
+                r"C:\Windows\System32\rundll32.exe C:\Program Files\Acme App\acme.dll,Entry"
+            ),
             Located::Present
         );
         // a bare library that cannot be found is ambiguous
@@ -767,7 +788,10 @@ mod tests {
         assert_eq!(locate_command(&w, r"D:\Private\a.exe"), Located::Unknown);
         // even one unreadable alternate blocks "missing"
         w.unreadable(r"C:\Windows\SysWOW64\x.dll");
-        assert_eq!(locate_path(&w, r"C:\Windows\System32\x.dll"), Located::Unknown);
+        assert_eq!(
+            locate_path(&w, r"C:\Windows\System32\x.dll"),
+            Located::Unknown
+        );
     }
 
     #[test]

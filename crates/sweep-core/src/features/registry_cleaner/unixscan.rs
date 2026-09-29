@@ -226,7 +226,9 @@ fn launchers(ctx: &Ctx, job: &Job, category: &str) -> Result<Vec<Found>> {
             let Some(missing) = missing else { continue };
             let system = !is_user_path(ctx, &path);
             let name = e.name.clone().unwrap_or_else(|| {
-                path.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default()
+                path.file_name()
+                    .map(|f| f.to_string_lossy().into_owned())
+                    .unwrap_or_default()
             });
             out.push(Found::file(
                 category,
@@ -234,7 +236,11 @@ fn launchers(ctx: &Ctx, job: &Job, category: &str) -> Result<Vec<Found>> {
                 &path,
                 Some(missing),
                 None,
-                if system { Severity::Medium } else { Severity::Low },
+                if system {
+                    Severity::Medium
+                } else {
+                    Severity::Low
+                },
                 system,
                 Action::RemoveFile {
                     path: path.clone(),
@@ -251,7 +257,14 @@ fn launchers(ctx: &Ctx, job: &Job, category: &str) -> Result<Vec<Found>> {
 
 /// Places whose contents may live on media that is not mounted right now.
 const MOUNT_PREFIXES: [&str; 8] = [
-    "/mnt/", "/media/", "/run/media/", "/net/", "/Volumes/", "/run/user/", "/var/mnt/", "/sys/",
+    "/mnt/",
+    "/media/",
+    "/run/media/",
+    "/net/",
+    "/Volumes/",
+    "/run/user/",
+    "/var/mnt/",
+    "/sys/",
 ];
 
 fn under_mount(target: &str) -> bool {
@@ -315,7 +328,11 @@ fn broken_symlinks(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
                 &path,
                 None,
                 Some(target),
-                if system { Severity::Medium } else { Severity::Low },
+                if system {
+                    Severity::Medium
+                } else {
+                    Severity::Low
+                },
                 system,
                 Action::RemoveFile {
                     path: path.clone(),
@@ -373,10 +390,7 @@ fn desktop_id_exists(dirs: &[PathBuf], id: &str) -> bool {
             return true;
         }
         let stem_end = cur.len().saturating_sub(".desktop".len());
-        let Some(i) = cur
-            .get(from..stem_end.max(from))
-            .and_then(|s| s.find('-'))
-        else {
+        let Some(i) = cur.get(from..stem_end.max(from)).and_then(|s| s.find('-')) else {
             return false;
         };
         let at = from + i;
@@ -416,12 +430,17 @@ fn mime_associations(ctx: &Ctx) -> Result<Vec<Found>> {
             if !id.ends_with(".desktop") || id.starts_with('.') || id.contains(['/', '\0']) {
                 continue;
             }
-            if desktop_id_exists(&dirs, id) || !seen.insert((a.section.clone(), a.mime.clone(), id.clone())) {
+            if desktop_id_exists(&dirs, id)
+                || !seen.insert((a.section.clone(), a.mime.clone(), id.clone()))
+            {
                 continue;
             }
             out.push(Found::file(
                 "mime_associations",
-                format!("\"{}\" is set as an application for {} but is not installed", id, a.mime),
+                format!(
+                    "\"{}\" is set as an application for {} but is not installed",
+                    id, a.mime
+                ),
                 &file,
                 Some(a.mime.clone()),
                 Some(format!("{id} ({})", a.section)),
@@ -522,7 +541,10 @@ fn user_services(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
         // the links that enable the unit
         let mut also = Vec::new();
         for d in list_dir(&dir) {
-            let dn = d.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+            let dn = d
+                .file_name()
+                .map(|f| f.to_string_lossy().into_owned())
+                .unwrap_or_default();
             if !(dn.ends_with(".wants") || dn.ends_with(".requires") || dn.ends_with(".upholds")) {
                 continue;
             }
@@ -622,7 +644,12 @@ fn orphaned_packages(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
             .runner
             .run(
                 "dnf",
-                &["repoquery", "--unneeded", "--queryformat", "%{name} %{evr}\\n"],
+                &[
+                    "repoquery",
+                    "--unneeded",
+                    "--queryformat",
+                    "%{name} %{evr}\\n",
+                ],
             )
             .ok()
             .filter(|o| o.success())
@@ -645,7 +672,9 @@ fn orphaned_packages(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
         }
         out.push(Found::file(
             "orphaned_packages",
-            format!("The package {name} was installed as a dependency and nothing needs it any more"),
+            format!(
+                "The package {name} was installed as a dependency and nothing needs it any more"
+            ),
             Path::new(mgr.name()),
             Some(name.clone()),
             Some(ver.clone()).filter(|v| !v.is_empty()),
@@ -709,7 +738,12 @@ fn launch_agents(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
             .and_then(|d| d.get("Label"))
             .and_then(|l| l.as_string())
             .map(str::to_string)
-            .unwrap_or_else(|| path.file_name().unwrap_or_default().to_string_lossy().into_owned());
+            .unwrap_or_else(|| {
+                path.file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned()
+            });
         out.push(Found::file(
             "launch_agents",
             format!("The launch agent {label} starts a program that no longer exists: {p}"),
@@ -775,30 +809,75 @@ mod tests {
         write(&t.ctx.env.home.join("tools/mine"), "#!/bin/sh\n");
         t.mock.with_program("onpath");
         let apps = user_apps(&t);
-        write(&apps.join("ok-abs.desktop"), &desktop_file("/usr/bin/present %U"));
+        write(
+            &apps.join("ok-abs.desktop"),
+            &desktop_file("/usr/bin/present %U"),
+        );
         write(&apps.join("ok-bare.desktop"), &desktop_file("present --x"));
         write(&apps.join("ok-path.desktop"), &desktop_file("onpath"));
-        write(&apps.join("ok-quoted.desktop"), &desktop_file(&format!("\"{}/tools/mine\" --a %F", t.ctx.env.home.display())));
-        write(&apps.join("ok-env.desktop"), &desktop_file("env FOO=1 /usr/bin/present"));
+        write(
+            &apps.join("ok-quoted.desktop"),
+            &desktop_file(&format!(
+                "\"{}/tools/mine\" --a %F",
+                t.ctx.env.home.display()
+            )),
+        );
+        write(
+            &apps.join("ok-env.desktop"),
+            &desktop_file("env FOO=1 /usr/bin/present"),
+        );
         write(&apps.join("ok-var.desktop"), &desktop_file("$HOME/bin/x")); // unknown: not reported
-        write(&apps.join("ok-sh.desktop"), &desktop_file("sh -c \"gone-thing\"")); // sh is not judged by its script
-        write(&apps.join("ok-noexec.desktop"), "[Desktop Entry]\nType=Application\nName=X\nDBusActivatable=true\n");
-        write(&apps.join("ok-link.desktop"), "[Desktop Entry]\nType=Link\nName=X\nURL=http://x\n");
+        write(
+            &apps.join("ok-sh.desktop"),
+            &desktop_file("sh -c \"gone-thing\""),
+        ); // sh is not judged by its script
+        write(
+            &apps.join("ok-noexec.desktop"),
+            "[Desktop Entry]\nType=Application\nName=X\nDBusActivatable=true\n",
+        );
+        write(
+            &apps.join("ok-link.desktop"),
+            "[Desktop Entry]\nType=Link\nName=X\nURL=http://x\n",
+        );
         write(&apps.join("ok-notdesktop.txt"), &desktop_file("/nowhere/x"));
-        write(&apps.join("bad-abs.desktop"), &desktop_file("/opt/gone/app %U"));
-        write(&apps.join("bad-bare.desktop"), &desktop_file("definitely-not-installed --flag"));
-        write(&apps.join("bad-quoted.desktop"), &desktop_file("\"/opt/My Gone App/bin/app\" %F"));
-        write(&apps.join("bad-env.desktop"), &desktop_file("env A=b /opt/gone/envprog"));
+        write(
+            &apps.join("bad-abs.desktop"),
+            &desktop_file("/opt/gone/app %U"),
+        );
+        write(
+            &apps.join("bad-bare.desktop"),
+            &desktop_file("definitely-not-installed --flag"),
+        );
+        write(
+            &apps.join("bad-quoted.desktop"),
+            &desktop_file("\"/opt/My Gone App/bin/app\" %F"),
+        );
+        write(
+            &apps.join("bad-env.desktop"),
+            &desktop_file("env A=b /opt/gone/envprog"),
+        );
         write(
             &apps.join("bad-tryexec.desktop"),
             "[Desktop Entry]\nType=Application\nName=Try\nTryExec=/opt/gone/try\nExec=/usr/bin/present\n",
         );
-        write(&apps.join("ok-relpath.desktop"), "[Desktop Entry]\nType=Application\nName=R\nPath=/usr/bin\nExec=./present\n");
-        write(&apps.join("bad-relpath.desktop"), "[Desktop Entry]\nType=Application\nName=R\nPath=/usr/bin\nExec=./gone\n");
+        write(
+            &apps.join("ok-relpath.desktop"),
+            "[Desktop Entry]\nType=Application\nName=R\nPath=/usr/bin\nExec=./present\n",
+        );
+        write(
+            &apps.join("bad-relpath.desktop"),
+            "[Desktop Entry]\nType=Application\nName=R\nPath=/usr/bin\nExec=./gone\n",
+        );
         let f = scan(&t, "desktop_entries");
         let mut names: Vec<_> = f
             .iter()
-            .map(|x| Path::new(&x.issue.location).file_name().unwrap().to_string_lossy().into_owned())
+            .map(|x| {
+                Path::new(&x.issue.location)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         names.sort();
         assert_eq!(
@@ -812,11 +891,17 @@ mod tests {
                 "bad-tryexec.desktop"
             ]
         );
-        let q = f.iter().find(|x| x.issue.location.ends_with("bad-quoted.desktop")).unwrap();
+        let q = f
+            .iter()
+            .find(|x| x.issue.location.ends_with("bad-quoted.desktop"))
+            .unwrap();
         assert_eq!(q.issue.value.as_deref(), Some("/opt/My Gone App/bin/app"));
         assert!(!q.issue.needs_admin);
         assert_eq!(q.issue.severity, Severity::Low);
-        assert!(matches!(&q.action, Action::RemoveFile { system: false, .. }));
+        assert!(matches!(
+            &q.action,
+            Action::RemoveFile { system: false, .. }
+        ));
     }
 
     #[test]
@@ -828,14 +913,20 @@ mod tests {
         assert_eq!(f.len(), 1);
         assert!(f[0].issue.needs_admin);
         assert_eq!(f[0].issue.severity, Severity::Medium);
-        assert!(matches!(&f[0].action, Action::RemoveFile { system: true, .. }));
+        assert!(matches!(
+            &f[0].action,
+            Action::RemoveFile { system: true, .. }
+        ));
     }
 
     #[test]
     fn flatpak_launchers() {
         let t = t();
         let apps = user_apps(&t);
-        write(&apps.join("gimp.desktop"), &desktop_file("flatpak run --branch=stable org.gimp.GIMP @@u %U @@"));
+        write(
+            &apps.join("gimp.desktop"),
+            &desktop_file("flatpak run --branch=stable org.gimp.GIMP @@u %U @@"),
+        );
         // no flatpak at all -> the launcher cannot work
         let f = scan(&t, "desktop_entries");
         assert_eq!(f.len(), 1);
@@ -844,13 +935,19 @@ mod tests {
         t.mock.with_program("flatpak");
         let f = scan(&t, "desktop_entries");
         assert_eq!(f.len(), 1);
-        assert_eq!(f[0].issue.value.as_deref(), Some("flatpak app org.gimp.GIMP"));
+        assert_eq!(
+            f[0].issue.value.as_deref(),
+            Some("flatpak app org.gimp.GIMP")
+        );
         // app installed (system)
         fs::create_dir_all(t.ctx.env.sys_path("/var/lib/flatpak/app/org.gimp.GIMP")).unwrap();
         assert!(scan(&t, "desktop_entries").is_empty());
         // app removed again but extra installations exist -> unknown
         fs::remove_dir_all(t.ctx.env.sys_path("/var/lib/flatpak/app/org.gimp.GIMP")).unwrap();
-        write(&t.ctx.env.sys_path("/etc/flatpak/installations.d/usb.conf"), "[Installation \"usb\"]\n");
+        write(
+            &t.ctx.env.sys_path("/etc/flatpak/installations.d/usb.conf"),
+            "[Installation \"usb\"]\n",
+        );
         assert!(scan(&t, "desktop_entries").is_empty());
         // user installation
         fs::remove_file(t.ctx.env.sys_path("/etc/flatpak/installations.d/usb.conf")).unwrap();
@@ -862,7 +959,10 @@ mod tests {
     fn autostart_entries() {
         let t = t();
         let dir = t.ctx.env.config_dir.join("autostart");
-        write(&dir.join("gone.desktop"), "[Desktop Entry]\nType=Application\nName=Gone\nExec=/opt/gone/x\nHidden=true\n");
+        write(
+            &dir.join("gone.desktop"),
+            "[Desktop Entry]\nType=Application\nName=Gone\nExec=/opt/gone/x\nHidden=true\n",
+        );
         write(&dir.join("gone2.desktop"), "[Desktop Entry]\nType=Application\nName=Gone2\nExec=/opt/gone/y\nX-GNOME-Autostart-enabled=false\n");
         write(&t.ctx.env.sys_path("/usr/bin/fine"), "");
         write(&dir.join("ok.desktop"), &desktop_file("/usr/bin/fine"));
@@ -894,11 +994,20 @@ mod tests {
         let f = scan(&t, "broken_symlinks");
         let mut names: Vec<_> = f
             .iter()
-            .map(|x| Path::new(&x.issue.location).file_name().unwrap().to_string_lossy().into_owned())
+            .map(|x| {
+                Path::new(&x.issue.location)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         names.sort();
         assert_eq!(names, ["bad-abs", "bad-rel", "bad-sys", "dangling.desktop"]);
-        let s = f.iter().find(|x| x.issue.location.ends_with("bad-sys")).unwrap();
+        let s = f
+            .iter()
+            .find(|x| x.issue.location.ends_with("bad-sys"))
+            .unwrap();
         assert_eq!(s.issue.data.as_deref(), Some("/opt/definitely/gone"));
         // a dangling launcher link is not double-reported as a broken launcher
         assert!(scan(&t, "desktop_entries").is_empty());
@@ -918,20 +1027,36 @@ mod tests {
     #[test]
     fn mime_associations() {
         let t = t();
-        write(&t.ctx.env.sys_path("/usr/share/applications/gedit.desktop"), "[Desktop Entry]\n");
-        write(&t.ctx.env.sys_path("/usr/share/applications/org.gnome.Eog.desktop"), "[Desktop Entry]\n");
-        write(&t.ctx.env.sys_path("/usr/share/applications/kde/dolphin.desktop"), "[Desktop Entry]\n");
+        write(
+            &t.ctx.env.sys_path("/usr/share/applications/gedit.desktop"),
+            "[Desktop Entry]\n",
+        );
+        write(
+            &t.ctx
+                .env
+                .sys_path("/usr/share/applications/org.gnome.Eog.desktop"),
+            "[Desktop Entry]\n",
+        );
+        write(
+            &t.ctx
+                .env
+                .sys_path("/usr/share/applications/kde/dolphin.desktop"),
+            "[Desktop Entry]\n",
+        );
         write(&user_apps(&t).join("mine.desktop"), "[Desktop Entry]\n");
         let list = t.ctx.env.config_dir.join("mimeapps.list");
         let body = "[Default Applications]\ntext/plain=gedit.desktop;gone1.desktop;\nimage/png=org.gnome.Eog.desktop\ninode/directory=kde-dolphin.desktop;\nx/y=mine.desktop;\n\n[Added Associations]\ntext/html=gone2.desktop;gedit.desktop;\n\n[Removed Associations]\ntext/x=gone3.desktop;\n";
         write(&list, body);
         let f = scan(&t, "mime_associations");
-        let mut ids: Vec<_> = f
-            .iter()
-            .map(|x| x.issue.data.clone().unwrap())
-            .collect();
+        let mut ids: Vec<_> = f.iter().map(|x| x.issue.data.clone().unwrap()).collect();
         ids.sort();
-        assert_eq!(ids, ["gone1.desktop (Default Applications)", "gone2.desktop (Added Associations)"]);
+        assert_eq!(
+            ids,
+            [
+                "gone1.desktop (Default Applications)",
+                "gone2.desktop (Added Associations)"
+            ]
+        );
         assert!(matches!(&f[0].action, Action::MimeRemove { .. }));
         // untouched by scanning
         assert_eq!(fs::read_to_string(&list).unwrap(), body);
@@ -945,10 +1070,16 @@ mod tests {
         // no application directory has any launcher at all
         assert!(scan(&t, "mime_associations").is_empty());
         // a symlinked list is not touched
-        write(&t.ctx.env.sys_path("/usr/share/applications/other.desktop"), "[Desktop Entry]\n");
+        write(
+            &t.ctx.env.sys_path("/usr/share/applications/other.desktop"),
+            "[Desktop Entry]\n",
+        );
         assert_eq!(scan(&t, "mime_associations").len(), 1);
         fs::remove_file(&list).unwrap();
-        write(&t.ctx.env.home.join("dotfiles/mimeapps.list"), "[Default Applications]\ntext/plain=gedit.desktop;\n");
+        write(
+            &t.ctx.env.home.join("dotfiles/mimeapps.list"),
+            "[Default Applications]\ntext/plain=gedit.desktop;\n",
+        );
         symlink(t.ctx.env.home.join("dotfiles/mimeapps.list"), &list).unwrap();
         assert!(scan(&t, "mime_associations").is_empty());
     }
@@ -972,29 +1103,70 @@ mod tests {
         let dir = t.ctx.env.config_dir.join("systemd/user");
         write(&t.ctx.env.sys_path("/usr/bin/fine"), "");
         write(&dir.join("bad.service"), "[Unit]\nDescription=x\n[Service]\nExecStart=/opt/gone/daemon --x\n[Install]\nWantedBy=default.target\n");
-        write(&dir.join("good.service"), "[Service]\nExecStart=/usr/bin/fine\n");
-        write(&dir.join("dash.service"), "[Service]\nExecStart=-/opt/gone/dash\n");
-        write(&dir.join("home.service"), "[Service]\nExecStart=%h/bin/gone\n");
-        write(&dir.join("spec.service"), "[Service]\nExecStart=/opt/%N/gone\n"); // unknown specifier
+        write(
+            &dir.join("good.service"),
+            "[Service]\nExecStart=/usr/bin/fine\n",
+        );
+        write(
+            &dir.join("dash.service"),
+            "[Service]\nExecStart=-/opt/gone/dash\n",
+        );
+        write(
+            &dir.join("home.service"),
+            "[Service]\nExecStart=%h/bin/gone\n",
+        );
+        write(
+            &dir.join("spec.service"),
+            "[Service]\nExecStart=/opt/%N/gone\n",
+        ); // unknown specifier
         write(&dir.join("bare.service"), "[Service]\nExecStart=gone\n"); // not absolute: invalid, not judged
-        write(&dir.join("multi.service"), "[Service]\nExecStart=/opt/gone/a\nExecStart=/usr/bin/fine\n");
-        write(&dir.join("reset.service"), "[Service]\nExecStart=/opt/gone/a\nExecStart=\nExecStart=/usr/bin/fine\n");
-        write(&dir.join("dropin.service"), "[Service]\nExecStart=/opt/gone/a\n");
-        write(&dir.join("dropin.service.d/override.conf"), "[Service]\nExecStart=\nExecStart=/usr/bin/fine\n");
+        write(
+            &dir.join("multi.service"),
+            "[Service]\nExecStart=/opt/gone/a\nExecStart=/usr/bin/fine\n",
+        );
+        write(
+            &dir.join("reset.service"),
+            "[Service]\nExecStart=/opt/gone/a\nExecStart=\nExecStart=/usr/bin/fine\n",
+        );
+        write(
+            &dir.join("dropin.service"),
+            "[Service]\nExecStart=/opt/gone/a\n",
+        );
+        write(
+            &dir.join("dropin.service.d/override.conf"),
+            "[Service]\nExecStart=\nExecStart=/usr/bin/fine\n",
+        );
         write(&dir.join("noexec.service"), "[Service]\nType=oneshot\n");
         write(&dir.join("other.timer"), "[Timer]\n");
         symlink("/opt/gone/x", dir.join("linked.service")).unwrap();
         fs::create_dir_all(dir.join("default.target.wants")).unwrap();
-        symlink("../bad.service", dir.join("default.target.wants/bad.service")).unwrap();
-        symlink("/usr/lib/systemd/user/other.service", dir.join("default.target.wants/other.service")).unwrap();
+        symlink(
+            "../bad.service",
+            dir.join("default.target.wants/bad.service"),
+        )
+        .unwrap();
+        symlink(
+            "/usr/lib/systemd/user/other.service",
+            dir.join("default.target.wants/other.service"),
+        )
+        .unwrap();
         let f = scan(&t, "user_services");
         let mut names: Vec<_> = f
             .iter()
-            .map(|x| Path::new(&x.issue.location).file_name().unwrap().to_string_lossy().into_owned())
+            .map(|x| {
+                Path::new(&x.issue.location)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         names.sort();
         assert_eq!(names, ["bad.service", "dash.service", "home.service"]);
-        let bad = f.iter().find(|x| x.issue.location.ends_with("bad.service")).unwrap();
+        let bad = f
+            .iter()
+            .find(|x| x.issue.location.ends_with("bad.service"))
+            .unwrap();
         match &bad.action {
             Action::RemoveFile { also, system, .. } => {
                 assert!(!system);
@@ -1010,17 +1182,26 @@ mod tests {
         let apt = "Reading package lists...\nBuilding dependency tree...\nThe following packages will be REMOVED:\n  libfoo libbar:amd64\nRemv libfoo [1.2-3]\nRemv libbar:amd64 [2.0] [ubuntu:noble]\nPurg junk [1]\n";
         assert_eq!(
             parse_apt_autoremove(apt),
-            [("libfoo".to_string(), "1.2-3".to_string()), ("libbar:amd64".to_string(), "2.0".to_string())]
+            [
+                ("libfoo".to_string(), "1.2-3".to_string()),
+                ("libbar:amd64".to_string(), "2.0".to_string())
+            ]
         );
         assert!(parse_apt_autoremove("0 upgraded, 0 newly installed\n").is_empty());
         let dnf = "Last metadata expiration check: 0:10:00 ago on Mon.\nlibfoo 1.2-3.fc40\nlibbar 2:4.5-1.fc40\n";
         assert_eq!(
             parse_dnf_unneeded(dnf),
-            [("libfoo".to_string(), "1.2-3.fc40".to_string()), ("libbar".to_string(), "2:4.5-1.fc40".to_string())]
+            [
+                ("libfoo".to_string(), "1.2-3.fc40".to_string()),
+                ("libbar".to_string(), "2:4.5-1.fc40".to_string())
+            ]
         );
         assert_eq!(
             parse_pacman_orphans("foo\nbar-git\n\nwarning: something odd here\n"),
-            [("foo".to_string(), String::new()), ("bar-git".to_string(), String::new())]
+            [
+                ("foo".to_string(), String::new()),
+                ("bar-git".to_string(), String::new())
+            ]
         );
     }
 
@@ -1030,7 +1211,9 @@ mod tests {
         t.mock.on(
             "apt-get",
             &["-s", "autoremove"],
-            CmdOutput::ok("Remv libfoo [1.2-3]\nRemv -evil [1]\nRemv libbar [2.0]\nRemv libfoo [1.2-3]\n"),
+            CmdOutput::ok(
+                "Remv libfoo [1.2-3]\nRemv -evil [1]\nRemv libbar [2.0]\nRemv libfoo [1.2-3]\n",
+            ),
         );
         let f = scan(&t, "orphaned_packages");
         assert_eq!(f.len(), 2);
@@ -1041,7 +1224,16 @@ mod tests {
         assert_eq!(f[0].issue.severity, Severity::Medium);
 
         let t = self::t();
-        t.mock.on("dnf", &["repoquery", "--unneeded", "--queryformat", "%{name} %{evr}\\n"], CmdOutput::ok("libx 1-1\n"));
+        t.mock.on(
+            "dnf",
+            &[
+                "repoquery",
+                "--unneeded",
+                "--queryformat",
+                "%{name} %{evr}\\n",
+            ],
+            CmdOutput::ok("libx 1-1\n"),
+        );
         assert_eq!(scan(&t, "orphaned_packages").len(), 1);
 
         let t = self::t();
@@ -1055,7 +1247,11 @@ mod tests {
         let t = self::t();
         assert!(scan(&t, "orphaned_packages").is_empty());
         let t = self::t();
-        t.mock.on("apt-get", &["-s", "autoremove"], CmdOutput::failed(100, "E: no"));
+        t.mock.on(
+            "apt-get",
+            &["-s", "autoremove"],
+            CmdOutput::failed(100, "E: no"),
+        );
         assert!(scan(&t, "orphaned_packages").is_empty());
     }
 
@@ -1071,18 +1267,57 @@ mod tests {
             format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict><key>Label</key><string>{label}</string>{body}</dict></plist>\n")
         };
         write(&dir.join("com.gone.a.plist"), &plist("com.gone.a", "<key>ProgramArguments</key><array><string>/Applications/Gone.app/Contents/MacOS/gone</string><string>-x</string></array>"));
-        write(&dir.join("com.gone.b.plist"), &plist("com.gone.b", "<key>Program</key><string>/opt/gone/b</string>"));
-        write(&dir.join("com.ok.plist"), &plist("com.ok", "<key>ProgramArguments</key><array><string>/usr/bin/true</string></array>"));
-        write(&dir.join("com.bare.plist"), &plist("com.bare", "<key>ProgramArguments</key><array><string>gone</string></array>"));
-        write(&dir.join("com.tilde.plist"), &plist("com.tilde", "<key>Program</key><string>~/gone</string>"));
-        write(&dir.join("com.vol.plist"), &plist("com.vol", "<key>Program</key><string>/Volumes/Ext/gone</string>"));
-        write(&dir.join("com.bundle.plist"), &plist("com.bundle", "<key>BundleProgram</key><string>Contents/MacOS/gone</string>"));
+        write(
+            &dir.join("com.gone.b.plist"),
+            &plist(
+                "com.gone.b",
+                "<key>Program</key><string>/opt/gone/b</string>",
+            ),
+        );
+        write(
+            &dir.join("com.ok.plist"),
+            &plist(
+                "com.ok",
+                "<key>ProgramArguments</key><array><string>/usr/bin/true</string></array>",
+            ),
+        );
+        write(
+            &dir.join("com.bare.plist"),
+            &plist(
+                "com.bare",
+                "<key>ProgramArguments</key><array><string>gone</string></array>",
+            ),
+        );
+        write(
+            &dir.join("com.tilde.plist"),
+            &plist("com.tilde", "<key>Program</key><string>~/gone</string>"),
+        );
+        write(
+            &dir.join("com.vol.plist"),
+            &plist(
+                "com.vol",
+                "<key>Program</key><string>/Volumes/Ext/gone</string>",
+            ),
+        );
+        write(
+            &dir.join("com.bundle.plist"),
+            &plist(
+                "com.bundle",
+                "<key>BundleProgram</key><string>Contents/MacOS/gone</string>",
+            ),
+        );
         write(&dir.join("com.broken.plist"), "not a plist");
         write(&dir.join("readme.txt"), "x");
         let f = scan_category(&ctx, "launch_agents", &Job::detached()).unwrap();
         let mut names: Vec<_> = f
             .iter()
-            .map(|x| Path::new(&x.issue.location).file_name().unwrap().to_string_lossy().into_owned())
+            .map(|x| {
+                Path::new(&x.issue.location)
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         names.sort();
         assert_eq!(names, ["com.gone.a.plist", "com.gone.b.plist"]);
@@ -1111,7 +1346,10 @@ mod tests {
         assert_eq!(locate_program(&t.ctx, "$HOME/x", None), Located::Unknown);
         assert_eq!(locate_program(&t.ctx, "~/x", None), Located::Unknown);
         assert_eq!(locate_program(&t.ctx, "./x", None), Located::Unknown);
-        assert_eq!(locate_program(&t.ctx, "sub/x", Some("relative")), Located::Unknown);
+        assert_eq!(
+            locate_program(&t.ctx, "sub/x", Some("relative")),
+            Located::Unknown
+        );
         assert_eq!(
             locate_program(&t.ctx, "/opt/gone", None),
             Located::Missing("/opt/gone".into())

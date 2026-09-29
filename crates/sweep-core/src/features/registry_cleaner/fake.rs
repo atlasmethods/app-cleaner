@@ -60,7 +60,9 @@ impl FakeWin {
     }
 
     pub fn env(&self, k: &str, v: &str) -> &Self {
-        self.env.borrow_mut().insert(k.to_ascii_lowercase(), v.into());
+        self.env
+            .borrow_mut()
+            .insert(k.to_ascii_lowercase(), v.into());
         self
     }
     pub fn file(&self, p: &str) -> &Self {
@@ -138,24 +140,9 @@ impl FakeWin {
     /// Remove a key and everything below it (what a successful `reg delete` does).
     pub fn delete_key(&self, root: Root, key: &str) {
         let prefix = format!("{}\\", key.to_ascii_lowercase());
-        self.keys
-            .borrow_mut()
-            .retain(|(r, k), _| !(*r == root && (k == &key.to_ascii_lowercase() || k.starts_with(&prefix))));
-    }
-    pub fn delete_value(&self, root: Root, key: &str, name: &str) {
-        if let Some(k) = self
-            .keys
-            .borrow_mut()
-            .get_mut(&(root, key.to_ascii_lowercase()))
-        {
-            k.values.retain(|v| !v.name.eq_ignore_ascii_case(name));
-        }
-    }
-    pub fn has_value(&self, root: Root, key: &str, name: &str) -> bool {
-        self.keys
-            .borrow()
-            .get(&(root, key.to_ascii_lowercase()))
-            .is_some_and(|k| k.values.iter().any(|v| v.name.eq_ignore_ascii_case(name)))
+        self.keys.borrow_mut().retain(|(r, k), _| {
+            !(*r == root && (k == &key.to_ascii_lowercase() || k.starts_with(&prefix)))
+        });
     }
 }
 
@@ -220,8 +207,14 @@ mod tests {
         let mut s = w.subkeys(Root::Hklm, r"SOFTWARE\A");
         s.sort();
         assert_eq!(s, ["B", "C"]);
-        assert_eq!(w.string(Root::Hklm, r"software\a\b", "V").as_deref(), Some("1"));
-        assert_eq!(w.string(Root::Hklm, r"SOFTWARE\A\C", "").as_deref(), Some("d"));
+        assert_eq!(
+            w.string(Root::Hklm, r"software\a\b", "V").as_deref(),
+            Some("1")
+        );
+        assert_eq!(
+            w.string(Root::Hklm, r"SOFTWARE\A\C", "").as_deref(),
+            Some("d")
+        );
         w.delete_key(Root::Hklm, r"SOFTWARE\A");
         assert!(!w.key_exists(Root::Hklm, r"SOFTWARE\A\B"));
         w.file(r"D:\x\y.txt");

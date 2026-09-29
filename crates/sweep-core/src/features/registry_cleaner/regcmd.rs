@@ -86,7 +86,10 @@ fn ps_quote(s: &str) -> String {
 /// spaces is passed bare and is left alone).
 pub fn ps_native_arg(a: &str) -> String {
     if a.ends_with('\\') && a.contains(char::is_whitespace) {
-        format!("{a}{}", "\\".repeat(a.len() - a.trim_end_matches('\\').len()))
+        format!(
+            "{a}{}",
+            "\\".repeat(a.len() - a.trim_end_matches('\\').len())
+        )
     } else {
         a.to_string()
     }
@@ -170,9 +173,9 @@ pub fn parse_batch_output(out: &str, n: usize) -> Vec<Option<CmdResult>> {
 pub fn run_privileged_batch(ctx: &Ctx, cmds: &[RegCmd]) -> Vec<CmdResult> {
     let mut results: Vec<Option<CmdResult>> = vec![None; cmds.len()];
     let sendable: Vec<usize> = (0..cmds.len()).filter(|i| batchable(&cmds[*i])).collect();
-    for i in 0..cmds.len() {
+    for (i, slot) in results.iter_mut().enumerate() {
         if !sendable.contains(&i) {
-            results[i] = Some(CmdResult::fail(
+            *slot = Some(CmdResult::fail(
                 "this entry contains a quote or percent sign and cannot be changed with administrator rights",
             ));
         }
@@ -247,16 +250,28 @@ mod tests {
             RegCmd::delete_value(r"HKLM\A", "").args,
             ["delete", r"HKLM\A", "/ve", "/f"]
         );
-        assert_eq!(RegCmd::delete_key(r"HKCU\A").args, ["delete", r"HKCU\A", "/f"]);
+        assert_eq!(
+            RegCmd::delete_key(r"HKCU\A").args,
+            ["delete", r"HKCU\A", "/f"]
+        );
         assert_eq!(RegCmd::import(r"C:\b.reg").args, ["import", r"C:\b.reg"]);
     }
 
     #[test]
     fn trailing_backslash_handling() {
-        assert_eq!(ps_native_arg(r"C:\Program Files\Foo\"), r"C:\Program Files\Foo\\");
-        assert_eq!(ps_native_arg(r"C:\Program Files\Foo\\"), r"C:\Program Files\Foo\\\\");
+        assert_eq!(
+            ps_native_arg(r"C:\Program Files\Foo\"),
+            r"C:\Program Files\Foo\\"
+        );
+        assert_eq!(
+            ps_native_arg(r"C:\Program Files\Foo\\"),
+            r"C:\Program Files\Foo\\\\"
+        );
         assert_eq!(ps_native_arg(r"C:\Foo\"), r"C:\Foo\"); // no spaces: passed bare
-        assert_eq!(ps_native_arg(r"C:\Program Files\a.dll"), r"C:\Program Files\a.dll");
+        assert_eq!(
+            ps_native_arg(r"C:\Program Files\a.dll"),
+            r"C:\Program Files\a.dll"
+        );
     }
 
     #[test]
@@ -287,13 +302,22 @@ mod tests {
     #[test]
     fn chunking_respects_the_limit() {
         let cmds: Vec<RegCmd> = (0..200)
-            .map(|i| RegCmd::delete_value(r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SharedDLLs", &format!(r"C:\Program Files\Common Files\Some Vendor\Library{i}.dll")))
+            .map(|i| {
+                RegCmd::delete_value(
+                    r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SharedDLLs",
+                    &format!(r"C:\Program Files\Common Files\Some Vendor\Library{i}.dll"),
+                )
+            })
             .collect();
         let ch = chunks(&cmds);
         assert!(ch.len() > 1);
         assert_eq!(ch.iter().map(|c| c.len()).sum::<usize>(), 200);
         for c in &ch {
-            assert!(batch_script(c).len() <= MAX_SCRIPT, "{}", batch_script(c).len());
+            assert!(
+                batch_script(c).len() <= MAX_SCRIPT,
+                "{}",
+                batch_script(c).len()
+            );
         }
         assert!(chunks(&[]).is_empty());
     }
@@ -364,7 +388,12 @@ mod tests {
                 },
             );
             let cmds: Vec<RegCmd> = (0..120)
-                .map(|i| RegCmd::delete_value(r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SharedDLLs", &format!(r"C:\Program Files\Common Files\Some Vendor\Library{i}.dll")))
+                .map(|i| {
+                    RegCmd::delete_value(
+                        r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\SharedDLLs",
+                        &format!(r"C:\Program Files\Common Files\Some Vendor\Library{i}.dll"),
+                    )
+                })
                 .collect();
             let r = run_privileged_batch(&c, &cmds);
             assert!(r.iter().all(|x| !x.ok));
@@ -392,7 +421,11 @@ mod tests {
     fn direct_run_reports_failures() {
         let (_d, c, m) = ctx();
         m.on("reg", &["delete", r"HKCU\A", "/f"], CmdOutput::ok(""));
-        m.on("reg", &["delete", r"HKCU\B", "/f"], CmdOutput::failed(1, "ERROR: Access is denied."));
+        m.on(
+            "reg",
+            &["delete", r"HKCU\B", "/f"],
+            CmdOutput::failed(1, "ERROR: Access is denied."),
+        );
         assert!(run_direct(&c, &RegCmd::delete_key(r"HKCU\A")).ok);
         let r = run_direct(&c, &RegCmd::delete_key(r"HKCU\B"));
         assert!(!r.ok && r.message.contains("Access is denied"));

@@ -171,7 +171,12 @@ pub fn scan_categories(ctx: &Ctx, cats: &[&'static CategoryInfo], job: &Job) -> 
         };
         match r {
             Ok(mut v) => {
-                v.sort_by(|a, b| a.issue.location.cmp(&b.issue.location).then(a.issue.value.cmp(&b.issue.value)));
+                v.sort_by(|a, b| {
+                    a.issue
+                        .location
+                        .cmp(&b.issue.location)
+                        .then(a.issue.value.cmp(&b.issue.value))
+                });
                 out.found.extend(v);
                 out.scanned.push(c.id);
             }
@@ -287,7 +292,10 @@ fn restore_backup_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> 
 fn delete_backup_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
     let p: IdParams = serde_json::from_value(params)?;
     if !backup::valid_backup_id(&p.id) {
-        return Err(ApiError::invalid_params(format!("`{}` is not a backup id", p.id)));
+        return Err(ApiError::invalid_params(format!(
+            "`{}` is not a backup id",
+            p.id
+        )));
     }
     let freed = backup::delete_backup_entry(ctx, &p.id)?;
     Ok(json!({ "id": p.id, "freedBytes": freed }))
