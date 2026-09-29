@@ -1476,3 +1476,20 @@ fn system_mount_rules() {
     assert!(is_system_mount(&ctx, "c:\\", None));
     assert!(!is_system_mount(&ctx, "D:\\", None));
 }
+
+#[test]
+fn real_backend_uses_the_shared_elevation_check() {
+    let (_d, ctx) = bed();
+    fake_machine(&ctx);
+    let d = ctx.env.sys_path("/dev/sdc").to_string_lossy().into_owned();
+    let params = json!({"device": d, "passes": 1, "confirm": d});
+    let e = crate::elevate::with_elevation(false, || {
+        dispatch(&ctx, "wiper.wipe_drive", params.clone(), &Job::detached()).unwrap_err()
+    });
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(
+        e.message.contains("Administrator rights are required"),
+        "{e}"
+    );
+    assert!(!Path::new(&d).exists());
+}

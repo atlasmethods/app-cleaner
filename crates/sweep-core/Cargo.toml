@@ -13,6 +13,7 @@ testutil = ["dep:filetime"]
 dirs = "7.0.0"
 filetime = { version = "0.2", optional = true }
 globset = "0.4"
+plist = "1"
 rand = "0.10"
 rayon = "1.12.0"
 rusqlite = { version = "0.40", features = ["functions"] }
@@ -41,8 +42,8 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
-# File identity (hard-link detection) and free-space queries for the disk tools.
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+# File identity + free space (disk tools), elevation (Win32_Security, Win32_System_Threading).
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [dev-dependencies]
 filetime = "0.2"

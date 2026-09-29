@@ -19,9 +19,17 @@ cargo test --workspace
 
 if [ "$(id -u)" = 0 ]; then
   step "cargo test (sweep-core, ignored: real tmpfs / ext4 loop mounts; root only, skips itself when mounting is not allowed)"
-  cargo test -p sweep-core -- --ignored
+  cargo test -p sweep-core -- --ignored tmpfs ext4_
 else
   step "skipping the mount-based wiper / disk analyzer tests (they need root)"
+fi
+
+# Real dpkg/apt tests: install and remove a dummy package, so root on a Debian-family system only.
+if [ "$(id -u)" = 0 ] && command -v dpkg >/dev/null 2>&1; then
+  step "cargo test (real dpkg/apt integration tests: --ignored real_)"
+  cargo test -p sweep-core -- --ignored real_
+else
+  echo "(skipping the real dpkg/apt tests: needs root and dpkg)"
 fi
 
 step "cargo test (sweep-cli with the testutil feature: dev-fixture)"

@@ -93,7 +93,7 @@ impl DriveBackend for RealBackend {
     }
 
     fn is_elevated(&self) -> bool {
-        is_elevated()
+        crate::elevate::is_elevated()
     }
 
     #[cfg(target_os = "linux")]
@@ -110,19 +110,6 @@ impl DriveBackend for RealBackend {
     #[cfg(not(target_os = "linux"))]
     fn open(&self, device: &str) -> io::Result<Box<dyn DeviceIo>> {
         Ok(Box::new(OpenOptions::new().write(true).open(device)?))
-    }
-}
-
-/// Is the process running with administrator / root rights?
-pub fn is_elevated() -> bool {
-    #[cfg(unix)]
-    {
-        // SAFETY: geteuid has no preconditions.
-        unsafe { libc::geteuid() == 0 }
-    }
-    #[cfg(not(unix))]
-    {
-        false
     }
 }
 

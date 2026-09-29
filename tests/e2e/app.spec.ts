@@ -65,8 +65,8 @@ for (const t of TILES) {
 
 test('placeholder pages say Coming soon', async ({ app }) => {
   await app.getByTestId('tab-tools').click();
-  await app.getByTestId('tile-uninstall').click();
-  await expect(app.getByTestId('page-uninstall')).toContainText('Coming soon');
+  await app.getByTestId('tile-startup').click();
+  await expect(app.getByTestId('page-startup')).toContainText('Coming soon');
 });
 
 test('System Info shows CPU, memory and disks', async ({ app }) => {
