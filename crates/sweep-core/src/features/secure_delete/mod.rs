@@ -87,7 +87,7 @@ pub fn gutmann_patterns() -> Vec<Pattern> {
     v
 }
 
-fn fill_chunk(buf: &mut [u8], pat: &Pattern, offset: u64, rng: &mut StdRng) {
+pub(crate) fn fill_chunk(buf: &mut [u8], pat: &Pattern, offset: u64, rng: &mut StdRng) {
     match pat {
         Pattern::Byte(b) => buf.fill(*b),
         Pattern::Bytes(seq) => {
