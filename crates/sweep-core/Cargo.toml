@@ -15,6 +15,7 @@ filetime = { version = "0.2", optional = true }
 globset = "0.4"
 plist = "1"
 rand = "0.10"
+rayon = "1.12.0"
 rusqlite = { version = "0.40", features = ["functions"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -28,13 +29,21 @@ walkdir = "2.5"
 # bundled C build cannot be cross-checked without an Apple toolchain).
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 rusqlite = { version = "0.40", features = ["functions", "bundled"] }
+blake3 = "1.8.7"
+
+# BLAKE3 (duplicate finder). On macOS the pure-Rust build is used, like SQLite above: the
+# NEON assembly path needs Apple's C toolchain, which the cross-check in scripts/check.sh
+# does not have. Other platforms keep the SIMD implementations.
+[target.'cfg(target_os = "macos")'.dependencies]
+blake3 = { version = "1.8.7", features = ["pure"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading"] }
+# File identity + free space (disk tools), elevation (Win32_Security, Win32_System_Threading).
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Threading"] }
 
 [dev-dependencies]
 filetime = "0.2"
