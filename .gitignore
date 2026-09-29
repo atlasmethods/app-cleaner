@@ -6,3 +6,4 @@ playwright-report
 src-tauri/gen
 *.log
 .DS_Store
+.claude/worktrees/
