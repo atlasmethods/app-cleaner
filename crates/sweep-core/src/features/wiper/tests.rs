@@ -337,7 +337,8 @@ fn a_running_wipe_is_never_mistaken_for_a_stale_one() {
     fs::create_dir_all(&mount).unwrap();
     let safety = Arc::new(Safety::new(&ctx.env, ExcludeSet::empty()));
     // A live guard holds its lock: a second run must leave its folder alone ...
-    let mut live = freespace::WipeGuard::create(&[mount.clone()], &mount, &safety).unwrap();
+    let mut live =
+        freespace::WipeGuard::create(std::slice::from_ref(&mount), &mount, &safety).unwrap();
     assert!(freespace::remove_stale(&mount, &safety).is_empty());
     assert!(live.dir().exists());
     // ... including a whole second wipe of the same volume running at the same time.
