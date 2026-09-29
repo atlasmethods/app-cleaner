@@ -55,21 +55,45 @@ fn real_xdg_autostart_toggle_in_a_temp_home() {
     assert_eq!(item["enabled"], true);
     assert_eq!(item["name"], "Slack");
 
-    let (ok, r) = call(d.path(), "startup.set_enabled", json!({"id": "xdg:user:slack.desktop", "enabled": false}));
+    let (ok, r) = call(
+        d.path(),
+        "startup.set_enabled",
+        json!({"id": "xdg:user:slack.desktop", "enabled": false}),
+    );
     assert!(ok, "{r}");
     assert_eq!(r["item"]["enabled"], false);
-    assert_eq!(fs::read_to_string(&file).unwrap(), format!("{SLACK}Hidden=true\n"));
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        format!("{SLACK}Hidden=true\n")
+    );
 
-    let (ok, r) = call(d.path(), "startup.set_enabled", json!({"id": "xdg:user:slack.desktop", "enabled": true}));
+    let (ok, r) = call(
+        d.path(),
+        "startup.set_enabled",
+        json!({"id": "xdg:user:slack.desktop", "enabled": true}),
+    );
     assert!(ok, "{r}");
-    assert_eq!(fs::read_to_string(&file).unwrap(), SLACK, "byte-exact after re-enabling");
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        SLACK,
+        "byte-exact after re-enabling"
+    );
 
     // remove -> backup -> restore
-    let (ok, r) = call(d.path(), "startup.remove", json!({"id": "xdg:user:slack.desktop"}));
+    let (ok, r) = call(
+        d.path(),
+        "startup.remove",
+        json!({"id": "xdg:user:slack.desktop"}),
+    );
     assert!(ok, "{r}");
     assert!(!file.exists());
     let backup = r["backupId"].as_str().unwrap().to_string();
-    assert!(d.path().join("data/backups").join(&backup).join("manifest.json").is_file());
+    assert!(d
+        .path()
+        .join("data/backups")
+        .join(&backup)
+        .join("manifest.json")
+        .is_file());
     let (ok, r) = call(d.path(), "startup.restore_backup", json!({"id": backup}));
     assert!(ok, "{r}");
     assert_eq!(fs::read_to_string(&file).unwrap(), SLACK);
@@ -83,7 +107,12 @@ fn real_optimizer_sleep_and_wake_round_trip() {
     fs::write(&file, SLACK).unwrap();
     let (ok, v) = call(d.path(), "optimizer.analyze", json!({}));
     assert!(ok, "{v}");
-    let app = v["apps"].as_array().unwrap().iter().find(|a| a["appId"] == "slack").unwrap();
+    let app = v["apps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["appId"] == "slack")
+        .unwrap();
     assert_eq!(app["startupIds"], json!(["xdg:user:slack.desktop"]));
     let (ok, v) = call(d.path(), "optimizer.sleep", json!({"appIds": ["slack"]}));
     assert!(ok, "{v}");
@@ -98,7 +127,9 @@ fn real_optimizer_sleep_and_wake_round_trip() {
 #[test]
 fn real_plugins_list_reads_a_profile_on_disk() {
     let d = tempfile::tempdir().unwrap();
-    let profile = d.path().join("home/.config/BraveSoftware/Brave-Browser/Default");
+    let profile = d
+        .path()
+        .join("home/.config/BraveSoftware/Brave-Browser/Default");
     let ext = "abcdefghijklmnopabcdefghijklmnop";
     fs::create_dir_all(profile.join(format!("Extensions/{ext}/1.0_0"))).unwrap();
     fs::write(
@@ -117,8 +148,13 @@ fn real_plugins_list_reads_a_profile_on_disk() {
     assert_eq!(p["name"], "Brave Helper");
     assert_eq!(p["browser"], "brave");
     assert_eq!(p["canDisable"], true);
-    let (ok, r) = call(d.path(), "browser_plugins.set_enabled", json!({"id": p["id"], "enabled": false}));
+    let (ok, r) = call(
+        d.path(),
+        "browser_plugins.set_enabled",
+        json!({"id": p["id"], "enabled": false}),
+    );
     assert!(ok, "{r}");
-    let prefs: Value = serde_json::from_str(&fs::read_to_string(profile.join("Preferences")).unwrap()).unwrap();
+    let prefs: Value =
+        serde_json::from_str(&fs::read_to_string(profile.join("Preferences")).unwrap()).unwrap();
     assert_eq!(prefs["extensions"]["settings"][ext]["state"], 0);
 }

@@ -95,7 +95,9 @@ impl Backup {
                 }
             })
             .collect();
-        self.dir.join("files").join(format!("{}-{safe}", self.staged))
+        self.dir
+            .join("files")
+            .join(format!("{}-{safe}", self.staged))
     }
 
     /// Copy one file into the backup; returns the path of the copy.
@@ -105,12 +107,8 @@ impl Backup {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_else(|| "file".into());
         let dst = self.stage_path(&name);
-        fs::copy(src, &dst).map_err(|e| {
-            ApiError::io(format!(
-                "could not back up {} first: {e}",
-                src.display()
-            ))
-        })?;
+        fs::copy(src, &dst)
+            .map_err(|e| ApiError::io(format!("could not back up {} first: {e}", src.display())))?;
         Ok(dst)
     }
 
@@ -121,9 +119,8 @@ impl Backup {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_else(|| "dir".into());
         let dst = self.stage_path(&name);
-        copy_dir(src, &dst).map_err(|e| {
-            ApiError::io(format!("could not back up {} first: {e}", src.display()))
-        })?;
+        copy_dir(src, &dst)
+            .map_err(|e| ApiError::io(format!("could not back up {} first: {e}", src.display())))?;
         Ok(dst)
     }
 

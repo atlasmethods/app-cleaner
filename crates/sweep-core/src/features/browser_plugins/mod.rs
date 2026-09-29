@@ -240,9 +240,7 @@ fn list_one(ctx: &Ctx, p: &ProfileRef, running: bool) -> Vec<Plugin> {
             p.def.label,
             &p.label,
             chromium::profile_display_name(&p.dir),
-            &chromium::ProfileFiles {
-                dir: p.dir.clone(),
-            },
+            &chromium::ProfileFiles { dir: p.dir.clone() },
             running,
         ),
         Family::Firefox => {
@@ -424,10 +422,14 @@ pub fn remove_tree(ctx: &Ctx, base: &Path, target: &Path) -> Result<()> {
         d.remove_file(target).map_err(|e| e.to_api(target))?;
         return Ok(());
     }
-    for e in WalkDir::new(target).follow_links(false).contents_first(true) {
+    for e in WalkDir::new(target)
+        .follow_links(false)
+        .contents_first(true)
+    {
         let e = e.map_err(|e| ApiError::io(e.to_string()))?;
         if e.file_type().is_dir() {
-            d.remove_empty_dir(e.path()).map_err(|x| x.to_api(e.path()))?;
+            d.remove_empty_dir(e.path())
+                .map_err(|x| x.to_api(e.path()))?;
         } else {
             d.remove_file(e.path()).map_err(|x| x.to_api(e.path()))?;
         }
@@ -476,7 +478,9 @@ fn remove_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
                 );
             }
             remove_tree(ctx, &files.extensions(), &ext_dir)?;
-            Ok(json!({ "ok": true, "backupId": done.id, "backupPath": done.dir.to_string_lossy(), "note": note }))
+            Ok(
+                json!({ "ok": true, "backupId": done.id, "backupPath": done.dir.to_string_lossy(), "note": note }),
+            )
         }
         Family::Firefox => {
             let payload = firefox::addon_payload(&profile.dir, &plugin.extension_id)

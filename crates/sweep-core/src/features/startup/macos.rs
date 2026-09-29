@@ -279,7 +279,13 @@ pub fn collect_login_items(ctx: &Ctx) -> Vec<Entry> {
             item.location = "Login Items".into();
             item.can_disable = false;
             item.can_delete = true;
-            let mut e = Entry::new(item, Target::MacLogin { name, path: path.clone() });
+            let mut e = Entry::new(
+                item,
+                Target::MacLogin {
+                    name,
+                    path: path.clone(),
+                },
+            );
             e.exe = Some(path);
             e
         })

@@ -206,7 +206,13 @@ pub fn collect_run(reg: &dyn StartupRegistry) -> Vec<Entry> {
             item.can_disable = !critical && !once;
             item.can_delete = !critical;
             item.publisher = publisher_from_path(&cmd);
-            let mut e = Entry::new(item, Target::WinRun { loc: loc.clone(), name });
+            let mut e = Entry::new(
+                item,
+                Target::WinRun {
+                    loc: loc.clone(),
+                    name,
+                },
+            );
             e.exe = exe_from_command(&cmd);
             out.push(e);
         }
@@ -310,9 +316,7 @@ pub fn collect_folders(ctx: &Ctx, reg: &dyn StartupRegistry) -> Vec<Entry> {
         for file in files {
             let resolved = targets
                 .iter()
-                .find(|t| {
-                    s_field(t, "Name").is_some_and(|n| n.eq_ignore_ascii_case(&file))
-                })
+                .find(|t| s_field(t, "Name").is_some_and(|n| n.eq_ignore_ascii_case(&file)))
                 .and_then(|t| {
                     let tp = s_field(t, "Target")?;
                     Some(match s_field(t, "Args") {
@@ -321,12 +325,21 @@ pub fn collect_folders(ctx: &Ctx, reg: &dyn StartupRegistry) -> Vec<Entry> {
                     })
                 });
             let path = dir.join(&file);
-            let command = resolved.clone().unwrap_or_else(|| path.to_string_lossy().into_owned());
+            let command = resolved
+                .clone()
+                .unwrap_or_else(|| path.to_string_lossy().into_owned());
             let mut item = StartupItem::new(
-                format!("winfolder:{}:{file}", if all_users { "all" } else { "user" }),
+                format!(
+                    "winfolder:{}:{file}",
+                    if all_users { "all" } else { "user" }
+                ),
                 file.trim_end_matches(".lnk").to_string(),
                 Kind::Autostart,
-                if all_users { Scope::System } else { Scope::User },
+                if all_users {
+                    Scope::System
+                } else {
+                    Scope::User
+                },
             );
             item.command = command.clone();
             item.location = path.to_string_lossy().into_owned();
@@ -744,11 +757,14 @@ pub fn collect_context(ctx: &Ctx, reg: &dyn StartupRegistry) -> Vec<Entry> {
                 if let Some(c) = &clsid {
                     'find: for h in [WinHive::Hkcu, WinHive::Hklm] {
                         let root = classes_root(h);
-                        for prefix in [format!(r"{root}\CLSID"), format!(r"{root}\WOW6432Node\CLSID")]
-                        {
+                        for prefix in [
+                            format!(r"{root}\CLSID"),
+                            format!(r"{root}\WOW6432Node\CLSID"),
+                        ] {
                             let ck = format!(r"{prefix}\{c}");
                             if friendly.is_none() {
-                                friendly = reg.default_value(h, &ck).filter(|s| !s.trim().is_empty());
+                                friendly =
+                                    reg.default_value(h, &ck).filter(|s| !s.trim().is_empty());
                             }
                             if let Some(d) = reg.default_value(h, &format!(r"{ck}\InprocServer32"))
                             {
@@ -758,7 +774,11 @@ pub fn collect_context(ctx: &Ctx, reg: &dyn StartupRegistry) -> Vec<Entry> {
                         }
                     }
                 }
-                let low_dll = dll.as_deref().unwrap_or("").to_lowercase().replace('/', r"\");
+                let low_dll = dll
+                    .as_deref()
+                    .unwrap_or("")
+                    .to_lowercase()
+                    .replace('/', r"\");
                 let builtin = low_dll.contains(r"\windows\")
                     || BUILTIN_HANDLERS.contains(&base.to_lowercase().as_str());
                 if builtin {
@@ -772,7 +792,9 @@ pub fn collect_context(ctx: &Ctx, reg: &dyn StartupRegistry) -> Vec<Entry> {
                     Kind::ContextMenu,
                     if user { Scope::User } else { Scope::System },
                 );
-                item.command = dll.clone().unwrap_or_else(|| clsid.clone().unwrap_or_default());
+                item.command = dll
+                    .clone()
+                    .unwrap_or_else(|| clsid.clone().unwrap_or_default());
                 item.location = format!(r"{}\{hkey}", hive.name());
                 item.enabled = !disabled;
                 item.can_delete = true;
@@ -838,7 +860,15 @@ pub fn write_approved(
         ctx,
         hive,
         &[
-            "add", &key, "/v", name, "/t", "REG_BINARY", "/d", &data, "/f",
+            "add",
+            &key,
+            "/v",
+            name,
+            "/t",
+            "REG_BINARY",
+            "/d",
+            &data,
+            "/f",
         ],
     )?;
     ensure_ok(out, "reg add")
@@ -975,12 +1005,7 @@ pub fn delete_task(ctx: &Ctx, name: &str) -> Result<()> {
     ensure_ok(out, "schtasks /delete")
 }
 
-pub fn delete_context_handler(
-    ctx: &Ctx,
-    hive: WinHive,
-    key: &str,
-    handler: &str,
-) -> Result<()> {
+pub fn delete_context_handler(ctx: &Ctx, hive: WinHive, key: &str, handler: &str) -> Result<()> {
     if !arg_ok(handler) {
         return Err(ApiError::invalid_params("unsupported handler name"));
     }
@@ -1021,9 +1046,7 @@ mod real {
                 .filter_map(|r| r.ok())
                 .filter_map(|(name, raw)| {
                     let d = match raw.vtype {
-                        REG_SZ | REG_EXPAND_SZ => {
-                            RegData::Str(String::from_reg_value(&raw).ok()?)
-                        }
+                        REG_SZ | REG_EXPAND_SZ => RegData::Str(String::from_reg_value(&raw).ok()?),
                         REG_DWORD => RegData::Dword(u32::from_reg_value(&raw).ok()?),
                         REG_BINARY => RegData::Binary(raw.bytes.to_vec()),
                         _ => return None,

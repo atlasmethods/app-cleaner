@@ -61,8 +61,7 @@ pub fn split_words(s: &str) -> Vec<String> {
             Some(q) => {
                 if c == q {
                     quote = None;
-                } else if c == '\\' && q == '"' && matches!(chars.peek(), Some('"') | Some('\\'))
-                {
+                } else if c == '\\' && q == '"' && matches!(chars.peek(), Some('"') | Some('\\')) {
                     if let Some(n) = chars.next() {
                         cur.push(n);
                     }
@@ -107,7 +106,15 @@ fn parent_dir(p: &str) -> Option<&str> {
 /// extension / `-stable` / `-bin`, lower case.
 pub fn base_key(path_or_name: &str) -> String {
     let mut n = file_name(path_or_name.trim()).to_lowercase();
-    for ext in [".exe", ".desktop", ".appimage", ".app", ".sh", ".py", ".bin"] {
+    for ext in [
+        ".exe",
+        ".desktop",
+        ".appimage",
+        ".app",
+        ".sh",
+        ".py",
+        ".bin",
+    ] {
         if let Some(s) = n.strip_suffix(ext) {
             n = s.to_string();
         }
@@ -158,7 +165,10 @@ pub fn proc_matches(hint: &str, p: &ProcDetail) -> bool {
         }
         // Helpers of the same install (`/opt/Slack/chrome_crashpad_handler`).
         if let (Some(hd), Some(pd)) = (parent_dir(hint), parent_dir(exe)) {
-            if hd.eq_ignore_ascii_case(pd) && !generic_dir(hd) && (hint.starts_with('/') || hint.contains(":\\")) {
+            if hd.eq_ignore_ascii_case(pd)
+                && !generic_dir(hd)
+                && (hint.starts_with('/') || hint.contains(":\\"))
+            {
                 return true;
             }
         }
@@ -207,7 +217,10 @@ mod tests {
 
     #[test]
     fn exe_extraction() {
-        assert_eq!(exe_from_command("/usr/bin/slack -u %U").as_deref(), Some("/usr/bin/slack"));
+        assert_eq!(
+            exe_from_command("/usr/bin/slack -u %U").as_deref(),
+            Some("/usr/bin/slack")
+        );
         assert_eq!(
             exe_from_command("env GTK_IM=x /opt/app/run --flag").as_deref(),
             Some("/opt/app/run")
@@ -238,7 +251,13 @@ mod tests {
     #[test]
     fn matching_is_strict() {
         let slack = p(1, "slack", Some("/opt/Slack/slack"), 10, 0.0);
-        let helper = p(2, "chrome_crashpad", Some("/opt/Slack/chrome_crashpad_handler"), 1, 0.0);
+        let helper = p(
+            2,
+            "chrome_crashpad",
+            Some("/opt/Slack/chrome_crashpad_handler"),
+            1,
+            0.0,
+        );
         let other = p(3, "slackware-tool", Some("/usr/bin/slackware-tool"), 1, 0.0);
         assert!(proc_matches("/opt/Slack/slack", &slack));
         assert!(proc_matches("/opt/Slack/slack", &helper));

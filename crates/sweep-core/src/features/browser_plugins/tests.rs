@@ -86,16 +86,28 @@ fn chrome_fixture(c: &Ctx) -> Chrome {
         &ch.ext(ID_B).join("2.0_0"),
         "\u{feff}{\n // a comment\n \"name\": \"Old Format Ext\", /* inline */ \"version\": \"2.0\"\n}",
     );
-    manifest(&ch.ext(ID_C).join("3.0_0"), r#"{"name":"Protected Ext","version":"3.0"}"#);
-    manifest(&ch.ext(ID_D).join("1_0"), r#"{"name":"Component","version":"1"}"#);
-    manifest(&ch.ext(ID_E).join("1_0"), r#"{"name":"Policy Ext","version":"1"}"#);
+    manifest(
+        &ch.ext(ID_C).join("3.0_0"),
+        r#"{"name":"Protected Ext","version":"3.0"}"#,
+    );
+    manifest(
+        &ch.ext(ID_D).join("1_0"),
+        r#"{"name":"Component","version":"1"}"#,
+    );
+    manifest(
+        &ch.ext(ID_E).join("1_0"),
+        r#"{"name":"Policy Ext","version":"1"}"#,
+    );
     let unpacked = c.env.home.join("dev/my-unpacked");
     manifest(&unpacked, r#"{"name":"My Unpacked","version":"0.1"}"#);
     manifest(
         &ch.ext(ID_G).join("1_0"),
         r#"{"name":"Dark Theme","version":"1","theme":{"colors":{}}}"#,
     );
-    manifest(&ch.ext(ID_H).join("1_0"), r#"{"name":"Perm Ext","version":"1"}"#);
+    manifest(
+        &ch.ext(ID_H).join("1_0"),
+        r#"{"name":"Perm Ext","version":"1"}"#,
+    );
 
     let prefs = json!({
         "profile": {"name": "Work"},
@@ -143,9 +155,17 @@ fn chromium_listing_resolves_names_and_skips_builtins() {
     let c = ctx(d.path(), &[]);
     chrome_fixture(&c);
     let v = call(&c, "browser_plugins.list", json!({})).unwrap();
-    let ids: Vec<&str> = v.as_array().unwrap().iter().map(|p| p["extensionId"].as_str().unwrap()).collect();
+    let ids: Vec<&str> = v
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| p["extensionId"].as_str().unwrap())
+        .collect();
     assert!(!ids.contains(&ID_D), "component extensions are skipped");
-    assert!(!ids.contains(&"nmmhkkegccagdldgiimedpiccmgmieda"), "browser built-ins are skipped");
+    assert!(
+        !ids.contains(&"nmmhkkegccagdldgiimedpiccmgmieda"),
+        "browser built-ins are skipped"
+    );
     assert_eq!(ids.len(), 7, "{ids:?}");
 
     let a = plugin(&v, ID_A);
@@ -154,7 +174,10 @@ fn chromium_listing_resolves_names_and_skips_builtins() {
     assert_eq!(a["browserLabel"], "Google Chrome");
     assert_eq!(a["profile"], "Default");
     assert_eq!(a["profileName"], "Work");
-    assert_eq!(a["name"], "Ad Blocker Pro", "__MSG_ resolved case-insensitively");
+    assert_eq!(
+        a["name"], "Ad Blocker Pro",
+        "__MSG_ resolved case-insensitively"
+    );
     assert_eq!(a["description"], "Blocks ads");
     assert_eq!(a["version"], "1.2.3");
     assert_eq!(a["type"], "extension");
@@ -165,7 +188,10 @@ fn chromium_listing_resolves_names_and_skips_builtins() {
     assert!(a.get("note").is_none());
 
     let b = plugin(&v, ID_B);
-    assert_eq!(b["name"], "Old Format Ext", "comments and BOM in manifest.json");
+    assert_eq!(
+        b["name"], "Old Format Ext",
+        "comments and BOM in manifest.json"
+    );
     assert_eq!(b["enabled"], false, "old state=0 format");
     assert_eq!(plugin(&v, ID_H)["enabled"], false, "array disable_reasons");
     assert_eq!(plugin(&v, ID_G)["type"], "theme");
@@ -184,7 +210,10 @@ fn chromium_listing_resolves_names_and_skips_builtins() {
     assert_eq!(e["canRemove"], false);
     let f = plugin(&v, ID_F);
     assert_eq!(f["name"], "My Unpacked");
-    assert_eq!(f["canRemove"], false, "an unpacked folder is the user's own");
+    assert_eq!(
+        f["canRemove"], false,
+        "an unpacked folder is the user's own"
+    );
     assert_eq!(f["canDisable"], true);
 }
 
@@ -196,41 +225,82 @@ fn chromium_disable_and_enable_preserve_every_other_key() {
     let before = read_json(&ch.prefs());
     let secure_bytes = fs::read(ch.secure()).unwrap();
 
-    let r = call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": false})).unwrap();
+    let r = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false}),
+    )
+    .unwrap();
     assert_eq!(r["plugin"]["enabled"], false);
     let after = read_json(&ch.prefs());
     let mut expected = before.clone();
-    let e = expected["extensions"]["settings"][ID_A].as_object_mut().unwrap();
+    let e = expected["extensions"]["settings"][ID_A]
+        .as_object_mut()
+        .unwrap();
     e.insert("disable_reasons".into(), json!(1));
     e.insert("state".into(), json!(0));
     assert_eq!(after, expected, "only the entry's state keys changed");
-    assert_eq!(fs::read(ch.secure()).unwrap(), secure_bytes, "Secure Preferences never touched");
+    assert_eq!(
+        fs::read(ch.secure()).unwrap(),
+        secure_bytes,
+        "Secure Preferences never touched"
+    );
 
-    let r = call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": true})).unwrap();
+    let r = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": true}),
+    )
+    .unwrap();
     assert_eq!(r["plugin"]["enabled"], true);
     let mut restored = before.clone();
     restored["extensions"]["settings"][ID_A]["state"] = json!(1);
     assert_eq!(read_json(&ch.prefs()), restored);
 
     // old format: state 0 -> enable sets state 1; disable_reasons array format is kept as array
-    call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_B), "enabled": true})).unwrap();
-    assert_eq!(read_json(&ch.prefs())["extensions"]["settings"][ID_B]["state"], 1);
+    call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_B), "enabled": true}),
+    )
+    .unwrap();
+    assert_eq!(
+        read_json(&ch.prefs())["extensions"]["settings"][ID_B]["state"],
+        1
+    );
     let v = call(&c, "browser_plugins.list", json!({})).unwrap();
     assert_eq!(plugin(&v, ID_B)["enabled"], true);
-    call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_B), "enabled": false})).unwrap();
-    assert_eq!(read_json(&ch.prefs())["extensions"]["settings"][ID_B]["state"], 0);
+    call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_B), "enabled": false}),
+    )
+    .unwrap();
+    assert_eq!(
+        read_json(&ch.prefs())["extensions"]["settings"][ID_B]["state"],
+        0
+    );
 }
 
 #[test]
 fn chromium_array_reasons_and_other_disable_reasons() {
-    let mut e = json!({"disable_reasons": [1, 2], "state": 0}).as_object().unwrap().clone();
+    let mut e = json!({"disable_reasons": [1, 2], "state": 0})
+        .as_object()
+        .unwrap()
+        .clone();
     // still disabled for a permissions reason after removing the user-action bit
     let err = chromium::apply_enabled_to_entry(&mut e, true).unwrap_err();
     assert_eq!(err.code, ErrorCode::Unsupported);
-    let mut e = json!({"disable_reasons": [1], "x": 5}).as_object().unwrap().clone();
+    let mut e = json!({"disable_reasons": [1], "x": 5})
+        .as_object()
+        .unwrap()
+        .clone();
     chromium::apply_enabled_to_entry(&mut e, true).unwrap();
     assert_eq!(Value::Object(e), json!({"x": 5}));
-    let mut e = json!({"disable_reasons": [4], "x": 5}).as_object().unwrap().clone();
+    let mut e = json!({"disable_reasons": [4], "x": 5})
+        .as_object()
+        .unwrap()
+        .clone();
     chromium::apply_enabled_to_entry(&mut e, false).unwrap();
     assert_eq!(e["disable_reasons"], json!([4, 1]), "array format kept");
     let mut e = json!({"disable_reasons": 2}).as_object().unwrap().clone();
@@ -245,16 +315,32 @@ fn chromium_secure_preferences_entries_are_never_edited() {
     let ch = chrome_fixture(&c);
     let p_bytes = fs::read(ch.prefs()).unwrap();
     let s_bytes = fs::read(ch.secure()).unwrap();
-    let e = call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_C), "enabled": false})).unwrap_err();
+    let e = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_C), "enabled": false}),
+    )
+    .unwrap_err();
     assert_eq!(e.code, ErrorCode::Unsupported);
     assert!(e.message.contains("protects extension settings"));
     assert_eq!(fs::read(ch.prefs()).unwrap(), p_bytes);
     assert_eq!(fs::read(ch.secure()).unwrap(), s_bytes);
     // policy-installed too
-    assert!(call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_E), "enabled": false})).is_err());
+    assert!(call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_E), "enabled": false})
+    )
+    .is_err());
     assert_eq!(fs::read(ch.prefs()).unwrap(), p_bytes);
     // no backup folder is left behind by a refused change
-    assert!(!c.env.data_dir.join("backups").exists() || fs::read_dir(c.env.data_dir.join("backups")).unwrap().count() == 0);
+    assert!(
+        !c.env.data_dir.join("backups").exists()
+            || fs::read_dir(c.env.data_dir.join("backups"))
+                .unwrap()
+                .count()
+                == 0
+    );
 }
 
 #[test]
@@ -267,7 +353,12 @@ fn chromium_entry_with_its_own_mac_is_treated_as_protected() {
     fs::write(ch.prefs(), p.to_string()).unwrap();
     let v = call(&c, "browser_plugins.list", json!({})).unwrap();
     assert_eq!(plugin(&v, ID_A)["canDisable"], false);
-    assert!(call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": false})).is_err());
+    assert!(call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false})
+    )
+    .is_err());
     assert_eq!(read_json(&ch.prefs()), p);
 }
 
@@ -277,9 +368,18 @@ fn a_running_browser_blocks_changes_with_a_clear_message() {
     let c = ctx(d.path(), &["chrome"]);
     let ch = chrome_fixture(&c);
     let before = fs::read(ch.prefs()).unwrap();
-    let e = call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": false})).unwrap_err();
+    let e = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false}),
+    )
+    .unwrap_err();
     assert_eq!(e.code, ErrorCode::PermissionDenied);
-    assert!(e.message.starts_with("Close Google Chrome first"), "{}", e.message);
+    assert!(
+        e.message.starts_with("Close Google Chrome first"),
+        "{}",
+        e.message
+    );
     let e = call(&c, "browser_plugins.remove", json!({"id": pid(ID_A)})).unwrap_err();
     assert!(e.message.starts_with("Close Google Chrome first"));
     assert_eq!(fs::read(ch.prefs()).unwrap(), before);
@@ -295,16 +395,27 @@ fn chromium_backup_is_taken_before_the_change() {
     let c = ctx(d.path(), &[]);
     let ch = chrome_fixture(&c);
     let before = fs::read(ch.prefs()).unwrap();
-    let r = call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": false})).unwrap();
+    let r = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false}),
+    )
+    .unwrap();
     let bid = r["backupId"].as_str().unwrap();
     assert!(bid.starts_with("plugins-"));
     let dir = c.env.data_dir.join("backups").join(bid);
     let m = read_json(&dir.join("manifest.json"));
     assert_eq!(m["kind"], "plugins");
-    assert!(m["description"].as_str().unwrap().contains("Ad Blocker Pro"));
+    assert!(m["description"]
+        .as_str()
+        .unwrap()
+        .contains("Ad Blocker Pro"));
     let rel = m["items"][0]["backup"].as_str().unwrap();
     assert_eq!(fs::read(dir.join(rel)).unwrap(), before);
-    assert_eq!(m["items"][0]["original"], ch.prefs().to_string_lossy().as_ref());
+    assert_eq!(
+        m["items"][0]["original"],
+        ch.prefs().to_string_lossy().as_ref()
+    );
 }
 
 #[test]
@@ -315,7 +426,12 @@ fn a_failing_backup_stops_the_change() {
     let before = fs::read(ch.prefs()).unwrap();
     fs::create_dir_all(&c.env.data_dir).unwrap();
     fs::write(c.env.data_dir.join("backups"), "not a folder").unwrap();
-    assert!(call(&c, "browser_plugins.set_enabled", json!({"id": pid(ID_A), "enabled": false})).is_err());
+    assert!(call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false})
+    )
+    .is_err());
     assert!(call(&c, "browser_plugins.remove", json!({"id": pid(ID_A)})).is_err());
     assert_eq!(fs::read(ch.prefs()).unwrap(), before);
     assert!(ch.ext(ID_A).join("1.2.3_0/manifest.json").exists());
@@ -331,9 +447,16 @@ fn chromium_remove_deletes_dir_and_pref_entry_after_backing_up() {
     assert!(!ch.ext(ID_A).exists());
     let after = read_json(&ch.prefs());
     let mut expected = before.clone();
-    expected["extensions"]["settings"].as_object_mut().unwrap().remove(ID_A);
+    expected["extensions"]["settings"]
+        .as_object_mut()
+        .unwrap()
+        .remove(ID_A);
     assert_eq!(after, expected);
-    let dir = c.env.data_dir.join("backups").join(r["backupId"].as_str().unwrap());
+    let dir = c
+        .env
+        .data_dir
+        .join("backups")
+        .join(r["backupId"].as_str().unwrap());
     let m = read_json(&dir.join("manifest.json"));
     let items = m["items"].as_array().unwrap();
     assert_eq!(items[0]["type"], "dir");
@@ -341,7 +464,11 @@ fn chromium_remove_deletes_dir_and_pref_entry_after_backing_up() {
     assert!(copy.join("1.2.3_0/manifest.json").is_file());
     assert!(copy.join("1.2.3_0/_locales/en/messages.json").is_file());
     let listing = call(&c, "browser_plugins.list", json!({})).unwrap();
-    assert!(listing.as_array().unwrap().iter().all(|p| p["extensionId"] != ID_A));
+    assert!(listing
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|p| p["extensionId"] != ID_A));
 }
 
 #[test]
@@ -353,7 +480,10 @@ fn chromium_remove_of_a_secure_entry_removes_only_the_directory() {
     let s = fs::read(ch.secure()).unwrap();
     let r = call(&c, "browser_plugins.remove", json!({"id": pid(ID_C)})).unwrap();
     assert!(!ch.ext(ID_C).exists());
-    assert!(r["note"].as_str().unwrap().contains("clear it the next time"));
+    assert!(r["note"]
+        .as_str()
+        .unwrap()
+        .contains("clear it the next time"));
     assert_eq!(fs::read(ch.secure()).unwrap(), s);
     assert_eq!(fs::read(ch.prefs()).unwrap(), p);
     // unpacked and policy extensions cannot be removed
@@ -367,9 +497,19 @@ fn ids_cannot_escape_or_select_things_that_do_not_exist() {
     let d = tempfile::tempdir().unwrap();
     let c = ctx(d.path(), &[]);
     let ch = chrome_fixture(&c);
-    for bad in ["nonsense", "chrome:Default", "chrome:Default:../../x", "chrome:Nope:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "opera:Default:x", "chrome:Default:"] {
+    for bad in [
+        "nonsense",
+        "chrome:Default",
+        "chrome:Default:../../x",
+        "chrome:Nope:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "opera:Default:x",
+        "chrome:Default:",
+    ] {
         let e = call(&c, "browser_plugins.remove", json!({"id": bad})).unwrap_err();
-        assert!(matches!(e.code, ErrorCode::InvalidParams | ErrorCode::NotFound), "{bad}: {e:?}");
+        assert!(
+            matches!(e.code, ErrorCode::InvalidParams | ErrorCode::NotFound),
+            "{bad}: {e:?}"
+        );
     }
     assert!(ch.ext(ID_A).exists());
 }
@@ -380,17 +520,33 @@ fn several_profiles_and_roots_get_distinct_ids_and_opera_uses_the_root() {
     let c = ctx(d.path(), &[]);
     let base = c.env.config_dir.join("google-chrome");
     for prof in ["Default", "Profile 1", "Guest Profile", "System Profile"] {
-        write(&base.join(prof).join("Preferences"), &json!({"extensions": {"settings": {}}}).to_string());
+        write(
+            &base.join(prof).join("Preferences"),
+            &json!({"extensions": {"settings": {}}}).to_string(),
+        );
     }
-    write(&c.env.config_dir.join("google-chrome-beta/Default/Preferences"), "{}");
+    write(
+        &c.env
+            .config_dir
+            .join("google-chrome-beta/Default/Preferences"),
+        "{}",
+    );
     let opera = c.env.config_dir.join("opera");
     write(&opera.join("Preferences"), "{}");
     fs::create_dir_all(opera.join("Extensions")).unwrap();
-    let mut labels: Vec<String> = discover(&c).iter().map(|p| format!("{}:{}", p.def.key, p.label)).collect();
+    let mut labels: Vec<String> = discover(&c)
+        .iter()
+        .map(|p| format!("{}:{}", p.def.key, p.label))
+        .collect();
     labels.sort();
     assert_eq!(
         labels,
-        vec!["chrome:Default", "chrome:Default@google-chrome-beta", "chrome:Profile 1", "opera:Default"]
+        vec![
+            "chrome:Default",
+            "chrome:Default@google-chrome-beta",
+            "chrome:Profile 1",
+            "opera:Default"
+        ]
     );
 }
 
@@ -434,13 +590,21 @@ fn firefox_fixture(c: &Ctx) -> Fox {
         }},
         "app-system-defaults": {"addons": {}}
     });
-    fs::write(profile.join("addonStartup.json.lz4"), mozlz4::compress(startup.to_string().as_bytes())).unwrap();
-    write(&profile.join("extensions").join(format!("{FX_UBO}.xpi")), "PK-zip-bytes");
+    fs::write(
+        profile.join("addonStartup.json.lz4"),
+        mozlz4::compress(startup.to_string().as_bytes()),
+    )
+    .unwrap();
+    write(
+        &profile.join("extensions").join(format!("{FX_UBO}.xpi")),
+        "PK-zip-bytes",
+    );
     Fox { profile }
 }
 
 fn startup_json(f: &Fox) -> Value {
-    let raw = mozlz4::decompress(&fs::read(f.profile.join("addonStartup.json.lz4")).unwrap()).unwrap();
+    let raw =
+        mozlz4::decompress(&fs::read(f.profile.join("addonStartup.json.lz4")).unwrap()).unwrap();
     serde_json::from_slice(&raw).unwrap()
 }
 
@@ -454,7 +618,12 @@ fn firefox_listing_skips_builtin_and_hidden_addons() {
     let c = ctx(d.path(), &[]);
     firefox_fixture(&c);
     let v = call(&c, "browser_plugins.list", json!({})).unwrap();
-    let ids: Vec<&str> = v.as_array().unwrap().iter().map(|p| p["extensionId"].as_str().unwrap()).collect();
+    let ids: Vec<&str> = v
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| p["extensionId"].as_str().unwrap())
+        .collect();
     assert_eq!(ids.len(), 3, "{ids:?}");
     let u = plugin(&v, FX_UBO);
     assert_eq!(u["name"], "uBlock Origin");
@@ -480,7 +649,12 @@ fn firefox_disable_updates_both_files_and_enable_restores_them() {
     let fx = firefox_fixture(&c);
     let db_before = read_json(&fx.profile.join("extensions.json"));
     let startup_before = startup_json(&fx);
-    let r = call(&c, "browser_plugins.set_enabled", json!({"id": fid(FX_UBO), "enabled": false})).unwrap();
+    let r = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": fid(FX_UBO), "enabled": false}),
+    )
+    .unwrap();
     assert_eq!(r["plugin"]["enabled"], false);
     let db = read_json(&fx.profile.join("extensions.json"));
     assert_eq!(db["addons"][0]["userDisabled"], true);
@@ -492,20 +666,43 @@ fn firefox_disable_updates_both_files_and_enable_restores_them() {
     assert_eq!(db, expected);
     let st = startup_json(&fx);
     assert_eq!(st["app-profile"]["addons"][FX_UBO]["enabled"], false);
-    assert_eq!(st["app-profile"]["addons"][FX_UBO]["lastModifiedTime"], 1700000000000u64);
-    assert_eq!(st["app-system-defaults"], startup_before["app-system-defaults"]);
+    assert_eq!(
+        st["app-profile"]["addons"][FX_UBO]["lastModifiedTime"],
+        1700000000000u64
+    );
+    assert_eq!(
+        st["app-system-defaults"],
+        startup_before["app-system-defaults"]
+    );
     // the file really is mozLz4
     let raw = fs::read(fx.profile.join("addonStartup.json.lz4")).unwrap();
     assert_eq!(&raw[..8], b"mozLz40\0");
 
     // both files were backed up first
-    let dir = c.env.data_dir.join("backups").join(r["backupId"].as_str().unwrap());
+    let dir = c
+        .env
+        .data_dir
+        .join("backups")
+        .join(r["backupId"].as_str().unwrap());
     let m = read_json(&dir.join("manifest.json"));
     assert_eq!(m["items"].as_array().unwrap().len(), 2);
-    let ej = m["items"].as_array().unwrap().iter().find(|i| i["original"].as_str().unwrap().ends_with("extensions.json")).unwrap();
-    assert_eq!(read_json(&dir.join(ej["backup"].as_str().unwrap())), db_before);
+    let ej = m["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["original"].as_str().unwrap().ends_with("extensions.json"))
+        .unwrap();
+    assert_eq!(
+        read_json(&dir.join(ej["backup"].as_str().unwrap())),
+        db_before
+    );
 
-    call(&c, "browser_plugins.set_enabled", json!({"id": fid(FX_UBO), "enabled": true})).unwrap();
+    call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": fid(FX_UBO), "enabled": true}),
+    )
+    .unwrap();
     assert_eq!(read_json(&fx.profile.join("extensions.json")), db_before);
     assert_eq!(startup_json(&fx), startup_before);
 }
@@ -517,8 +714,16 @@ fn firefox_damaged_startup_cache_aborts_before_writing_anything() {
     let fx = firefox_fixture(&c);
     fs::write(fx.profile.join("addonStartup.json.lz4"), b"garbage-not-lz4").unwrap();
     let before = fs::read(fx.profile.join("extensions.json")).unwrap();
-    assert!(call(&c, "browser_plugins.set_enabled", json!({"id": fid(FX_UBO), "enabled": false})).is_err());
-    assert_eq!(fs::read(fx.profile.join("extensions.json")).unwrap(), before);
+    assert!(call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": fid(FX_UBO), "enabled": false})
+    )
+    .is_err());
+    assert_eq!(
+        fs::read(fx.profile.join("extensions.json")).unwrap(),
+        before
+    );
 }
 
 #[test]
@@ -527,8 +732,16 @@ fn firefox_without_a_startup_cache_only_edits_extensions_json() {
     let c = ctx(d.path(), &[]);
     let fx = firefox_fixture(&c);
     fs::remove_file(fx.profile.join("addonStartup.json.lz4")).unwrap();
-    call(&c, "browser_plugins.set_enabled", json!({"id": fid(FX_UBO), "enabled": false})).unwrap();
-    assert_eq!(read_json(&fx.profile.join("extensions.json"))["addons"][0]["userDisabled"], true);
+    call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": fid(FX_UBO), "enabled": false}),
+    )
+    .unwrap();
+    assert_eq!(
+        read_json(&fx.profile.join("extensions.json"))["addons"][0]["userDisabled"],
+        true
+    );
     assert!(!fx.profile.join("addonStartup.json.lz4").exists());
 }
 
@@ -538,8 +751,16 @@ fn firefox_running_blocks_and_remove_backs_up_the_xpi() {
     let c = ctx(d.path(), &["firefox"]);
     let fx = firefox_fixture(&c);
     let e = call(&c, "browser_plugins.remove", json!({"id": fid(FX_UBO)})).unwrap_err();
-    assert!(e.message.starts_with("Close Firefox first"), "{}", e.message);
-    assert!(fx.profile.join("extensions").join(format!("{FX_UBO}.xpi")).exists());
+    assert!(
+        e.message.starts_with("Close Firefox first"),
+        "{}",
+        e.message
+    );
+    assert!(fx
+        .profile
+        .join("extensions")
+        .join(format!("{FX_UBO}.xpi"))
+        .exists());
 
     let c = ctx(d.path(), &[]);
     let r = call(&c, "browser_plugins.remove", json!({"id": fid(FX_UBO)})).unwrap();
@@ -547,11 +768,26 @@ fn firefox_running_blocks_and_remove_backs_up_the_xpi() {
     assert!(!xpi.exists());
     let db = read_json(&fx.profile.join("extensions.json"));
     assert_eq!(db["addons"][0]["active"], false);
-    assert_eq!(startup_json(&fx)["app-profile"]["addons"][FX_UBO]["enabled"], false);
-    let dir = c.env.data_dir.join("backups").join(r["backupId"].as_str().unwrap());
+    assert_eq!(
+        startup_json(&fx)["app-profile"]["addons"][FX_UBO]["enabled"],
+        false
+    );
+    let dir = c
+        .env
+        .data_dir
+        .join("backups")
+        .join(r["backupId"].as_str().unwrap());
     let m = read_json(&dir.join("manifest.json"));
-    let x = m["items"].as_array().unwrap().iter().find(|i| i["original"].as_str().unwrap().ends_with(".xpi")).unwrap();
-    assert_eq!(fs::read_to_string(dir.join(x["backup"].as_str().unwrap())).unwrap(), "PK-zip-bytes");
+    let x = m["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["original"].as_str().unwrap().ends_with(".xpi"))
+        .unwrap();
+    assert_eq!(
+        fs::read_to_string(dir.join(x["backup"].as_str().unwrap())).unwrap(),
+        "PK-zip-bytes"
+    );
     assert!(r["note"].as_str().unwrap().contains("next time"));
 }
 
@@ -561,8 +797,20 @@ fn firefox_unpacked_addon_directory_is_removed_through_safe_deleter() {
     let c = ctx(d.path(), &[]);
     let fx = firefox_fixture(&c);
     fs::remove_file(fx.profile.join("extensions").join(format!("{FX_UBO}.xpi"))).unwrap();
-    write(&fx.profile.join("extensions").join(FX_UBO).join("manifest.json"), "{}");
-    write(&fx.profile.join("extensions").join(FX_UBO).join("sub/deep.txt"), "x");
+    write(
+        &fx.profile
+            .join("extensions")
+            .join(FX_UBO)
+            .join("manifest.json"),
+        "{}",
+    );
+    write(
+        &fx.profile
+            .join("extensions")
+            .join(FX_UBO)
+            .join("sub/deep.txt"),
+        "x",
+    );
     call(&c, "browser_plugins.remove", json!({"id": fid(FX_UBO)})).unwrap();
     assert!(!fx.profile.join("extensions").join(FX_UBO).exists());
     assert!(fx.profile.join("extensions").exists());
@@ -649,9 +897,8 @@ fn real_chromium_profile_with_an_unpacked_extension() {
     let secure = user_data.join("Default/Secure Preferences");
     let mut seen = false;
     while std::time::Instant::now() < deadline {
-        let hit = |p: &Path| {
-            fs::read_to_string(p).is_ok_and(|t| t.contains(&*ext.to_string_lossy()))
-        };
+        let hit =
+            |p: &Path| fs::read_to_string(p).is_ok_and(|t| t.contains(&*ext.to_string_lossy()));
         {
             if hit(&prefs) || hit(&secure) {
                 seen = true;
@@ -665,7 +912,10 @@ fn real_chromium_profile_with_an_unpacked_extension() {
         libc::kill(child.id() as i32, libc::SIGTERM);
     }
     let _ = child.wait();
-    assert!(seen, "Chromium never registered the extension in Preferences / Secure Preferences");
+    assert!(
+        seen,
+        "Chromium never registered the extension in Preferences / Secure Preferences"
+    );
 
     let mut c = Ctx::new(Env::for_test(d.path()), Arc::new(MockRunner::new()))
         .with_procs(Arc::new(FakeProcesses::new(&[], true)));
@@ -684,8 +934,12 @@ fn real_chromium_profile_with_an_unpacked_extension() {
     let p_json = read_json(&prefs);
     let id = p["extensionId"].as_str().unwrap();
     let in_prefs = p_json["extensions"]["settings"].get(id).is_some();
-    let has_mac = p_json["protection"]["macs"]["extensions"]["settings"].get(id).is_some();
-    let in_secure = read_json(&secure)["extensions"]["settings"].get(id).is_some();
+    let has_mac = p_json["protection"]["macs"]["extensions"]["settings"]
+        .get(id)
+        .is_some();
+    let in_secure = read_json(&secure)["extensions"]["settings"]
+        .get(id)
+        .is_some();
     eprintln!(
         "real Chromium: entry in Preferences={in_prefs}, in Secure Preferences={in_secure}, MAC record in Preferences={has_mac}; location={}",
         p_json["extensions"]["settings"][id]["location"]
@@ -694,7 +948,10 @@ fn real_chromium_profile_with_an_unpacked_extension() {
     // The lister must agree with the files: a MAC-protected entry is never editable.
     assert_eq!(p["canDisable"], !(in_secure || has_mac), "{p}");
     if in_secure || has_mac {
-        assert!(p["note"].as_str().unwrap().contains("protects extension settings"));
+        assert!(p["note"]
+            .as_str()
+            .unwrap()
+            .contains("protects extension settings"));
     }
     assert_eq!(p["enabled"], true);
 }

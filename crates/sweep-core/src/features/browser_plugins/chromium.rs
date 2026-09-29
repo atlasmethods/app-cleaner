@@ -77,7 +77,9 @@ pub fn roots(ctx: &Ctx, key: &str) -> Vec<PathBuf> {
         (Os::Windows, "chromium") => vec![e.data_local_dir.join("Chromium/User Data")],
         (Os::Windows, "edge") => vec![e.data_local_dir.join("Microsoft/Edge/User Data")],
         (Os::Windows, "brave") => {
-            vec![e.data_local_dir.join("BraveSoftware/Brave-Browser/User Data")]
+            vec![e
+                .data_local_dir
+                .join("BraveSoftware/Brave-Browser/User Data")]
         }
         (Os::Windows, "opera") => vec![e.config_dir.join("Opera Software/Opera Stable")],
         (Os::Windows, "vivaldi") => vec![e.data_local_dir.join("Vivaldi/User Data")],
@@ -337,12 +339,18 @@ pub fn list_profile(
         // The secure copy wins when both exist.
         let (entry, file_value) = if in_secure {
             (
-                secure.as_ref().and_then(settings_of).and_then(|s| s.get(&id)),
+                secure
+                    .as_ref()
+                    .and_then(settings_of)
+                    .and_then(|s| s.get(&id)),
                 secure.as_ref(),
             )
         } else if in_prefs {
             (
-                prefs.as_ref().and_then(settings_of).and_then(|s| s.get(&id)),
+                prefs
+                    .as_ref()
+                    .and_then(settings_of)
+                    .and_then(|s| s.get(&id)),
                 prefs.as_ref(),
             )
         } else {
@@ -387,7 +395,8 @@ pub fn list_profile(
             note = Some(NOTE_PROTECTED.into());
         }
         let ext_dir = files.extensions().join(&id);
-        let can_remove = !policy && !unpacked && matches!(location, 1 | 2 | 3 | 6) && ext_dir.is_dir();
+        let can_remove =
+            !policy && !unpacked && matches!(location, 1 | 2 | 3 | 6) && ext_dir.is_dir();
         if unpacked && note.is_none() {
             note = Some(NOTE_UNPACKED.into());
         }

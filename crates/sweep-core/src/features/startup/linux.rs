@@ -371,9 +371,9 @@ pub fn xdg_set_enabled(
     match (user_text, sys_text) {
         (Some(t), sys) => {
             let cleaned = clear_hidden(&t);
-            let plain_override = sys
-                .as_ref()
-                .is_some_and(|s| *s == cleaned || (!has_exec(&cleaned) && parse_desktop(s).enabled()));
+            let plain_override = sys.as_ref().is_some_and(|s| {
+                *s == cleaned || (!has_exec(&cleaned) && parse_desktop(s).enabled())
+            });
             if plain_override {
                 let dir = user_path
                     .parent()
@@ -637,7 +637,7 @@ pub fn collect_systemd(ctx: &Ctx) -> Vec<Entry> {
             e.exe = exec
                 .as_deref()
                 .and_then(exe_from_command)
-                .or_else(|| Some(stem));
+                .or(Some(stem));
             out.push(e);
         }
     }
@@ -720,7 +720,11 @@ pub fn collect_cron(ctx: &Ctx) -> Vec<Entry> {
             *n += 1;
             cur
         };
-        let cmd = body.trim_start().trim_start_matches("@reboot").trim().to_string();
+        let cmd = body
+            .trim_start()
+            .trim_start_matches("@reboot")
+            .trim()
+            .to_string();
         let mut item = StartupItem::new(
             format!("cron:{}:{nth}", line_hash(&body)),
             cmd.split_whitespace()

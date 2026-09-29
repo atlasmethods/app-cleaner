@@ -83,8 +83,14 @@ pub fn list_profile(
             .and_then(Value::as_str)
             .unwrap_or("")
             .to_string();
-        let user_disabled = a.get("userDisabled").and_then(Value::as_bool).unwrap_or(false);
-        let app_disabled = a.get("appDisabled").and_then(Value::as_bool).unwrap_or(false);
+        let user_disabled = a
+            .get("userDisabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let app_disabled = a
+            .get("appDisabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         let profile_addon = location == "app-profile";
         let mut note = None;
         if app_disabled && !user_disabled {

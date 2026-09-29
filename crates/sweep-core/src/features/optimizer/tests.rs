@@ -89,7 +89,12 @@ fn slack_procs() -> Vec<ProcDetail> {
     vec![
         proc(100, "slack", "/opt/Slack/slack", 300),
         proc(101, "slack", "/opt/Slack/slack", 120),
-        proc(102, "chrome_crashpad", "/opt/Slack/chrome_crashpad_handler", 5),
+        proc(
+            102,
+            "chrome_crashpad",
+            "/opt/Slack/chrome_crashpad_handler",
+            5,
+        ),
     ]
 }
 
@@ -114,7 +119,9 @@ fn analyze_groups_processes_and_startup_items_per_app() {
     let f = fx(Os::Linux, procs, true);
     autostart(&f, "slack.desktop", SLACK);
     write(
-        &f.ctx.env.sys_path("/usr/share/applications/firefox.desktop"),
+        &f.ctx
+            .env
+            .sys_path("/usr/share/applications/firefox.desktop"),
         "[Desktop Entry]\nName=Firefox\nExec=/usr/lib/firefox/firefox %u\nIcon=firefox\n",
     );
     let v = call(&f, "optimizer.analyze", json!({})).unwrap();
@@ -128,7 +135,11 @@ fn analyze_groups_processes_and_startup_items_per_app() {
         .iter()
         .map(|p| p["pid"].as_u64().unwrap())
         .collect();
-    assert_eq!(pids, vec![100, 101, 102], "sorted by memory, foreign pid 204 excluded");
+    assert_eq!(
+        pids,
+        vec![100, 101, 102],
+        "sorted by memory, foreign pid 204 excluded"
+    );
     assert_eq!(s["backgroundMemoryBytes"], (300 + 120 + 5) * MB);
     assert_eq!(s["sleeping"], false);
     assert_eq!(s["protected"], false);
@@ -191,13 +202,21 @@ fn machine_wide_xdg_entries_are_eligible_because_they_need_no_root() {
 #[test]
 fn flatpak_and_generic_launchers_do_not_merge_unrelated_apps() {
     let f = fx(Os::Linux, vec![], true);
-    autostart(&f, "a.desktop", "[Desktop Entry]\nName=Alpha\nExec=flatpak run org.example.Alpha\n");
+    autostart(
+        &f,
+        "a.desktop",
+        "[Desktop Entry]\nName=Alpha\nExec=flatpak run org.example.Alpha\n",
+    );
     autostart(
         &f,
         "b.desktop",
         "[Desktop Entry]\nName=Beta\nExec=flatpak run --branch=stable org.example.Beta\n",
     );
-    autostart(&f, "c.desktop", "[Desktop Entry]\nName=Gamma\nExec=env FOO=1 python3 /opt/g/g.py\n");
+    autostart(
+        &f,
+        "c.desktop",
+        "[Desktop Entry]\nName=Gamma\nExec=env FOO=1 python3 /opt/g/g.py\n",
+    );
     let v = call(&f, "optimizer.analyze", json!({})).unwrap();
     assert_eq!(app_ids(&v).len(), 3, "{:?}", app_ids(&v));
 }
@@ -237,22 +256,40 @@ fn wake_restores_exactly_what_sleep_changed() {
     let f = fx(Os::Linux, slack_procs(), true);
     let one = autostart(&f, "slack.desktop", SLACK);
     // A second entry of the same app that the user had disabled long before.
-    let two_text = "[Desktop Entry]\nName=Slack (tray)\nExec=/opt/Slack/slack --tray\nHidden=true\n";
+    let two_text =
+        "[Desktop Entry]\nName=Slack (tray)\nExec=/opt/Slack/slack --tray\nHidden=true\n";
     let two = autostart(&f, "slack-tray.desktop", two_text);
     call(&f, "optimizer.sleep", json!({"appIds": ["slack"]})).unwrap();
     let saved = state_json(&f);
-    assert_eq!(saved["sleeping"]["slack"]["disabled"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        saved["sleeping"]["slack"]["disabled"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
     assert_eq!(
         saved["sleeping"]["slack"]["alreadyDisabled"],
         json!(["xdg:user:slack-tray.desktop"])
     );
-    assert_eq!(fs::read_to_string(&two).unwrap(), two_text, "already-disabled item untouched by sleep");
+    assert_eq!(
+        fs::read_to_string(&two).unwrap(),
+        two_text,
+        "already-disabled item untouched by sleep"
+    );
 
     let r = call(&f, "optimizer.wake", json!({"appIds": ["slack"]})).unwrap();
     assert_eq!(r["results"][0]["ok"], true);
-    assert_eq!(r["results"][0]["restoredItems"], json!(["xdg:user:slack.desktop"]));
+    assert_eq!(
+        r["results"][0]["restoredItems"],
+        json!(["xdg:user:slack.desktop"])
+    );
     assert_eq!(fs::read_to_string(&one).unwrap(), SLACK, "byte-exact");
-    assert_eq!(fs::read_to_string(&two).unwrap(), two_text, "stays disabled");
+    assert_eq!(
+        fs::read_to_string(&two).unwrap(),
+        two_text,
+        "stays disabled"
+    );
     assert_eq!(state_json(&f)["sleeping"], json!({}));
     // waking something that is not asleep is reported, not fatal
     let r = call(&f, "optimizer.wake", json!({"appIds": ["slack"]})).unwrap();
@@ -274,9 +311,11 @@ fn wake_skips_items_that_vanished_and_keeps_going() {
     let res = &r["results"][0];
     assert_eq!(res["missingItems"], json!(["Slack"]));
     assert_eq!(res["restoredItems"], json!(["xdg:user:slack-2.desktop"]));
-    assert!(!fs::read_to_string(user_autostart_dir(&f.ctx).join("slack-2.desktop"))
-        .unwrap()
-        .contains("Hidden"));
+    assert!(
+        !fs::read_to_string(user_autostart_dir(&f.ctx).join("slack-2.desktop"))
+            .unwrap()
+            .contains("Hidden")
+    );
 }
 
 #[test]
@@ -294,14 +333,24 @@ fn protected_and_unknown_apps_are_refused_without_changes() {
     let f = fx(Os::Linux, vec![], true);
     let text = "[Desktop Entry]\nName=Malwarebytes\nExec=/opt/malwarebytes/mbam\n";
     let p = autostart(&f, "malwarebytes.desktop", text);
-    let r = call(&f, "optimizer.sleep", json!({"appIds": ["mbam", "does-not-exist"]})).unwrap();
+    let r = call(
+        &f,
+        "optimizer.sleep",
+        json!({"appIds": ["mbam", "does-not-exist"]}),
+    )
+    .unwrap();
     assert_eq!(r["results"][0]["ok"], false);
-    assert!(r["results"][0]["error"].as_str().unwrap().contains("protected"));
+    assert!(r["results"][0]["error"]
+        .as_str()
+        .unwrap()
+        .contains("protected"));
     assert_eq!(r["results"][1]["ok"], false);
     assert_eq!(fs::read_to_string(&p).unwrap(), text);
     assert!(!f.ctx.env.data_dir.join("optimizer.json").exists());
     assert_eq!(
-        call(&f, "optimizer.sleep", json!({"appIds": []})).unwrap_err().code,
+        call(&f, "optimizer.sleep", json!({"appIds": []}))
+            .unwrap_err()
+            .code,
         ErrorCode::InvalidParams
     );
 }
@@ -325,7 +374,11 @@ fn processes_that_ignore_the_request_are_reported_never_killed() {
 
 #[test]
 fn a_pid_that_now_belongs_to_another_process_is_not_signalled() {
-    let f = fx(Os::Linux, vec![proc(100, "slack", "/opt/Slack/slack", 10)], true);
+    let f = fx(
+        Os::Linux,
+        vec![proc(100, "slack", "/opt/Slack/slack", 10)],
+        true,
+    );
     autostart(&f, "slack.desktop", SLACK);
     let a = analyze(&f.ctx, &job()).unwrap();
     let app = a.apps.iter().find(|x| x.id == "slack").unwrap().clone();
@@ -368,15 +421,24 @@ fn enforce_redisables_reenabled_and_new_entries_and_never_touches_processes() {
         .iter()
         .any(|c| c["itemId"] == "xdg:user:slack-helper.desktop" && c["reason"] == "created"));
     assert!(fs::read_to_string(&path).unwrap().contains("Hidden=true"));
-    assert!(relaunched.exit_requests().is_empty(), "enforce never signals a process");
-    assert_eq!(relaunched.list().len(), 3, "user-launched processes keep running");
+    assert!(
+        relaunched.exit_requests().is_empty(),
+        "enforce never signals a process"
+    );
+    assert_eq!(
+        relaunched.list().len(),
+        3,
+        "user-launched processes keep running"
+    );
 
     // Both are now recorded, so wake restores both.
     crate::api::dispatch(&ctx, "optimizer.wake", json!({"appIds": ["slack"]}), &job()).unwrap();
     assert!(!fs::read_to_string(&path).unwrap().contains("Hidden"));
-    assert!(!fs::read_to_string(user_autostart_dir(&ctx).join("slack-helper.desktop"))
-        .unwrap()
-        .contains("Hidden"));
+    assert!(
+        !fs::read_to_string(user_autostart_dir(&ctx).join("slack-helper.desktop"))
+            .unwrap()
+            .contains("Hidden")
+    );
 
     // Nothing asleep: nothing to do.
     let r = crate::api::dispatch(&ctx, "optimizer.enforce", json!({}), &job()).unwrap();
@@ -387,7 +449,11 @@ fn enforce_redisables_reenabled_and_new_entries_and_never_touches_processes() {
 fn enforce_leaves_correctly_disabled_and_unrelated_entries_alone() {
     let f = fx(Os::Linux, vec![], true);
     autostart(&f, "slack.desktop", SLACK);
-    let other = autostart(&f, "other.desktop", "[Desktop Entry]\nName=Other\nExec=/usr/bin/other\n");
+    let other = autostart(
+        &f,
+        "other.desktop",
+        "[Desktop Entry]\nName=Other\nExec=/usr/bin/other\n",
+    );
     call(&f, "optimizer.sleep", json!({"appIds": ["slack"]})).unwrap();
     let r = call(&f, "optimizer.enforce", json!({})).unwrap();
     assert_eq!(r["changed"], json!([]));
@@ -401,7 +467,12 @@ fn windows_uses_taskkill_without_force() {
     let f = fx(
         Os::Windows,
         vec![
-            proc(50, "Spotify.exe", r"C:\Users\u\AppData\Roaming\Spotify\Spotify.exe", 200),
+            proc(
+                50,
+                "Spotify.exe",
+                r"C:\Users\u\AppData\Roaming\Spotify\Spotify.exe",
+                200,
+            ),
             proc(51, "svchost.exe", r"C:\Windows\System32\svchost.exe", 20),
             proc(52, "notepad.exe", r"C:\Windows\System32\notepad.exe", 5),
         ],
@@ -411,7 +482,11 @@ fn windows_uses_taskkill_without_force() {
     f.runner.on_any_args("schtasks", CmdOutput::failed(1, ""));
     f.runner.on_any_args("powershell", CmdOutput::failed(1, ""));
     let v = call(&f, "optimizer.analyze", json!({})).unwrap();
-    assert_eq!(app_ids(&v), vec!["spotify"], "system processes are not apps");
+    assert_eq!(
+        app_ids(&v),
+        vec!["spotify"],
+        "system processes are not apps"
+    );
     let r = call(&f, "optimizer.sleep", json!({"appIds": ["spotify"]})).unwrap();
     assert_eq!(r["results"][0]["ok"], true);
     let kills: Vec<_> = f
@@ -464,7 +539,11 @@ fn macos_quits_via_osascript_then_asks_the_os() {
     assert_eq!(quits.len(), 1);
     let mut req = f.procs.exit_requests();
     req.sort();
-    assert_eq!(req, vec![70, 71], "SIGTERM (never SIGKILL) for what did not quit");
+    assert_eq!(
+        req,
+        vec![70, 71],
+        "SIGTERM (never SIGKILL) for what did not quit"
+    );
 }
 
 #[test]
@@ -473,7 +552,10 @@ fn macos_launch_agent_sleep_does_not_bootout() {
     let dir = f.ctx.env.home.join("Library/LaunchAgents");
     fs::create_dir_all(&dir).unwrap();
     let mut d = plist::Dictionary::new();
-    d.insert("Label".into(), plist::Value::String("com.dropbox.agent".into()));
+    d.insert(
+        "Label".into(),
+        plist::Value::String("com.dropbox.agent".into()),
+    );
     d.insert(
         "ProgramArguments".into(),
         plist::Value::Array(vec![plist::Value::String(
@@ -515,9 +597,11 @@ fn a_damaged_state_file_is_reported_and_never_silently_reset() {
         fs::read_to_string(f.ctx.env.data_dir.join("optimizer.json")).unwrap(),
         "{ not json"
     );
-    assert!(!fs::read_to_string(user_autostart_dir(&f.ctx).join("slack.desktop"))
-        .unwrap()
-        .contains("Hidden"));
+    assert!(
+        !fs::read_to_string(user_autostart_dir(&f.ctx).join("slack.desktop"))
+            .unwrap()
+            .contains("Hidden")
+    );
 }
 
 #[test]
@@ -533,7 +617,16 @@ fn cancellation_stops_before_changing_anything() {
 
 #[test]
 fn security_software_matching() {
-    for n in ["MsMpEng.exe", "clamd", "avast", "mbam", "Kaspersky", "falcon-sensor", "eset", "ekrn"] {
+    for n in [
+        "MsMpEng.exe",
+        "clamd",
+        "avast",
+        "mbam",
+        "Kaspersky",
+        "falcon-sensor",
+        "eset",
+        "ekrn",
+    ] {
         assert!(apps::is_security_software(n), "{n}");
     }
     for n in ["slack", "presets", "firefox", "assetmanager"] {

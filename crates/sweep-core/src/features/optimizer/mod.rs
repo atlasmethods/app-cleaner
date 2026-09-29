@@ -385,13 +385,16 @@ fn sleep_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> {
             }));
             continue;
         }
-        let rec = state.sleeping.entry(id.clone()).or_insert_with(|| Sleeping {
-            name: app.name.clone(),
-            slept_at: now_rfc3339(),
-            disabled: Vec::new(),
-            already_disabled: Vec::new(),
-            stopped: 0,
-        });
+        let rec = state
+            .sleeping
+            .entry(id.clone())
+            .or_insert_with(|| Sleeping {
+                name: app.name.clone(),
+                slept_at: now_rfc3339(),
+                disabled: Vec::new(),
+                already_disabled: Vec::new(),
+                stopped: 0,
+            });
         let mut errors: Vec<String> = Vec::new();
         let mut newly: Vec<String> = Vec::new();
         for item_id in app.startup_ids.iter().chain(app.service_ids.iter()) {
@@ -402,8 +405,7 @@ fn sleep_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> {
             if rec.disabled.iter().any(|d| &d.id == item_id) {
                 // Ours already; make sure it is still off.
                 if e.item.enabled {
-                    if let Err(err) = startup::apply_enabled(ctx, e, false, ToggleOpts::default())
-                    {
+                    if let Err(err) = startup::apply_enabled(ctx, e, false, ToggleOpts::default()) {
                         errors.push(format!("{}: {}", e.item.name, err.message));
                     }
                 }

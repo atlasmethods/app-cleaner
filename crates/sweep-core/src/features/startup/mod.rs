@@ -37,8 +37,8 @@ pub mod windows;
 mod tests;
 
 use backup::{read_manifest, Backup, Committed};
-pub use model::{Entry, Impact, Kind, Scope, StartupItem, Target, ToggleOpts};
 use model::WinHive;
+pub use model::{Entry, Impact, Kind, Scope, StartupItem, Target, ToggleOpts};
 use windows::{RegData, StartupRegistry};
 
 /// Method names owned by this feature.
@@ -421,7 +421,11 @@ pub fn remove_entry(ctx: &Ctx, e: &Entry) -> Result<Committed> {
             e.item.name
         )));
     }
-    let mut b = Backup::create(ctx, "startup", &format!("Removed startup item {}", e.item.name))?;
+    let mut b = Backup::create(
+        ctx,
+        "startup",
+        &format!("Removed startup item {}", e.item.name),
+    )?;
     if let Err(err) = stage_backup(ctx, e, &mut b) {
         b.abort();
         return Err(err);
@@ -431,10 +435,7 @@ pub fn remove_entry(ctx: &Ctx, e: &Entry) -> Result<Committed> {
     if let Err(err) = res {
         return Err(ApiError::new(
             err.code,
-            format!(
-                "{} (a backup was saved as {})",
-                err.message, done.id
-            ),
+            format!("{} (a backup was saved as {})", err.message, done.id),
         ));
     }
     Ok(done)
@@ -521,9 +522,9 @@ fn restore_target_ok(ctx: &Ctx, original: &Path) -> bool {
         return false;
     };
     original.file_name().is_some()
-        && restore_dirs(ctx).iter().any(|d| {
-            crate::safety::normalize(d) == crate::safety::normalize(parent)
-        })
+        && restore_dirs(ctx)
+            .iter()
+            .any(|d| crate::safety::normalize(d) == crate::safety::normalize(parent))
 }
 
 fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
@@ -559,7 +560,10 @@ fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
                     )));
                 }
                 if original.exists() {
-                    notes.push(format!("{} already exists; left as it is", original.display()));
+                    notes.push(format!(
+                        "{} already exists; left as it is",
+                        original.display()
+                    ));
                     continue;
                 }
                 if let Some(parent) = original.parent() {
@@ -580,7 +584,10 @@ fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
                     ctx.runner.run("reg", &["import", &s])?
                 };
                 if !out.success() {
-                    return Err(ApiError::io(format!("reg import failed: {}", summarize(&out))));
+                    return Err(ApiError::io(format!(
+                        "reg import failed: {}",
+                        summarize(&out)
+                    )));
                 }
                 restored += 1;
             }
@@ -644,4 +651,3 @@ fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
     }
     Ok(json!({ "ok": true, "id": p.id, "restored": restored, "notes": notes }))
 }
-

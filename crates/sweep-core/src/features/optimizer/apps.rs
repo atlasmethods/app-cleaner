@@ -123,7 +123,16 @@ pub fn is_session_process(p: &ProcDetail) -> bool {
 }
 
 /// Security software is never put to sleep.
-const SECURITY_EXACT: &[&str] = &["avg", "avp", "ns", "eset", "ekrn", "wrsa", "vsserv", "savservice"];
+const SECURITY_EXACT: &[&str] = &[
+    "avg",
+    "avp",
+    "ns",
+    "eset",
+    "ekrn",
+    "wrsa",
+    "vsserv",
+    "savservice",
+];
 const SECURITY_FRAGMENTS: &[&str] = &[
     "defender",
     "msmpeng",
@@ -189,9 +198,30 @@ pub fn bundle_name(exe: &str) -> Option<String> {
 }
 
 const GENERIC_LAUNCHERS: &[&str] = &[
-    "flatpak", "snap", "env", "sh", "bash", "dash", "zsh", "xdg-open", "python", "python3",
-    "java", "node", "electron", "wine", "gtk-launch", "dbus-launch", "dbus-send", "open",
-    "cmd", "cmd.exe", "powershell", "powershell.exe", "wscript.exe", "rundll32.exe",
+    "flatpak",
+    "snap",
+    "env",
+    "sh",
+    "bash",
+    "dash",
+    "zsh",
+    "xdg-open",
+    "python",
+    "python3",
+    "java",
+    "node",
+    "electron",
+    "wine",
+    "gtk-launch",
+    "dbus-launch",
+    "dbus-send",
+    "open",
+    "cmd",
+    "cmd.exe",
+    "powershell",
+    "powershell.exe",
+    "wscript.exe",
+    "rundll32.exe",
 ];
 
 /// The real target of a `flatpak run app.id`, `snap run app`, `gtk-launch app` command.
@@ -290,7 +320,8 @@ fn linux_catalog(ctx: &Ctx) -> Vec<CatalogApp> {
         ctx.env.sys_path("/usr/share/applications"),
         ctx.env.sys_path("/usr/local/share/applications"),
         ctx.env.user_data_dir.join("applications"),
-        ctx.env.sys_path("/var/lib/flatpak/exports/share/applications"),
+        ctx.env
+            .sys_path("/var/lib/flatpak/exports/share/applications"),
         ctx.env
             .user_data_dir
             .join("flatpak/exports/share/applications"),

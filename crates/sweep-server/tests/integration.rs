@@ -220,7 +220,11 @@ async fn unknown_method_and_stub_yield_error_lines() {
     assert_eq!(lines[0]["type"], "error");
     assert_eq!(lines[0]["error"]["code"], "NotFound");
 
-    let r = f.call_req("startup.list", json!({})).send().await.unwrap();
+    let r = f
+        .call_req("scheduler.list", json!({}))
+        .send()
+        .await
+        .unwrap();
     let lines = parse_lines(&r.text().await.unwrap());
     assert_eq!(lines[0]["error"]["code"], "NotImplemented");
     f.handle.shutdown();
