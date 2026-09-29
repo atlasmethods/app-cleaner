@@ -1,0 +1,18 @@
+[package]
+name = "sweep-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ClearSweep command line interface"
+
+[[bin]]
+name = "clearsweep"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+serde_json = "1.0.151"
+sweep-core = { version = "0.1.0", path = "../sweep-core" }
+sweep-server = { version = "0.1.0", path = "../sweep-server" }
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "signal"] }
+webbrowser = "1.2.4"

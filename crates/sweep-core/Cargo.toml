@@ -1,0 +1,16 @@
+[package]
+name = "sweep-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ClearSweep core library: pure logic, no UI or transport dependencies"
+
+[dependencies]
+dirs = "7.0.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sysinfo = "0.38.4"
+thiserror = "2.0.21"
+
+[dev-dependencies]
+tempfile = "3.27.0"

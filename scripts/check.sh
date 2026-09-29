@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Full local verification. Set SKIP_E2E=1 to skip the Playwright step.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
+
+step "cargo fmt --check"
+cargo fmt --all --check
+
+step "cargo clippy (workspace, all targets, -D warnings)"
+cargo clippy --workspace --all-targets -- -D warnings
+
+step "cargo test (workspace)"
+cargo test --workspace
+
+step "cargo check sweep-core for Windows (x86_64-pc-windows-gnu)"
+cargo check -p sweep-core --target x86_64-pc-windows-gnu
+
+step "cargo check sweep-core for macOS (aarch64-apple-darwin)"
+cargo check -p sweep-core --target aarch64-apple-darwin
+
+step "pnpm install --frozen-lockfile"
+pnpm install --frozen-lockfile
+
+step "pnpm typecheck"
+pnpm typecheck
+
+step "pnpm lint"
+pnpm lint
+
+step "pnpm test (vitest)"
+pnpm test
+
+step "pnpm build"
+pnpm build
+
+step "cargo build -p sweep-cli"
+cargo build -p sweep-cli
+
+if [[ "${SKIP_E2E:-0}" == "1" ]]; then
+  step "pnpm e2e (skipped: SKIP_E2E=1)"
+else
+  step "pnpm e2e (playwright)"
+  pnpm e2e
+fi
+
+printf '\n\033[1;32mAll checks passed.\033[0m\n'

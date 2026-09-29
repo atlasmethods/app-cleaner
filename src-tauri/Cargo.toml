@@ -1,0 +1,24 @@
+[package]
+name = "clearsweep-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ClearSweep desktop app (Tauri 2)"
+
+[lib]
+name = "clearsweep_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = "2.7.0"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sweep-core = { version = "0.1.0", path = "../crates/sweep-core" }
+tauri = { version = "2.12.0", features = ["tray-icon"] }
+
+
+[features]
+# Enabled by the Tauri CLI for production builds (serve embedded assets instead of devUrl).
+custom-protocol = ["tauri/custom-protocol"]
