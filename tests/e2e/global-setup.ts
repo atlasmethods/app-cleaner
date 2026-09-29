@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
@@ -10,5 +11,7 @@ export default function globalSetup(): void {
   if (!existsSync(path.join(root, 'dist', 'index.html'))) missing.push('dist/index.html (run `pnpm build`)');
   if (!existsSync(path.join(root, 'target', 'debug', exe)))
     missing.push(`target/debug/${exe} (run \`cargo build -p sweep-cli\`)`);
+  else if (spawnSync(path.join(root, 'target', 'debug', exe), ['dev-fixture', '--help']).status !== 0)
+    missing.push('target/debug/' + exe + ' without dev-fixture (build it with `cargo build -p sweep-cli --features testutil`)');
   if (missing.length) throw new Error(`E2E prerequisites missing:\n  - ${missing.join('\n  - ')}`);
 }

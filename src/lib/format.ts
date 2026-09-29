@@ -26,3 +26,19 @@ export function formatDuration(secs: number): string {
 export function percent(part: number, whole: number): number {
   return whole > 0 ? Math.min(100, Math.max(0, (part / whole) * 100)) : 0;
 }
+
+/** "3 files, 12 entries" (or the actions that ran when nothing was counted). */
+export function describeCounts(it: { files: number; rows: number; actions?: string[] }): string {
+  const parts: string[] = [];
+  if (it.files > 0) parts.push(`${it.files} ${it.files === 1 ? 'file' : 'files'}`);
+  if (it.rows > 0) parts.push(`${it.rows} ${it.rows === 1 ? 'entry' : 'entries'}`);
+  if (parts.length === 0 && it.actions && it.actions.length > 0) parts.push(it.actions.join(', '));
+  return parts.join(', ');
+}
+
+/** Local, human readable time for an RFC 3339 string; falls back to the input. */
+export function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}

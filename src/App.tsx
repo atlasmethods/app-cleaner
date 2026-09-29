@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { TOOLS } from './nav';
 import BrowserPluginsPage from './pages/BrowserPluginsPage';
+import CleanHistoryPage from './pages/CleanHistoryPage';
 import CleanPage from './pages/CleanPage';
 import CookiesPage from './pages/CookiesPage';
 import DiskAnalyzerPage from './pages/DiskAnalyzerPage';
@@ -41,6 +42,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="clean" element={<CleanPage />} />
+          <Route path="clean/history" element={<CleanHistoryPage />} />
           <Route path="tools" element={<ToolsPage />} />
           {TOOLS.map((t) => {
             const Page = toolPages[t.id]!;

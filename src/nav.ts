@@ -65,7 +65,10 @@ export const TOOLS: ToolDef[] = [
 ];
 
 /** Title + optional parent (drill-in pages get a back button) for a pathname. */
+export const CLEAN_HISTORY_PATH = '/clean/history';
+
 export function routeMeta(pathname: string): { title: string; parent: string | null } {
+  if (pathname === CLEAN_HISTORY_PATH) return { title: 'History', parent: '/clean' };
   const t = TOOLS.find((x) => x.path === pathname);
   if (t) return { title: t.label, parent: '/tools' };
   const tab = TABS.find((x) => x.path === pathname);

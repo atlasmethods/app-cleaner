@@ -11,8 +11,14 @@ cargo fmt --all --check
 step "cargo clippy (workspace, all targets, -D warnings)"
 cargo clippy --workspace --all-targets -- -D warnings
 
+step "cargo clippy (sweep-cli with the testutil feature)"
+cargo clippy -p sweep-cli --all-targets --features testutil -- -D warnings
+
 step "cargo test (workspace)"
 cargo test --workspace
+
+step "cargo test (sweep-cli with the testutil feature: dev-fixture)"
+cargo test -p sweep-cli --features testutil
 
 step "cargo check sweep-core for Windows (x86_64-pc-windows-gnu)"
 cargo check -p sweep-core --target x86_64-pc-windows-gnu
@@ -35,8 +41,8 @@ pnpm test
 step "pnpm build"
 pnpm build
 
-step "cargo build -p sweep-cli"
-cargo build -p sweep-cli
+step "cargo build -p sweep-cli --features testutil (e2e binary with the dev-fixture command)"
+cargo build -p sweep-cli --features testutil
 
 if [[ "${SKIP_E2E:-0}" == "1" ]]; then
   step "pnpm e2e (skipped: SKIP_E2E=1)"
