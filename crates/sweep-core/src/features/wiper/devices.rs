@@ -14,6 +14,10 @@ const DISK_PREFIXES: &[&str] = &["sd", "hd", "vd", "xvd", "nvme", "mmcblk"];
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Partition {
+    /// `major:minor` from sysfs; how mounts are matched when the mount source is not a
+    /// device path (`/dev/root`).
+    #[serde(skip)]
+    pub majmin: Option<String>,
     pub name: String,
     pub device: String,
     pub size_bytes: u64,
@@ -24,6 +28,8 @@ pub struct Partition {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockDevice {
+    #[serde(skip)]
+    pub majmin: Option<String>,
     pub name: String,
     /// `/dev/sdb` (under the environment's root).
     pub device: String,
@@ -69,6 +75,7 @@ pub fn list_block_devices(env: &Env) -> Vec<BlockDevice> {
             .map(|n| {
                 let pdir = dir.join(&n);
                 Partition {
+                    majmin: read_trim(&pdir.join("dev")),
                     device: env
                         .sys_path(format!("/dev/{n}"))
                         .to_string_lossy()
@@ -80,6 +87,7 @@ pub fn list_block_devices(env: &Env) -> Vec<BlockDevice> {
             })
             .collect();
         out.push(BlockDevice {
+            majmin: read_trim(&dir.join("dev")),
             device: env
                 .sys_path(format!("/dev/{name}"))
                 .to_string_lossy()
@@ -136,6 +144,35 @@ pub fn parse_mounts(text: &str) -> Vec<MountEntry> {
             })
         })
         .collect()
+}
+
+/// One line of `/proc/self/mountinfo`, reduced to what matching needs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MountInfo {
+    /// `major:minor` of the device backing the mount.
+    pub majmin: String,
+    pub mount: String,
+    pub fs: String,
+}
+
+/// `36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue`
+pub fn parse_mountinfo(text: &str) -> Vec<MountInfo> {
+    text.lines()
+        .filter_map(|l| {
+            let (pre, post) = l.split_once(" - ")?;
+            let mut a = pre.split_whitespace();
+            let majmin = a.nth(2)?.to_string();
+            let mount = unescape(a.nth(1)?);
+            let fs = post.split_whitespace().next()?.to_string();
+            Some(MountInfo { majmin, mount, fs })
+        })
+        .collect()
+}
+
+pub fn read_mountinfo(env: &Env) -> Vec<MountInfo> {
+    fs::read_to_string(env.sys_path("/proc/self/mountinfo"))
+        .map(|t| parse_mountinfo(&t))
+        .unwrap_or_default()
 }
 
 /// Devices listed in `/proc/swaps` (first column, header skipped).
@@ -197,13 +234,30 @@ impl Usage {
     }
 }
 
-pub fn usage_of(dev: &BlockDevice, mounts: &[MountEntry], swaps: &[String]) -> Usage {
+/// What uses `dev` (the disk itself or any of its partitions). Mounts are matched by
+/// device path AND by `major:minor` (`/proc/self/mountinfo`), so a root filesystem
+/// reported as `/dev/root` or through an unresolvable alias is still recognised.
+pub fn usage_of(
+    dev: &BlockDevice,
+    mounts: &[MountEntry],
+    mountinfo: &[MountInfo],
+    swaps: &[String],
+) -> Usage {
     let nodes: Vec<&str> = std::iter::once(dev.device.as_str())
         .chain(dev.partitions.iter().map(|p| p.device.as_str()))
         .collect();
     let mut u = Usage::default();
     for m in mounts {
         if nodes.iter().any(|n| source_is(&m.source, n)) {
+            u.mounts.push(m.mount.clone());
+        }
+    }
+    let numbers: Vec<&str> = std::iter::once(dev.majmin.as_deref())
+        .chain(dev.partitions.iter().map(|p| p.majmin.as_deref()))
+        .flatten()
+        .collect();
+    for m in mountinfo {
+        if numbers.contains(&m.majmin.as_str()) && !u.mounts.contains(&m.mount) {
             u.mounts.push(m.mount.clone());
         }
     }
@@ -218,6 +272,25 @@ pub fn usage_of(dev: &BlockDevice, mounts: &[MountEntry], swaps: &[String]) -> U
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mountinfo_parses_with_optional_fields_and_escapes() {
+        let m = parse_mountinfo(
+            "36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw\n25 1 259:2 / /media/my\\040disk rw - vfat /dev/nvme0n1p2 rw\n",
+        );
+        assert_eq!(m.len(), 2);
+        assert_eq!(
+            m[0],
+            MountInfo {
+                majmin: "98:0".into(),
+                mount: "/mnt2".into(),
+                fs: "ext3".into()
+            }
+        );
+        assert_eq!(m[1].mount, "/media/my disk");
+        assert_eq!(m[1].majmin, "259:2");
+        assert!(parse_mountinfo("garbage without separator").is_empty());
+    }
 
     #[test]
     fn mounts_and_swaps_parse() {

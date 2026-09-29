@@ -32,6 +32,10 @@ use crate::job::{Job, ProgressEvent};
 use crate::safety::{io_message, SafeDeleter, Safety};
 
 pub const WIPE_PREFIX: &str = ".clearsweep-wipe-";
+/// Lock file inside a wipe folder. A running wipe holds an exclusive lock on it, so a
+/// second run (another window, a scheduled task) can tell a live folder from a stale one
+/// left by a crash: the operating system drops the lock when the process dies.
+const OWNER_FILE: &str = ".owner";
 /// Largest single filler file.
 pub const MAX_FILE_BYTES: u64 = 1 << 30;
 const CHUNK: usize = 1 << 20;
@@ -197,11 +201,38 @@ fn remove_wipe_dir(dir: &Path, safety: &Arc<Safety>) -> std::result::Result<(), 
     }
 }
 
+/// Take the exclusive lock of a fresh wipe folder. Best effort: filesystems without
+/// lock support just run unprotected.
+fn take_lock(dir: &Path) -> Option<File> {
+    let f = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(dir.join(OWNER_FILE))
+        .ok()?;
+    f.try_lock().ok()?;
+    Some(f)
+}
+
+/// Is a live wipe holding this folder's lock?
+fn is_live(dir: &Path) -> bool {
+    match OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(dir.join(OWNER_FILE))
+    {
+        // Getting the lock means nobody holds it (it is released when `f` drops).
+        Ok(f) => matches!(f.try_lock(), Err(std::fs::TryLockError::WouldBlock)),
+        Err(_) => false,
+    }
+}
+
 /// Owns a wipe directory; removes it when dropped.
 pub struct WipeGuard {
     dir: PathBuf,
     done: bool,
     safety: Arc<Safety>,
+    lock: Option<File>,
 }
 
 impl WipeGuard {
@@ -216,11 +247,13 @@ impl WipeGuard {
             let dir = c.join(format!("{WIPE_PREFIX}{}", random_id()));
             match fs::create_dir(&dir) {
                 Ok(()) => {
+                    let lock = take_lock(&dir);
                     return Ok(WipeGuard {
                         dir,
                         done: false,
                         safety: safety.clone(),
-                    })
+                        lock,
+                    });
                 }
                 Err(e) => last = Some(e),
             }
@@ -242,6 +275,8 @@ impl WipeGuard {
         if self.done {
             return Ok(());
         }
+        // Release (and close) the lock file first: Windows cannot delete an open file.
+        self.lock.take();
         let r = remove_wipe_dir(&self.dir, &self.safety);
         if r.is_ok() {
             self.done = true;
@@ -257,7 +292,8 @@ impl Drop for WipeGuard {
 }
 
 /// Remove `.clearsweep-wipe-*` directories left behind by an earlier crashed run in
-/// `dir`. Returns the directories removed.
+/// `dir` (never one whose owner lock is held by a running wipe). Returns the
+/// directories removed.
 pub fn remove_stale(dir: &Path, safety: &Arc<Safety>) -> Vec<PathBuf> {
     let mut removed = Vec::new();
     let Ok(rd) = fs::read_dir(dir) else {
@@ -267,6 +303,9 @@ pub fn remove_stale(dir: &Path, safety: &Arc<Safety>) -> Vec<PathBuf> {
         let name = ent.file_name().to_string_lossy().into_owned();
         if is_wipe_dir_name(&name) && ent.file_type().map(|t| t.is_dir()).unwrap_or(false) {
             let p = ent.path();
+            if is_live(&p) {
+                continue; // another wipe is running right now
+            }
             if remove_wipe_dir(&p, safety).is_ok() {
                 removed.push(p);
             }

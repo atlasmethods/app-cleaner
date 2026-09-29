@@ -169,6 +169,7 @@ fn list_devices(ctx: &Ctx, _params: Value, _job: &Job) -> Result<Value> {
                 "swap": d.usage.swap,
                 "holders": d.usage.holders,
                 "isSystem": d.is_system,
+                "mountsKnown": d.mounts_known,
             })
         })
         .collect();

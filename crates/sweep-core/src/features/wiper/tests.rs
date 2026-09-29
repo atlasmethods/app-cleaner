@@ -331,6 +331,36 @@ fn stale_wipe_folders_are_removed_at_the_start_and_lookalikes_are_not() {
 }
 
 #[test]
+fn a_running_wipe_is_never_mistaken_for_a_stale_one() {
+    let (d, ctx) = bed();
+    let mount = d.path().join("disk");
+    fs::create_dir_all(&mount).unwrap();
+    let safety = Arc::new(Safety::new(&ctx.env, ExcludeSet::empty()));
+    // A live guard holds its lock: a second run must leave its folder alone ...
+    let mut live = freespace::WipeGuard::create(&[mount.clone()], &mount, &safety).unwrap();
+    assert!(freespace::remove_stale(&mount, &safety).is_empty());
+    assert!(live.dir().exists());
+    // ... including a whole second wipe of the same volume running at the same time.
+    let fake = LimitedFs::new(MIB);
+    let r = run(&ctx, &mount, 1, &fake, &Job::detached(), MIB, None).unwrap();
+    assert_eq!(r.stale_removed, 0);
+    assert!(live.dir().exists(), "the other run's folder survived");
+    // Once the owner is done (or dead: the OS drops the lock), the folder is stale.
+    let dir = live.dir().to_path_buf();
+    live.cleanup().unwrap();
+    assert!(!dir.exists());
+    let crashed = mount.join(format!("{WIPE_PREFIX}00000000000000aa"));
+    fs::create_dir_all(&crashed).unwrap();
+    fs::write(crashed.join(".owner"), b"").unwrap(); // lock released: nobody holds it
+    fs::write(crashed.join("fill-000000.bin"), vec![0u8; 1024]).unwrap();
+    assert_eq!(
+        freespace::remove_stale(&mount, &safety),
+        vec![crashed.clone()]
+    );
+    assert!(!crashed.exists());
+}
+
+#[test]
 fn an_unwritable_location_is_permission_denied() {
     let (d, ctx) = bed();
     let mount = d.path().join("does-not-exist");
@@ -548,6 +578,84 @@ fn tmpfs_free_space_wipe_end_to_end() {
     assert_eq!(fs::read(mount.join("user-file.txt")).unwrap(), b"keep me");
 }
 
+/// A 16 MiB ext4 image on a loop device (root only): a real journaling filesystem with
+/// metadata and reserved blocks. `None` when loop mounts or `mkfs.ext4` are unavailable.
+struct Ext4Loop {
+    mount: PathBuf,
+    _dir: tempfile::TempDir,
+}
+
+impl Ext4Loop {
+    fn new() -> Option<Ext4Loop> {
+        let dir = tempfile::tempdir().ok()?;
+        let img = dir.path().join("fs.img");
+        let mount = dir.path().join("mnt");
+        fs::create_dir_all(&mount).ok()?;
+        File::create(&img).ok()?.set_len(16 * MIB).ok()?;
+        let ok = |mut c: std::process::Command| c.status().map(|s| s.success()).unwrap_or(false);
+        let mut mk = std::process::Command::new("mkfs.ext4");
+        mk.args(["-q", "-F"]).arg(&img);
+        let mut mt = std::process::Command::new("mount");
+        mt.args(["-o", "loop"]).arg(&img).arg(&mount);
+        (ok(mk) && ok(mt)).then_some(Ext4Loop { mount, _dir: dir })
+    }
+}
+
+impl Drop for Ext4Loop {
+    fn drop(&mut self) {
+        let _ = std::process::Command::new("umount")
+            .arg(&self.mount)
+            .status();
+    }
+}
+
+#[test]
+#[ignore = "needs root, loop devices and mkfs.ext4"]
+fn ext4_free_space_wipe_end_to_end() {
+    let Some(fsys) = Ext4Loop::new() else {
+        eprintln!("SKIPPED: cannot create an ext4 loop mount here");
+        return;
+    };
+    let (_d, ctx) = bed();
+    let mount = fsys.mount.clone();
+    fs::write(mount.join("keep.txt"), b"keep me").unwrap();
+    let free0 = freespace::RealFs.free_space(&mount).unwrap();
+    let hook = |p: &freespace::PassDone<'_>| {
+        let mut buf = vec![0u8; 4096];
+        File::open(&p.files[0].path)
+            .unwrap()
+            .read_exact(&mut buf)
+            .unwrap();
+        if let Pattern::Byte(b) = p.pattern {
+            assert!(buf.iter().all(|x| x == b), "pass {}", p.pass);
+        }
+    };
+    let r = run_free_space_wipe(
+        &ctx,
+        &mount,
+        3,
+        &RealFs,
+        &Job::detached(),
+        4 * MIB,
+        Some(&hook),
+    )
+    .unwrap();
+    assert!(r.files >= 2);
+    assert!(
+        r.bytes_per_pass >= free0 / 2,
+        "{} vs {free0}",
+        r.bytes_per_pass
+    );
+    let left: Vec<String> = entries(&mount)
+        .into_iter()
+        .filter(|n| n != "lost+found")
+        .collect();
+    assert_eq!(left, vec!["keep.txt"]);
+    let free1 = freespace::RealFs.free_space(&mount).unwrap();
+    assert!(free1 + 64 * 1024 >= free0, "restored: {free1} vs {free0}");
+    assert_eq!(fs::read(mount.join("keep.txt")).unwrap(), b"keep me");
+}
+
 #[test]
 #[ignore = "needs root and the ability to mount a tmpfs"]
 fn tmpfs_cancel_and_stale_recovery() {
@@ -670,7 +778,7 @@ fn block_devices_are_enumerated_from_sysfs() {
     let swaps = devices::read_swaps(&ctx.env);
     let usage: Vec<Usage> = devs
         .iter()
-        .map(|d| devices::usage_of(d, &mounts, &swaps))
+        .map(|d| devices::usage_of(d, &mounts, &[], &swaps))
         .collect();
     assert_eq!(usage[0].mounts.len(), 2);
     assert_eq!(usage[1].mounts, vec!["/media/user/USB STICK"]);
@@ -703,6 +811,64 @@ fn list_devices_api_flags_system_and_in_use_disks() {
     win.env.os = Os::Windows;
     let v = dispatch(&win, "wiper.list_devices", json!({}), &Job::detached()).unwrap();
     assert_eq!(v["supported"], false);
+}
+
+#[test]
+fn a_root_filesystem_reported_as_dev_root_is_recognised_by_device_number() {
+    // Raspberry-Pi style: /proc/mounts says `/dev/root`, which is no device node we know.
+    let (_d, ctx) = bed();
+    let root = &ctx.env.root;
+    let sys = root.join("sys/block/mmcblk0");
+    write_file(&sys.join("size"), "1000000\n");
+    write_file(&sys.join("dev"), "179:0\n");
+    write_file(&sys.join("mmcblk0p1/partition"), "1\n");
+    write_file(&sys.join("mmcblk0p1/dev"), "179:1\n");
+    write_file(&sys.join("mmcblk0p2/partition"), "2\n");
+    write_file(&sys.join("mmcblk0p2/dev"), "179:2\n");
+    write_file(
+        &root.join("proc/mounts"),
+        "/dev/root / ext4 rw 0 0\nproc /proc proc rw 0 0\n",
+    );
+    write_file(
+        &root.join("proc/self/mountinfo"),
+        "20 1 179:2 / / rw,relatime - ext4 /dev/root rw\n21 20 0:5 / /proc rw - proc proc rw\n",
+    );
+    let d = ctx
+        .env
+        .sys_path("/dev/mmcblk0")
+        .to_string_lossy()
+        .into_owned();
+    let listing = dispatch(&ctx, "wiper.list_devices", json!({}), &Job::detached()).unwrap();
+    assert_eq!(listing["devices"][0]["isSystem"], true, "{listing}");
+    assert_eq!(listing["devices"][0]["mounts"][0], "/");
+    let e = dispatch(
+        &ctx,
+        "wiper.wipe_drive",
+        json!({"device": d, "passes": 1, "confirm": d}),
+        &Job::detached(),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(e.message.contains("operating system"), "{e}");
+}
+
+#[test]
+fn a_drive_is_refused_when_the_mount_list_cannot_be_read() {
+    let (_d, ctx) = bed();
+    let sys = ctx.env.root.join("sys/block/sdz");
+    write_file(&sys.join("size"), "1000\n");
+    let d = ctx.env.sys_path("/dev/sdz").to_string_lossy().into_owned();
+    let listing = dispatch(&ctx, "wiper.list_devices", json!({}), &Job::detached()).unwrap();
+    assert_eq!(listing["devices"][0]["mountsKnown"], false);
+    let e = dispatch(
+        &ctx,
+        "wiper.wipe_drive",
+        json!({"device": d, "passes": 1, "confirm": d}),
+        &Job::detached(),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(e.message.contains("cannot read the list of mounted"), "{e}");
 }
 
 // ---------------------------------------------------------------- wipe_drive
@@ -764,12 +930,14 @@ impl drive::DriveBackend for FakeBackend {
 fn state(dev: &str, usage: Usage, is_system: bool) -> DeviceState {
     DeviceState {
         device: BlockDevice {
+            majmin: None,
             name: dev.trim_start_matches("/dev/").into(),
             device: dev.into(),
             size_bytes: 1 << 30,
             removable: true,
             model: None,
             partitions: vec![Partition {
+                majmin: None,
                 name: "p1".into(),
                 device: format!("{dev}1"),
                 size_bytes: 1 << 20,
@@ -779,6 +947,7 @@ fn state(dev: &str, usage: Usage, is_system: bool) -> DeviceState {
         },
         usage,
         is_system,
+        mounts_known: true,
     }
 }
 

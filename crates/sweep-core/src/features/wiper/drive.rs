@@ -48,6 +48,9 @@ pub struct DeviceState {
     pub device: BlockDevice,
     pub usage: Usage,
     pub is_system: bool,
+    /// False when the list of mounted filesystems could not be read: nothing can be
+    /// ruled out, so the drive is not wiped.
+    pub mounts_known: bool,
 }
 
 /// The parts of a wipe that touch the real machine; tests substitute their own.
@@ -72,15 +75,18 @@ impl DriveBackend for RealBackend {
     fn devices(&self, ctx: &Ctx) -> Vec<DeviceState> {
         let devs = devices::list_block_devices(&ctx.env);
         let mounts = devices::read_mounts(&ctx.env);
+        let mountinfo = devices::read_mountinfo(&ctx.env);
         let swaps = devices::read_swaps(&ctx.env);
+        let mounts_known = !mounts.is_empty() || !mountinfo.is_empty();
         devs.into_iter()
             .map(|d| {
-                let usage = devices::usage_of(&d, &mounts, &swaps);
+                let usage = devices::usage_of(&d, &mounts, &mountinfo, &swaps);
                 let is_system = usage.mounts.iter().any(|m| linux_system_mount(m));
                 DeviceState {
                     device: d,
                     usage,
                     is_system,
+                    mounts_known,
                 }
             })
             .collect()
@@ -190,6 +196,11 @@ fn wipe_drive_linux(
             "{} holds the operating system and can never be wiped",
             p.device
         )));
+    }
+    if !state.mounts_known {
+        return Err(refuse(
+            "cannot read the list of mounted filesystems, so it cannot be checked that the drive is unused",
+        ));
     }
     if state.usage.in_use() {
         let mut why = Vec::new();

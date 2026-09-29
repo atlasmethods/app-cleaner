@@ -17,6 +17,13 @@ cargo clippy -p sweep-cli --all-targets --features testutil -- -D warnings
 step "cargo test (workspace)"
 cargo test --workspace
 
+if [ "$(id -u)" = 0 ]; then
+  step "cargo test (sweep-core, ignored: real tmpfs / ext4 loop mounts; root only, skips itself when mounting is not allowed)"
+  cargo test -p sweep-core -- --ignored
+else
+  step "skipping the mount-based wiper / disk analyzer tests (they need root)"
+fi
+
 step "cargo test (sweep-cli with the testutil feature: dev-fixture)"
 cargo test -p sweep-cli --features testutil
 

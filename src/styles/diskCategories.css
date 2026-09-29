@@ -1,0 +1,34 @@
+/* Category colours for the disk analyzer. Every bar also carries a text label and a
+   percentage, so colour is never the only signal. Contrast against the card surface is
+   at least 3:1 in both themes. Same theme switch as index.css. */
+:root {
+  --cat-pictures: #0072b2;
+  --cat-music: #c2410c;
+  --cat-documents: #00875f;
+  --cat-video: #a63d8f;
+  --cat-compressed: #9a6b00;
+  --cat-email: #7a5ac8;
+  --cat-other: #64777c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --cat-pictures: #56b4e9;
+    --cat-music: #f59e63;
+    --cat-documents: #3dd6a0;
+    --cat-video: #e58bd0;
+    --cat-compressed: #e6c24a;
+    --cat-email: #a99bf0;
+    --cat-other: #93a9ae;
+  }
+}
+
+:root[data-theme='dark'] {
+  --cat-pictures: #56b4e9;
+  --cat-music: #f59e63;
+  --cat-documents: #3dd6a0;
+  --cat-video: #e58bd0;
+  --cat-compressed: #e6c24a;
+  --cat-email: #a99bf0;
+  --cat-other: #93a9ae;
+}
