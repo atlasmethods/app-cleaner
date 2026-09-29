@@ -27,9 +27,18 @@ fi
 # Real dpkg/apt tests: install and remove a dummy package, so root on a Debian-family system only.
 if [ "$(id -u)" = 0 ] && command -v dpkg >/dev/null 2>&1; then
   step "cargo test (real dpkg/apt integration tests: --ignored real_)"
-  cargo test -p sweep-core -- --ignored real_
+  cargo test -p sweep-core -- --ignored real_ --skip real_chromium
 else
   echo "(skipping the real dpkg/apt tests: needs root and dpkg)"
+fi
+
+# Real Chromium profile with an unpacked extension (browser plugins). Needs the pre-installed
+# Chromium under /opt/pw-browsers; runs it headless and lists the resulting profile.
+if ls /opt/pw-browsers/chromium-*/chrome-linux/chrome >/dev/null 2>&1; then
+  step "cargo test (real Chromium profile: --ignored real_chromium)"
+  cargo test -p sweep-core --lib -- --ignored real_chromium
+else
+  echo "(skipping the real Chromium profile test: no Chromium under /opt/pw-browsers)"
 fi
 
 step "cargo test (sweep-cli with the testutil feature: dev-fixture)"
