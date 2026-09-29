@@ -46,6 +46,8 @@ export interface Settings {
   smart: SmartSettings;
   runAtStartup: boolean;
   language: string;
+  /** Software updater: ids such as `apt:firefox` that the user ignores (always sent by the server; optional here for older fixtures). */
+  ignoredUpdates?: string[];
 }
 
 /** `settings.set` takes an RFC 7386 merge patch of the above (null deletes a key). */

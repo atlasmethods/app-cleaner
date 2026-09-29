@@ -132,6 +132,8 @@ pub struct Settings {
     pub smart: SmartSettings,
     pub run_at_startup: bool,
     pub language: String,
+    /// Software updater: ids (`apt:firefox`, `winget:Git.Git`, ...) the user chose to ignore.
+    pub ignored_updates: Vec<String>,
 }
 
 impl Default for Settings {
@@ -148,6 +150,7 @@ impl Default for Settings {
             smart: SmartSettings::default(),
             run_at_startup: false,
             language: "en".to_string(),
+            ignored_updates: Vec::new(),
         }
     }
 }
@@ -310,6 +313,22 @@ impl Settings {
                     return Err(err("invalid smart.cleanOnBrowserClose"));
                 }
             }
+            "ignoredUpdates" => {
+                if self.ignored_updates.len() > 10 * MAX_LIST {
+                    return Err(err("too many ignored updates"));
+                }
+                let mut out: Vec<String> = Vec::new();
+                for id in &self.ignored_updates {
+                    let id = id.trim();
+                    if id.is_empty() || id.len() > 300 || id.chars().any(char::is_control) {
+                        return Err(err("invalid id in ignoredUpdates"));
+                    }
+                    if !out.iter().any(|x| x == id) {
+                        out.push(id.to_string());
+                    }
+                }
+                self.ignored_updates = out;
+            }
             "language" => {
                 let l = self.language.trim();
                 if !(2..=16).contains(&l.len())
@@ -361,6 +380,14 @@ impl Settings {
         }
         if self.validate_field(env, "language").is_err() {
             self.language = d.language;
+        }
+        if self.validate_field(env, "ignoredUpdates").is_err() {
+            self.ignored_updates.retain(|s| {
+                let t = s.trim();
+                !t.is_empty() && t.len() <= 300 && !t.chars().any(char::is_control)
+            });
+            self.ignored_updates.truncate(10 * MAX_LIST);
+            let _ = self.validate_field(env, "ignoredUpdates");
         }
         // Exclusions need ids, but stay untouched otherwise.
         let mut seen = HashSet::new();
@@ -575,7 +602,8 @@ mod tests {
                 "smart": {"enabled": false, "thresholdMb": 500, "cleanOnBrowserClose": [],
                           "autoClean": false, "notify": true},
                 "runAtStartup": false,
-                "language": "en"
+                "language": "en",
+                "ignoredUpdates": []
             })
         );
         // get does not create the file

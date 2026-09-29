@@ -91,6 +91,8 @@ impl CommandRunner for SystemRunner {
 struct MockState {
     calls: Vec<(String, Vec<String>)>,
     outputs: HashMap<String, std::result::Result<CmdOutput, ApiError>>,
+    /// Fallback per program when no exact `program args...` entry matches.
+    program_outputs: HashMap<String, CmdOutput>,
     which: HashMap<String, PathBuf>,
 }
 
@@ -119,6 +121,17 @@ impl MockRunner {
     pub fn on(&self, program: &str, args: &[&str], output: CmdOutput) -> &Self {
         let mut s = self.state.lock().unwrap();
         s.outputs.insert(Self::key(program, args), Ok(output));
+        s.which
+            .entry(program.to_string())
+            .or_insert_with(|| PathBuf::from(format!("/mock/bin/{program}")));
+        self
+    }
+
+    /// Script the output for `program` with ANY arguments not scripted exactly (for commands
+    /// whose arguments contain random parts). Also makes `which(program)` succeed.
+    pub fn on_any_args(&self, program: &str, output: CmdOutput) -> &Self {
+        let mut s = self.state.lock().unwrap();
+        s.program_outputs.insert(program.to_string(), output);
         s.which
             .entry(program.to_string())
             .or_insert_with(|| PathBuf::from(format!("/mock/bin/{program}")));
@@ -159,6 +172,9 @@ impl CommandRunner for MockRunner {
         ));
         match s.outputs.get(&Self::key(program, args)) {
             Some(r) => r.clone(),
+            None if s.program_outputs.contains_key(program) => {
+                Ok(s.program_outputs[program].clone())
+            }
             None => Err(ApiError::not_found(format!(
                 "MockRunner: no scripted output for `{}`",
                 Self::key(program, args)

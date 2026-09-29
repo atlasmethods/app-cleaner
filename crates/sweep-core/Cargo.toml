@@ -13,6 +13,7 @@ testutil = ["dep:filetime"]
 dirs = "7.0.0"
 filetime = { version = "0.2", optional = true }
 globset = "0.4"
+plist = "1"
 rand = "0.10"
 rusqlite = { version = "0.40", features = ["functions"] }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -33,6 +34,7 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading"] }
 
 [dev-dependencies]
 filetime = "0.2"

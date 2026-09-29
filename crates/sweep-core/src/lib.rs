@@ -5,10 +5,12 @@
 
 pub mod api;
 pub mod ctx;
+pub mod elevate;
 pub mod error;
 pub mod features;
 pub mod fsutil;
 pub mod job;
+pub mod pkgutil;
 pub mod procs;
 pub mod runner;
 pub mod safety;
