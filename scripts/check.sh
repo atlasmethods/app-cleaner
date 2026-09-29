@@ -17,6 +17,14 @@ cargo clippy -p sweep-cli --all-targets --features testutil -- -D warnings
 step "cargo test (workspace)"
 cargo test --workspace
 
+# Real dpkg/apt tests: install and remove a dummy package, so root on a Debian-family system only.
+if [ "$(id -u)" = 0 ] && command -v dpkg >/dev/null 2>&1; then
+  step "cargo test (real dpkg/apt integration tests: --ignored real_)"
+  cargo test -p sweep-core -- --ignored real_
+else
+  echo "(skipping the real dpkg/apt tests: needs root and dpkg)"
+fi
+
 step "cargo test (sweep-cli with the testutil feature: dev-fixture)"
 cargo test -p sweep-cli --features testutil
 
