@@ -509,6 +509,17 @@ fn remove_leftovers_deletes_only_what_the_scan_returns() {
     fs::create_dir_all(&docs).unwrap();
     fs::write(docs.join("keep.txt"), "keep").unwrap();
 
+    // Not uninstalled through ClearSweep: nothing may be deleted, even for a matching folder.
+    let e = call(
+        &c,
+        "uninstall.remove_leftovers",
+        json!({"name": "Obsidian", "id": "appimage:/x/Obsidian.AppImage", "paths": [mine.to_string_lossy()]}),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(mine.exists());
+    ledger::record(&c, "appimage:/x/Obsidian.AppImage", "Obsidian", None);
+
     let scan = call(
         &c,
         "uninstall.leftovers",
@@ -549,6 +560,15 @@ fn remove_leftovers_refuses_while_the_app_is_still_installed() {
         ("Firefox", "dpkg:something-else"),
         ("whatever", "dpkg:firefox"),
     ] {
+        // Unrecorded: refused before anything else is looked at.
+        let e = call(
+            &c,
+            "uninstall.remove_leftovers",
+            json!({"name": name, "id": id, "paths": [cfg.to_string_lossy()]}),
+        )
+        .unwrap_err();
+        assert_eq!(e.code, ErrorCode::PermissionDenied, "{name}");
+        ledger::record(&c, id, name, None);
         let e = call(
             &c,
             "uninstall.remove_leftovers",
@@ -923,6 +943,26 @@ fn macos_app_goes_to_the_trash_through_finder_and_bundle_id_is_reported() {
         .iter()
         .any(|p| p.ends_with("org.example.widget.plist")));
     assert_eq!(calls(&m).last().unwrap(), &format!("osascript -e {script}"));
+    // (the mocked Finder did not really move it, so do that now)
+    fs::remove_dir_all(&app).unwrap();
+    // Removal uses the bundle id ClearSweep recorded, not one supplied by the client.
+    let res = call(
+        &c,
+        "uninstall.remove_leftovers",
+        json!({"name": "Widget", "id": id, "bundleId": "com.apple.finder", "paths": paths}),
+    )
+    .unwrap();
+    assert_eq!(
+        res["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|x| x["ok"] == true)
+            .count(),
+        2,
+        "{res}"
+    );
+    assert!(!lib.join("Preferences/org.example.widget.plist").exists());
 }
 
 #[test]

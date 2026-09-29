@@ -56,7 +56,7 @@ pub fn app_dirs(ctx: &Ctx) -> [PathBuf; 2] {
     ]
 }
 
-pub fn scan_apps(ctx: &Ctx) -> Vec<Found> {
+pub fn scan_apps(ctx: &Ctx, sizes: bool) -> Vec<Found> {
     let mut v = Vec::new();
     for dir in app_dirs(ctx) {
         let Ok(rd) = fs::read_dir(&dir) else { continue };
@@ -90,7 +90,7 @@ pub fn scan_apps(ctx: &Ctx) -> Vec<Found> {
                 Source::Macapp,
                 Action::MacApp(path.clone()),
             );
-            f.entry.size_bytes = Some(path_size(&path));
+            f.entry.size_bytes = sizes.then(|| path_size(&path));
             f.entry.install_date = meta
                 .created()
                 .or_else(|_| meta.modified())
@@ -217,7 +217,7 @@ mod tests {
         make_app(&usr, "Mine", None);
         fs::write(sys.join("readme.txt"), "x").unwrap();
         fs::create_dir_all(sys.join("Utilities")).unwrap();
-        let v = scan_apps(&c);
+        let v = scan_apps(&c, true);
         let names: Vec<&str> = v.iter().map(|f| f.entry.name.as_str()).collect();
         assert_eq!(names, ["Firefox", "NoPlist", "Safari", "Mine"]);
         assert_eq!(v[0].entry.version, "126.0");

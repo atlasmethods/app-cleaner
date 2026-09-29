@@ -10,7 +10,8 @@
 //!   `uninstall.rename_entry { id, name }` (Windows; the key is exported to
 //!   `<data>/backups/uninstall-<ts>.reg` first).
 //! - `uninstall.leftovers { name, id, bundleId? }` / `uninstall.remove_leftovers { name, id,
-//!   bundleId?, paths }`: removal re-scans on the server and only deletes the intersection.
+//!   bundleId?, paths }`: removal re-scans on the server and only deletes the intersection,
+//!   and only for applications ClearSweep itself uninstalled (see [`ledger`]).
 //!
 //! Ids are the ones returned by `uninstall.list`; the client never supplies commands or paths
 //! for the uninstall itself (the entry is looked up again server-side).
@@ -30,6 +31,7 @@ use crate::job::{Job, ProgressEvent};
 use crate::pkgutil::summarize;
 use crate::runner::CmdOutput;
 
+pub mod ledger;
 pub mod leftovers;
 pub mod linux;
 pub mod macos;
@@ -115,6 +117,12 @@ fn run_ok(ctx: &Ctx, program: &str, args: &[&str]) -> Option<String> {
 /// Everything installed on this machine, sorted by name. A tool that is missing or fails
 /// simply contributes nothing.
 pub fn collect(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
+    collect_with(ctx, job, true)
+}
+
+/// `sizes = false` skips the (slow) size measurement of macOS app bundles; used when an entry is
+/// only being looked up.
+fn collect_with(ctx: &Ctx, job: &Job, sizes: bool) -> Result<Vec<Found>> {
     let mut all: Vec<Found> = Vec::new();
     let step = |msg: &str| {
         job.progress(ProgressEvent::new("list").message(msg.to_string()));
@@ -160,7 +168,7 @@ pub fn collect(ctx: &Ctx, job: &Job) -> Result<Vec<Found>> {
         }
         Os::MacOs => {
             step("Reading applications");
-            all.extend(macos::scan_apps(ctx));
+            all.extend(macos::scan_apps(ctx, sizes));
             job.check_cancelled()?;
             collect_brew(ctx, &mut all);
         }
@@ -197,7 +205,7 @@ fn find(ctx: &Ctx, job: &Job, id: &str) -> Result<Found> {
     if id.trim().is_empty() || id.len() > 1000 {
         return Err(ApiError::invalid_params("`id` is missing or too long"));
     }
-    collect(ctx, job)?
+    collect_with(ctx, job, false)?
         .into_iter()
         .find(|f| f.entry.id == id)
         .ok_or_else(|| ApiError::not_found(format!("`{id}` is not installed (any more)")))
@@ -433,6 +441,7 @@ fn run_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> {
     };
     if res.ok {
         res.bundle_id = bundle_id.clone();
+        ledger::record(ctx, &id, &name, bundle_id.as_deref());
         job.progress(ProgressEvent::new("leftovers").message("Looking for leftovers".to_string()));
         res.leftovers = leftovers::scan(ctx, &name, &id, bundle_id.as_deref());
     }
@@ -655,9 +664,17 @@ fn remove_leftovers_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value
     if p.paths.is_empty() {
         return Err(ApiError::invalid_params("`paths` is empty"));
     }
+    // Only applications that ClearSweep itself uninstalled: the leftover cleaner must not be
+    // usable to point at the data of a program that is in use.
+    let recorded = ledger::find(ctx, &p.id, &p.name).ok_or_else(|| {
+        ApiError::permission_denied(format!(
+            "`{}` was not uninstalled by ClearSweep (recently), so its leftovers cannot be removed from here",
+            p.name
+        ))
+    })?;
     // Never touch data of something that is still installed (same id or same name).
     let want = normalize_name(&p.name);
-    if collect(ctx, job)?
+    if collect_with(ctx, job, false)?
         .iter()
         .any(|f| f.entry.id == p.id || normalize_name(&f.entry.name) == want)
     {
@@ -666,7 +683,7 @@ fn remove_leftovers_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value
             p.name
         )));
     }
-    let allowed = leftovers::scan(ctx, &p.name, &p.id, p.bundle_id.as_deref());
+    let allowed = leftovers::scan(ctx, &p.name, &p.id, recorded.bundle_id.as_deref());
     let results = leftovers::remove_verified(ctx, &p.paths, &allowed, job)?;
     let freed: u64 = results.iter().map(|r| r.bytes).sum();
     Ok(json!({ "results": results, "totalBytes": freed }))
