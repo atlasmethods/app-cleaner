@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Full local verification. Set SKIP_E2E=1 to skip the Playwright step.
+# Full local verification. Set SKIP_E2E=1 to skip the Playwright step and SKIP_DESKTOP=1 to skip the
+# real-webview desktop smoke test (which also needs WebKitWebDriver and xvfb-run).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -59,6 +60,9 @@ pnpm typecheck
 step "pnpm lint"
 pnpm lint
 
+step "contrast check of the design tokens (both themes)"
+node scripts/check-contrast.mjs
+
 step "pnpm test (vitest)"
 pnpm test
 
@@ -73,6 +77,18 @@ if [[ "${SKIP_E2E:-0}" == "1" ]]; then
 else
   step "pnpm e2e (playwright)"
   pnpm e2e
+fi
+
+if [[ "${SKIP_DESKTOP:-0}" == "1" ]]; then
+  step "desktop smoke test (skipped: SKIP_DESKTOP=1)"
+elif command -v WebKitWebDriver >/dev/null 2>&1 && command -v xvfb-run >/dev/null 2>&1; then
+  # The embedded frontend is compiled in (custom-protocol), so this must come after `pnpm build`.
+  step "cargo build -p clearsweep-desktop --features custom-protocol"
+  CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" cargo build -p clearsweep-desktop --features custom-protocol
+  step "desktop smoke test (real WebKit webview under xvfb: every page, IPC progress + cancel, browser fallback)"
+  xvfb-run -a python3 scripts/desktop-smoke.py target/debug/clearsweep-desktop target/debug/clearsweep
+else
+  echo "(skipping the desktop smoke test: WebKitWebDriver and/or xvfb-run not installed)"
 fi
 
 printf '\n\033[1;32mAll checks passed.\033[0m\n'
