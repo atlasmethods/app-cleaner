@@ -137,7 +137,7 @@ clearsweep call <METHOD> [<JSON-PARAMS>]
 
 | | Requirement |
 | --- | --- |
-| Rust | A recent stable toolchain. `Cargo.toml` declares `rust-version = "1.80"`, but the code uses APIs stabilized later (for example `Option::is_none_or`, Rust 1.82), and the project is developed with Rust 1.94. |
+| Rust | 1.85 or newer (`rust-version` in `Cargo.toml`); developed with Rust 1.94. |
 | Node.js | 22.13 or newer (the strictest `engines` range among the dev dependencies, Vitest 5 and ESLint 10, requires it). Developed with 22.22. |
 | pnpm | 10.33.0 (`packageManager` in `package.json`; `corepack enable` will pick it up). |
 | C compiler | Needed for the bundled SQLite. |
@@ -254,4 +254,4 @@ Known limitations:
 
 ## License
 
-MIT, as declared in the workspace `Cargo.toml` (`license = "MIT"`) and shown in Settings > About.
+MIT — see [`LICENSE`](LICENSE). The same license is declared in the workspace `Cargo.toml` and shown in Settings > About.
