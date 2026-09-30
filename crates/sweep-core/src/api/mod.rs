@@ -151,9 +151,9 @@ mod tests {
     #[test]
     fn stubs_return_not_implemented_with_method_name() {
         let (_d, c) = ctx();
-        let e = dispatch(&c, "scheduler.list", Value::Null, &Job::detached()).unwrap_err();
+        let e = dispatch(&c, "health.analyze", Value::Null, &Job::detached()).unwrap_err();
         assert_eq!(e.code, ErrorCode::NotImplemented);
-        assert!(e.message.contains("scheduler.list"), "{}", e.message);
+        assert!(e.message.contains("health.analyze"), "{}", e.message);
     }
 
     #[test]

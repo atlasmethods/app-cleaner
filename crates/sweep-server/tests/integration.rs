@@ -221,7 +221,7 @@ async fn unknown_method_and_stub_yield_error_lines() {
     assert_eq!(lines[0]["error"]["code"], "NotFound");
 
     let r = f
-        .call_req("scheduler.list", json!({}))
+        .call_req("health.analyze", json!({}))
         .send()
         .await
         .unwrap();
