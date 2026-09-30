@@ -14,6 +14,5 @@ fn main() -> ExitCode {
     {
         return sweep_cli::run(std::env::args_os());
     }
-    clearsweep_desktop_lib::run();
-    ExitCode::SUCCESS
+    clearsweep_desktop_lib::run()
 }

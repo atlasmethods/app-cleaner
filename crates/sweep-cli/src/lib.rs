@@ -25,6 +25,10 @@ pub fn is_headless_command(arg: &str) -> bool {
     HEADLESS_COMMANDS.contains(&arg)
 }
 
+/// The page beats every 5 s; browsers may throttle a hidden tab to one timer per minute, so
+/// the default leaves room for that before the server decides the tab is gone.
+const DEFAULT_IDLE_SECS: u64 = 90;
+
 #[derive(Parser)]
 #[command(name = "clearsweep", version, about = "ClearSweep system cleaner")]
 struct Cli {
@@ -48,6 +52,9 @@ enum Command {
         /// Also print the bare URL on its own line (machine readable)
         #[arg(long)]
         print_url: bool,
+        /// Seconds without a browser heartbeat after which the server exits (tests)
+        #[arg(long, hide = true, default_value_t = DEFAULT_IDLE_SECS, value_name = "SECONDS")]
+        idle_timeout: u64,
     },
     /// Call an API method in-process and print the JSON result
     Call {
@@ -415,7 +422,13 @@ fn cmd_call(method: &str, params: Option<&str>) -> ExitCode {
     }
 }
 
-fn cmd_ui(port: u16, no_open: bool, no_exit_on_idle: bool, print_url: bool) -> ExitCode {
+fn cmd_ui(
+    port: u16,
+    no_open: bool,
+    no_exit_on_idle: bool,
+    print_url: bool,
+    idle_timeout: u64,
+) -> ExitCode {
     let rt = match tokio::runtime::Runtime::new() {
         Ok(rt) => rt,
         Err(e) => {
@@ -428,6 +441,7 @@ fn cmd_ui(port: u16, no_open: bool, no_exit_on_idle: bool, print_url: bool) -> E
             port,
             token: generate_token(),
             exit_on_idle: !no_exit_on_idle,
+            idle_timeout: std::time::Duration::from_secs(idle_timeout.max(1)),
             ..ServeOptions::default()
         };
         let (url, handle) = match serve(opts).await {
@@ -467,7 +481,8 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> ExitCode {
             no_open,
             no_exit_on_idle,
             print_url,
-        } => cmd_ui(port, no_open, no_exit_on_idle, print_url),
+            idle_timeout,
+        } => cmd_ui(port, no_open, no_exit_on_idle, print_url, idle_timeout),
         Command::Call { method, params } => cmd_call(&method, params.as_deref()),
         Command::Clean {
             auto,

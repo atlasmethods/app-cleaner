@@ -285,5 +285,13 @@ export function startHeartbeat(intervalMs = 5000): () => void {
   };
   beat();
   const id = setInterval(beat, intervalMs);
-  return () => clearInterval(id);
+  // A hidden tab's timers may be throttled to one per minute: beat as soon as it is shown again.
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') beat();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  return () => {
+    clearInterval(id);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
 }
