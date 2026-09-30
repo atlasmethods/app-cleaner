@@ -163,7 +163,7 @@ mod tests {
         for name in registry().names() {
             let h = registry().get(name).unwrap();
             assert!(
-                h as usize != not_implemented as usize,
+                !std::ptr::fn_addr_eq(h, not_implemented as Handler),
                 "method {name} is still a not-implemented stub"
             );
         }
