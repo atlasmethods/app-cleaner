@@ -11,7 +11,7 @@ const TILES: { id: string; title: string }[] = [
   { id: 'duplicates', title: 'Duplicate Finder' },
   { id: 'restore', title: 'System Restore' },
   { id: 'wiper', title: 'Drive Wiper' },
-  { id: 'registry', title: 'Registry / Config Issues' },
+  { id: 'registry', title: 'Config Issues' },
   { id: 'sysinfo', title: 'System Info' },
   { id: 'cookies', title: 'Cookies' },
 ];

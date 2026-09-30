@@ -18,6 +18,7 @@ import {
   HardDrive,
   type LucideIcon,
 } from 'lucide-react';
+import { isWindowsClient } from './lib/platform';
 
 export interface TabDef {
   id: 'home' | 'clean' | 'tools' | 'performance' | 'settings';
@@ -59,7 +60,7 @@ export const TOOLS: ToolDef[] = [
   tool('duplicates', 'Duplicate Finder', Copy),
   tool('restore', 'System Restore', History),
   tool('wiper', 'Drive Wiper', Eraser),
-  tool('registry', 'Registry / Config Issues', Database),
+  tool('registry', isWindowsClient() ? 'Registry' : 'Config Issues', Database),
   tool('sysinfo', 'System Info', Info),
   tool('cookies', 'Cookies', Cookie),
 ];
