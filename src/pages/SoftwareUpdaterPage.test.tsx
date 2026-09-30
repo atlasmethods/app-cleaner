@@ -172,7 +172,18 @@ describe('SoftwareUpdaterPage', () => {
     api.current.handlers['software_updater.list'] = () =>
       Promise.reject(new ApiCallError('Unsupported', 'No supported package manager was found'));
     renderPage();
-    expect(await screen.findByTestId('error-banner')).toHaveTextContent('No supported package manager was found');
+    expect(await screen.findByTestId('updater-unsupported')).toHaveTextContent('No supported package manager was found');
+    expect(screen.getByTestId('updater-unsupported')).toHaveTextContent("Software updates aren't available on this system");
+    expect(screen.queryByTestId('error-banner')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a real failure of the list still shows the error banner', async () => {
+    const { ApiCallError } = await import('../lib/transport');
+    api.current.handlers['software_updater.list'] = () => Promise.reject(new ApiCallError('Io', 'apt update failed'));
+    renderPage();
+    expect(await screen.findByTestId('error-banner')).toHaveTextContent('apt update failed');
+    expect(screen.queryByTestId('updater-unsupported')).toBeNull();
   });
 
   it('update error (authorization cancelled) is shown', async () => {

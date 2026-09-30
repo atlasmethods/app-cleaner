@@ -266,6 +266,10 @@ describe('Scheduled Cleaning, Startup, Language and About sections', () => {
     const user = userEvent.setup();
     expect(await screen.findByTestId('about-version')).toHaveTextContent(/^version \d+\.\d+\.\d+/);
     await user.click(screen.getByTestId('about-open-data'));
-    expect(await screen.findByTestId('about-open-error')).toHaveTextContent('xdg-open');
+    const note = await screen.findByTestId('about-open-error');
+    expect(note).toHaveTextContent('xdg-open');
+    // a missing file manager is information, not a failure
+    expect(note).not.toHaveClass('text-danger');
+    expect(note).toHaveAttribute('role', 'status');
   });
 });

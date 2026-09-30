@@ -7,6 +7,7 @@ import { Checkbox } from '../components/Checkbox';
 import { ConfirmSheet } from '../components/ConfirmSheet';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { NotAvailable } from '../components/NotAvailable';
 import { ProgressBar } from '../components/ProgressBar';
 import { useCall } from '../hooks/useCall';
 import {
@@ -82,7 +83,9 @@ export default function SoftwareUpdaterPage() {
   };
 
   const allChecked = selectableCount > 0 && ids.length === selectableCount;
-  const error = actionError ?? list.error ?? update.error ?? updateAll.error;
+  // No supported package manager is a normal situation on some machines, not a failure.
+  const unsupported = list.error?.code === 'Unsupported' ? list.error : null;
+  const error = actionError ?? (unsupported ? null : list.error) ?? update.error ?? updateAll.error;
 
   return (
     <div data-testid="page-updater" className="flex min-h-full flex-col gap-3 p-4">
@@ -91,7 +94,9 @@ export default function SoftwareUpdaterPage() {
       <div className="flex items-center justify-between gap-2">
         <p className="m-0 min-w-0 flex-1 text-xs text-muted" data-testid="updater-summary">
           {entries === null
-            ? 'Checking for updates...'
+            ? unsupported
+              ? 'Not available on this system.'
+              : 'Checking for updates...'
             : entries.length === 0
               ? 'Everything is up to date.'
               : `${entries.length} ${entries.length === 1 ? 'update' : 'updates'} available`}
@@ -146,6 +151,14 @@ export default function SoftwareUpdaterPage() {
             ))}
           </ul>
         </Card>
+      )}
+
+      {unsupported && !list.loading && (
+        <NotAvailable
+          testId="updater-unsupported"
+          title="Software updates aren't available on this system"
+          detail={unsupported.message}
+        />
       )}
 
       {entries !== null && entries.length === 0 && !busy && (

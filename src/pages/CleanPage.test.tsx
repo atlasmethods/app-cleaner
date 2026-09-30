@@ -256,6 +256,23 @@ describe('CleanPage analyze and clean', () => {
     expect(screen.getByTestId('btn-clean')).toBeEnabled();
   });
 
+  it('mentions in-use temp items that were left alone, without any error styling', async () => {
+    api.current.handlers['cleaner.analyze'] = () => ({
+      ...analysis,
+      items: analysis.items.map((i) => (i.ruleId === 'linux.temp' ? { ...i, inUseSkipped: 3 } : i)),
+    });
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('btn-analyze');
+    await user.click(screen.getByTestId('btn-analyze'));
+    await screen.findByTestId('results');
+    await user.click(screen.getByTestId('result-linux.temp-toggle'));
+    expect(screen.getByTestId('result-linux.temp-in-use')).toHaveTextContent('3 in-use items were left alone.');
+    expect(screen.queryByTestId('result-linux.temp-errors')).toBeNull();
+    await user.click(screen.getByTestId('result-chrome.cache-toggle'));
+    expect(screen.queryByTestId('result-chrome.cache-in-use')).toBeNull();
+  });
+
   it('shows progress with a cancel button that aborts the analysis', async () => {
     api.current.handlers['cleaner.analyze'] = (_p, o) => {
       (o as { onProgress?: (e: object) => void }).onProgress?.({ stage: 'analyze', fraction: 0.25, message: 'Google Chrome - Cache' });
