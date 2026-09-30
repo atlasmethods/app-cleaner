@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiCallError, _resetTokenForTests, call, consumeCallStream, getToken, initToken, readNdjson } from './transport';
+import { ApiCallError, _resetAuthForTests, _resetTokenForTests, call, consumeCallStream, getToken, initToken, readNdjson } from './transport';
 import type { ProgressEvent, WireMessage } from '../api/types';
 
 const enc = new TextEncoder();
@@ -80,6 +80,7 @@ describe('call over HTTP', () => {
     vi.unstubAllGlobals();
     sessionStorage.clear();
     _resetTokenForTests();
+    _resetAuthForTests();
   });
 
   it('posts callId/method/params with the token and parses the stream', async () => {
@@ -102,6 +103,38 @@ describe('call over HTTP', () => {
   it('maps 401 to PermissionDenied', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('unauthorized', { status: 401 })));
     await expect(call('x.y')).rejects.toMatchObject({ code: 'PermissionDenied' });
+  });
+
+  it('reports an unreachable server, and a stream cut mid-call, as Unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
+    await expect(call('x.y')).rejects.toMatchObject({ code: 'Unreachable', message: expect.stringContaining('not reachable') });
+    const broken = new ReadableStream<Uint8Array>({
+      pull(c) {
+        c.error(new TypeError('network error'));
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(broken)));
+    await expect(call('x.y')).rejects.toMatchObject({ code: 'Unreachable' });
+  });
+
+  it('a 401 switches the app to the "open from the link" page', async () => {
+    const { isAuthRequired, subscribeAuth } = await import('./transport');
+    const seen = vi.fn();
+    const off = subscribeAuth(seen);
+    expect(isAuthRequired()).toBe(false);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('unauthorized', { status: 401 })));
+    await expect(call('x.y')).rejects.toMatchObject({ code: 'PermissionDenied' });
+    expect(isAuthRequired()).toBe(true);
+    expect(seen).toHaveBeenCalledTimes(1);
+    off();
+    _resetAuthForTests();
+  });
+
+  it('a 403 is an error but not a missing-token page', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('forbidden', { status: 403 })));
+    await expect(call('x.y')).rejects.toMatchObject({ code: 'PermissionDenied' });
+    const { isAuthRequired } = await import('./transport');
+    expect(isAuthRequired()).toBe(false);
   });
 
   it('abort sends /api/cancel and rejects with AbortError', async () => {

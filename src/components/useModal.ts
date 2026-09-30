@@ -47,7 +47,9 @@ export function useModal(
   initialFocus?: RefObject<HTMLElement | null>,
 ): void {
   const closeRef = useRef(onClose);
-  closeRef.current = onClose;
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
