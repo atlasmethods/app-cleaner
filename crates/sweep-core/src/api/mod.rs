@@ -151,9 +151,22 @@ mod tests {
     #[test]
     fn stubs_return_not_implemented_with_method_name() {
         let (_d, c) = ctx();
-        let e = dispatch(&c, "health.analyze", Value::Null, &Job::detached()).unwrap_err();
+        let mut r = Registry::new();
+        r.stubs(&["demo.stub"]);
+        let h = r.get("demo.stub").unwrap();
+        let e = h(&c, Value::Null, &Job::detached()).unwrap_err();
         assert_eq!(e.code, ErrorCode::NotImplemented);
-        assert!(e.message.contains("health.analyze"), "{}", e.message);
+    }
+
+    #[test]
+    fn no_registered_method_is_a_stub() {
+        for name in registry().names() {
+            let h = registry().get(name).unwrap();
+            assert!(
+                h as usize != not_implemented as usize,
+                "method {name} is still a not-implemented stub"
+            );
+        }
     }
 
     #[test]

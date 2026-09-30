@@ -207,7 +207,7 @@ async fn progress_lines_precede_single_result() {
 }
 
 #[tokio::test]
-async fn unknown_method_and_stub_yield_error_lines() {
+async fn unknown_method_yields_error_line() {
     let f = start(false, 30_000).await;
     let r = f
         .call_req("nope.nothing", Value::Null)
@@ -220,13 +220,6 @@ async fn unknown_method_and_stub_yield_error_lines() {
     assert_eq!(lines[0]["type"], "error");
     assert_eq!(lines[0]["error"]["code"], "NotFound");
 
-    let r = f
-        .call_req("health.analyze", json!({}))
-        .send()
-        .await
-        .unwrap();
-    let lines = parse_lines(&r.text().await.unwrap());
-    assert_eq!(lines[0]["error"]["code"], "NotImplemented");
     f.handle.shutdown();
 }
 
