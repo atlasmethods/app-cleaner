@@ -57,17 +57,17 @@ export async function auditPage(page: Page, scope?: string): Promise<AuditResult
     const smallTargets: string[] = [];
     for (const el of targets) {
       if (el.closest('.sr-only')) continue;
-      let r = el.getBoundingClientRect();
-      if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) {
+      const big = (b: DOMRect) => b.width >= 39.5 && b.height >= 39.5;
+      const r = el.getBoundingClientRect();
+      let ok = big(r);
+      if (!ok && el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) {
+        // A label around (or bound to) the input is an equally good touch target.
         const label = el.closest('label') ?? el.labels?.[0];
-        if (label) {
-          const lr = label.getBoundingClientRect();
-          if (lr.width * lr.height > r.width * r.height) r = lr;
-        }
+        if (label) ok = big(label.getBoundingClientRect());
       }
       const isInline =
         el instanceof HTMLAnchorElement && getComputedStyle(el).display === 'inline' && !!el.closest('p, li, span');
-      if ((r.height < 39.5 || r.width < 39.5) && !isInline) {
+      if (!ok && !isInline) {
         smallTargets.push(`${desc(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
       }
     }

@@ -245,7 +245,7 @@ export default function UninstallPage() {
             <option value="date">Install date</option>
           </select>
         </label>
-        <label className="flex items-center gap-1.5">
+        <label className="flex min-h-10 items-center gap-1.5">
           <Checkbox
             checked={showSystem}
             onChange={(v) => {

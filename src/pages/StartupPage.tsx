@@ -173,7 +173,7 @@ export default function StartupPage() {
         </div>
       )}
 
-      <label className="flex items-center gap-1.5 text-xs">
+      <label className="flex min-h-10 items-center gap-1.5 text-xs">
         <Checkbox
           checked={showSystem}
           onChange={setShowSystem}

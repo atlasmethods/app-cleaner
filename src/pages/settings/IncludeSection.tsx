@@ -78,11 +78,11 @@ export function IncludeSection({ settings, patch }: SectionProps) {
           data-testid="include-mask"
           className={inputClass}
         />
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-10 items-center gap-2 text-sm">
           <Checkbox checked={recursive} onChange={setRecursive} testId="include-recursive" />
           Include subfolders
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-10 items-center gap-2 text-sm">
           <Checkbox checked={emptyDirs} onChange={setEmptyDirs} testId="include-empty-dirs" />
           Remove empty folders afterwards
         </label>

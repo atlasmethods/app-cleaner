@@ -50,7 +50,7 @@ export function FoldersView({ scanId, roots, version, onShowFiles }: Props) {
                     type="button"
                     onClick={() => setAt(c.path)}
                     data-testid={`disk-crumb-${i}`}
-                    className="break-all border-0 bg-transparent p-0 text-accent underline"
+                    className="min-h-10 break-all border-0 bg-transparent px-1 text-accent underline"
                   >
                     {c.label}
                   </button>

@@ -134,7 +134,7 @@ export default function RegistryPage() {
         <div className="mb-2 flex gap-3 text-xs">
           <button
             type="button"
-            className="border-0 bg-transparent p-0 text-accent underline"
+            className="min-h-10 min-w-10 border-0 bg-transparent px-2 text-accent underline"
             onClick={() => setChosen(new Set(categories.map((c) => c.id)))}
             data-testid="registry-cats-all"
           >
@@ -142,7 +142,7 @@ export default function RegistryPage() {
           </button>
           <button
             type="button"
-            className="border-0 bg-transparent p-0 text-accent underline"
+            className="min-h-10 min-w-10 border-0 bg-transparent px-2 text-accent underline"
             onClick={() => setChosen(new Set())}
             data-testid="registry-cats-none"
           >
