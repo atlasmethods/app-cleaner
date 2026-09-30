@@ -119,7 +119,7 @@ export function FoldersView({ scanId, roots, version, onShowFiles }: Props) {
               type="button"
               onClick={() => setAt(node.parent)}
               data-testid="disk-folder-up"
-              className="h-9 rounded-xl border border-line bg-surface-2 text-sm font-medium"
+              className="h-10 rounded-xl border border-line bg-surface-2 text-sm font-medium"
             >
               Up one level
             </button>

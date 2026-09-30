@@ -208,7 +208,7 @@ export default function DiskAnalyzerPage() {
                     aria-selected={tab === t}
                     onClick={() => setTab(t)}
                     data-testid={`disk-tab-${t}`}
-                    className={`h-8 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
+                    className={`h-10 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
                       tab === t ? 'bg-surface shadow-sm' : 'bg-transparent text-muted'
                     }`}
                   >

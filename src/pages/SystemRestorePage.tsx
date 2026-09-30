@@ -184,7 +184,7 @@ export default function SystemRestorePage() {
             onClick={() => void authorize()}
             disabled={busy}
             data-testid="restore-authorize"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
           >
             Authorize and list
           </button>
@@ -342,7 +342,7 @@ function PointRow({
             onClick={onRestore}
             disabled={busy}
             data-testid={`point-restore-${point.id}`}
-            className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
+            className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
           >
             <RotateCcw size={14} aria-hidden /> Restore
           </button>
@@ -354,7 +354,7 @@ function PointRow({
           title={blocked ?? undefined}
           aria-label={blocked ? `Delete (unavailable: ${blocked})` : 'Delete'}
           data-testid={`point-delete-${point.id}`}
-          className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm text-danger disabled:opacity-50"
+          className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm text-danger disabled:opacity-50"
         >
           <Trash2 size={14} aria-hidden /> Delete
         </button>

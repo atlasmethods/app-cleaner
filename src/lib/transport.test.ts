@@ -71,7 +71,7 @@ describe('consumeCallStream', () => {
   });
 
   it('fails when the stream ends without a terminal line', async () => {
-    await expect(consumeCallStream(streamOf([progress]))).rejects.toMatchObject({ code: 'Internal' });
+    await expect(consumeCallStream(streamOf([progress]))).rejects.toMatchObject({ code: 'Unreachable' });
   });
 });
 

@@ -117,7 +117,7 @@ export default function SoftwareUpdaterPage() {
             type="button"
             onClick={() => active.cancel()}
             data-testid="btn-cancel"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
           >
             Cancel
           </button>
@@ -226,7 +226,7 @@ export default function SoftwareUpdaterPage() {
                     onClick={() => setMenu(e)}
                     aria-label={`Options for ${e.name}`}
                     data-testid={`update-menu-${e.id}`}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
                   >
                     <MoreVertical size={16} aria-hidden />
                   </button>

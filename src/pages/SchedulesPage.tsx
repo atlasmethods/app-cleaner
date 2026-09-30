@@ -166,7 +166,7 @@ export default function SchedulesPage() {
               disabled={busyId === s.id}
               onClick={() => void runNow(s)}
               data-testid={`schedule-run-${s.id}`}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium disabled:opacity-60"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium disabled:opacity-60"
             >
               <Play size={14} aria-hidden /> {busyId === s.id ? 'Working...' : 'Run now'}
             </button>
@@ -174,7 +174,7 @@ export default function SchedulesPage() {
               type="button"
               onClick={() => setSheet({ editing: s })}
               data-testid={`schedule-edit-${s.id}`}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium"
             >
               <Pencil size={14} aria-hidden /> Edit
             </button>
@@ -182,7 +182,7 @@ export default function SchedulesPage() {
               type="button"
               onClick={() => setDeleting(s)}
               data-testid={`schedule-delete-${s.id}`}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium text-danger"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-xs font-medium text-danger"
             >
               <Trash2 size={14} aria-hidden /> Delete
             </button>

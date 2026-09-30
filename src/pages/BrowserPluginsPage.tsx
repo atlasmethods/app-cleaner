@@ -196,7 +196,7 @@ export default function BrowserPluginsPage() {
                         disabled={busyId !== null}
                         aria-label={`Remove ${p.name}`}
                         data-testid={`plugin-remove-${p.id}`}
-                        className="flex h-11 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-danger disabled:opacity-50"
+                        className="flex h-11 w-10 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-danger disabled:opacity-50"
                       >
                         <Trash2 size={16} aria-hidden />
                       </button>

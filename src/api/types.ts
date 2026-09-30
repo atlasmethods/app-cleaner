@@ -10,6 +10,9 @@ export type ErrorCode =
   | 'Io'
   | 'Internal';
 
+/** Raised by the frontend itself, never by the backend. */
+export type ClientErrorCode = 'Unreachable';
+
 export interface ApiErrorBody {
   code: ErrorCode;
   message: string;

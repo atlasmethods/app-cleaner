@@ -52,7 +52,7 @@ function OpenSheet({
       />
       <div
         ref={dialog}
-        role="alertdialog"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby={message ? 'confirm-message' : undefined}

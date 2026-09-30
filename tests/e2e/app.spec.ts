@@ -1,20 +1,5 @@
 import { expect, noHorizontalScroll, test } from './fixtures';
-
-const TABS = ['home', 'clean', 'tools', 'performance', 'settings'] as const;
-const TILES: { id: string; title: string }[] = [
-  { id: 'uninstall', title: 'Uninstall' },
-  { id: 'updater', title: 'Software Updater' },
-  { id: 'drivers', title: 'Driver Updater' },
-  { id: 'startup', title: 'Startup' },
-  { id: 'plugins', title: 'Browser Plugins' },
-  { id: 'disk', title: 'Disk Analyzer' },
-  { id: 'duplicates', title: 'Duplicate Finder' },
-  { id: 'restore', title: 'System Restore' },
-  { id: 'wiper', title: 'Drive Wiper' },
-  { id: 'registry', title: 'Config Issues' },
-  { id: 'sysinfo', title: 'System Info' },
-  { id: 'cookies', title: 'Cookies' },
-];
+import { TABS, TOOL_TILES as TILES } from './helpers/routes';
 
 test('token is stripped from the URL and the app keeps working after reload', async ({ app }) => {
   expect(app.url()).not.toContain('t=');
@@ -42,7 +27,7 @@ test('every bottom tab loads its page', async ({ app }) => {
   }
 });
 
-test('tools tab shows all 12 tiles', async ({ app }) => {
+test('tools tab shows a tile for every tool', async ({ app }) => {
   await app.getByTestId('tab-tools').click();
   for (const t of TILES) await expect(app.getByTestId(`tile-${t.id}`)).toBeVisible();
   await expect(app.locator('[data-testid^="tile-"]')).toHaveCount(TILES.length);

@@ -192,7 +192,7 @@ function Body({ category, report, selection, onChange, readOnly }: Omit<Props, '
               disabled={readOnly}
               onClick={() => onChange({ ...selection, updates: securityOnly })}
               data-testid="updates-security-only"
-              className="h-8 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
+              className="h-10 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
             >
               Security only
             </button>
@@ -201,7 +201,7 @@ function Body({ category, report, selection, onChange, readOnly }: Omit<Props, '
               disabled={readOnly}
               onClick={() => onChange({ ...selection, updates: all })}
               data-testid="updates-all"
-              className="h-8 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
+              className="h-10 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
             >
               All
             </button>
@@ -210,7 +210,7 @@ function Body({ category, report, selection, onChange, readOnly }: Omit<Props, '
               disabled={readOnly}
               onClick={() => onChange({ ...selection, updates: new Set() })}
               data-testid="updates-none"
-              className="h-8 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
+              className="h-10 rounded-lg border border-line bg-surface-2 px-2 text-xs font-medium disabled:opacity-50"
             >
               None
             </button>

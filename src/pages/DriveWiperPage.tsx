@@ -144,7 +144,7 @@ export default function DriveWiperPage() {
             disabled={running}
             onClick={() => switchMode(m)}
             data-testid={`wiper-mode-${m}`}
-            className={`h-9 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
+            className={`h-10 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
               mode === m ? 'bg-surface shadow-sm' : 'bg-transparent text-muted'
             }`}
           >

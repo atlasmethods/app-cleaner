@@ -238,7 +238,7 @@ export default function UninstallPage() {
             onChange={(e) => setSort(e.target.value as SortKey)}
             data-testid="uninstall-sort"
             aria-label="Sort by"
-            className="h-8 rounded-lg border border-line bg-surface-2 px-1.5 text-xs"
+            className="h-10 rounded-lg border border-line bg-surface-2 px-1.5 text-xs"
           >
             <option value="name">Name</option>
             <option value="size">Size</option>
@@ -279,7 +279,7 @@ export default function UninstallPage() {
             type="button"
             onClick={() => active.cancel()}
             data-testid="btn-cancel"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
           >
             Cancel
           </button>
@@ -357,7 +357,7 @@ export default function UninstallPage() {
                 type="button"
                 onClick={() => setLimit((l) => l + 300)}
                 data-testid="uninstall-more"
-                className="h-9 w-full rounded-xl border border-line bg-surface-2 text-sm"
+                className="h-10 w-full rounded-xl border border-line bg-surface-2 text-sm"
               >
                 Show more ({shown.length - limit})
               </button>

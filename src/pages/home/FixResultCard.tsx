@@ -61,7 +61,7 @@ export function FixResultCard({ result, before, after, onCloseAndFix, busy }: Pr
             onClick={onCloseAndFix}
             disabled={busy}
             data-testid="btn-close-and-fix"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-semibold disabled:opacity-50"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-semibold disabled:opacity-50"
           >
             Close browsers &amp; fix
           </button>

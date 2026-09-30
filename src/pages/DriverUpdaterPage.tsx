@@ -104,7 +104,7 @@ export default function DriverUpdaterPage() {
             type="button"
             onClick={() => active.cancel()}
             data-testid="btn-cancel"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
           >
             Cancel
           </button>

@@ -42,7 +42,7 @@ export function RuleTree({ categories, selected, expanded, onToggleRule, onToggl
                         aria-expanded={open}
                         onClick={() => onToggleExpand(g.group)}
                         data-testid={`group-expand-${s}`}
-                        className="flex min-h-9 min-w-0 flex-1 items-center gap-1 border-0 bg-transparent p-0 text-left text-sm font-medium"
+                        className="flex min-h-10 min-w-0 flex-1 items-center gap-1 border-0 bg-transparent p-0 text-left text-sm font-medium"
                       >
                         <span className="min-w-0 flex-1 break-words">{g.group}</span>
                         <span className="shrink-0 text-xs text-muted">

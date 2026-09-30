@@ -109,6 +109,11 @@ export interface Sandbox {
   chromeData: (profile?: string) => string;
 }
 
+interface TestOptions {
+  /** HTTP statuses (and the console line the browser logs for them) that a test expects. */
+  allowHttpStatuses: number[];
+}
+
 interface TestFixtures {
   /** The fake machine, freshly rebuilt for this test. */
   sandbox: Sandbox;
@@ -122,7 +127,9 @@ interface WorkerFixtures {
   server: ServerInfo;
 }
 
-export const test = base.extend<TestFixtures, WorkerFixtures>({
+export const test = base.extend<TestFixtures & TestOptions, WorkerFixtures>({
+  allowHttpStatuses: [[], { option: true }],
+
   server: [
     async ({}, use) => {
       const { info, stop } = await startServer();
@@ -136,14 +143,15 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
 
   consoleErrors: [
-    async ({ page }, use) => {
+    async ({ page, allowHttpStatuses }, use) => {
       const errors: string[] = [];
+      const allowed = (text: string) => allowHttpStatuses.some((s) => text.includes(`status of ${s}`));
       page.on('console', (m) => {
-        if (m.type() === 'error') errors.push(`console.error: ${m.text()}`);
+        if (m.type() === 'error' && !allowed(m.text())) errors.push(`console.error: ${m.text()}`);
       });
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
       page.on('response', (r) => {
-        if (r.status() >= 400) errors.push(`http ${r.status()}: ${r.url()}`);
+        if (r.status() >= 400 && !allowHttpStatuses.includes(r.status())) errors.push(`http ${r.status()}: ${r.url()}`);
       });
       await use(errors);
       expect(errors, 'no console errors / page errors').toEqual([]);
@@ -165,7 +173,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   app: async ({ page, server, sandbox }, use) => {
     void sandbox; // every test starts on a freshly built machine and default settings
     await page.goto(server.url);
-    await expect(page.getByTestId('tabbar')).toBeVisible();
+    // The tab bar (compact) or the navigation rail (wide) both carry the tab test ids.
+    await expect(page.getByTestId('tab-home')).toBeVisible();
     await use(page);
   },
 });

@@ -1,6 +1,9 @@
+import { useSyncExternalStore } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { isAuthRequired, subscribeAuth } from './lib/transport';
 import { TOOLS } from './nav';
+import AuthRequiredPage from './pages/AuthRequiredPage';
 import BrowserPluginsPage from './pages/BrowserPluginsPage';
 import CleanHistoryPage from './pages/CleanHistoryPage';
 import CleanPage from './pages/CleanPage';
@@ -40,6 +43,8 @@ const toolPages: Record<string, React.ComponentType> = {
 };
 
 export default function App() {
+  const authRequired = useSyncExternalStore(subscribeAuth, isAuthRequired, () => false);
+  if (authRequired) return <AuthRequiredPage />;
   return (
     <HashRouter>
       <Routes>

@@ -66,7 +66,7 @@ export function IssueGroups({ groups, selected, onChange, disabled }: Props) {
                   type="button"
                   onClick={() => setLimits((l) => ({ ...l, [category.id]: limit + 200 }))}
                   data-testid={`registry-more-${category.id}`}
-                  className="h-9 w-full rounded-xl border border-line bg-surface-2 text-sm"
+                  className="h-10 w-full rounded-xl border border-line bg-surface-2 text-sm"
                 >
                   Show more ({issues.length - limit})
                 </button>
