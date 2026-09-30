@@ -6,6 +6,8 @@ import { test as plain, expect as plainExpect } from '@playwright/test';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, startServer, test } from './fixtures';
+import { auditPage, auditProblems } from './helpers/audit';
+import { ALL_ROUTES } from './helpers/routes';
 
 test.describe('without a valid token', () => {
   test.use({ allowHttpStatuses: [401] });
@@ -94,23 +96,53 @@ test('the browser back button walks back through the pages', async ({ app }) => 
 test.describe('server stopped', () => {
   test.use({ allowHttpStatuses: [0] });
   test('when the server goes away the error banner says so and offers a retry', async ({ page }) => {
-  const { info, stop } = await startServer();
-  try {
-    await page.goto(info.url);
-    await expect(page.getByTestId('tab-home')).toBeVisible();
-    await page.getByTestId('tab-tools').click();
-    await page.getByTestId('tile-sysinfo').click();
-    await expect(page.getByTestId('sysinfo-cpu')).toBeVisible();
-    await stop();
-    await page.getByTestId('tab-settings').click();
-    const banner = page.getByTestId('error-banner').first();
-    await expect(banner).toContainText('Backend unreachable');
-    await expect(banner).toContainText('not reachable');
-    await expect(banner.getByTestId('error-retry')).toBeVisible();
-  } finally {
-    await stop();
-  }
+    const { info, stop } = await startServer();
+    try {
+      await page.goto(info.url);
+      await expect(page.getByTestId('tab-home')).toBeVisible();
+      await page.getByTestId('tab-tools').click();
+      await page.getByTestId('tile-sysinfo').click();
+      await expect(page.getByTestId('sysinfo-cpu')).toBeVisible();
+      await stop();
+      await page.getByTestId('tab-settings').click();
+      const banner = page.getByTestId('error-banner').first();
+      await expect(banner).toContainText('Backend unreachable');
+      await expect(banner).toContainText('not reachable');
+      await expect(banner.getByTestId('error-retry')).toBeVisible();
+    } finally {
+      await stop();
+    }
+  });
 });
+
+test.describe('every page without a backend', () => {
+  test.use({ allowHttpStatuses: [0] });
+  // Pages that call the backend as soon as they open; the others are static until you act.
+  const LOADS_ON_OPEN = ['/clean', '/clean/history', '/performance', '/settings', '/settings/schedules', '/tools/uninstall',
+    '/tools/updater', '/tools/startup', '/tools/plugins', '/tools/restore', '/tools/sysinfo', '/tools/cookies', '/tools/disk', '/tools/wiper'];
+  test('show "Backend unreachable" with a retry, never a blank or broken page', async ({ page }) => {
+    const { info, stop } = await startServer();
+    const crashes: string[] = [];
+    page.on('pageerror', (e) => crashes.push(e.message));
+    try {
+      await page.goto(info.url);
+      await expect(page.getByTestId('tab-home')).toBeVisible();
+      await stop();
+      for (const route of ALL_ROUTES) {
+        await page.evaluate((h) => (location.hash = h), `#${route}`);
+        await expect(page.getByTestId('appbar-title')).toBeVisible();
+        if (LOADS_ON_OPEN.includes(route)) {
+          const banner = page.getByTestId('error-banner').first();
+          await expect(banner, route).toContainText('Backend unreachable');
+          await expect(banner.getByTestId('error-retry'), route).toBeVisible();
+        }
+        expect(auditProblems(await auditPage(page)), route).toEqual([]);
+      }
+      expect(crashes).toEqual([]);
+    } finally {
+      await stop();
+    }
+  });
 });
 
 // ---------------------------------------------------------------- separate servers

@@ -7,7 +7,7 @@ interface Props {
 
 export function AppBar({ title, onBack }: Props) {
   return (
-    <header data-testid="appbar" className="shrink-0 border-b border-line bg-surface">
+    <header data-testid="appbar" className="shrink-0 border-b border-line bg-surface pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-12 w-full max-w-[720px] items-center gap-1 px-2">
         {onBack ? (
           <button

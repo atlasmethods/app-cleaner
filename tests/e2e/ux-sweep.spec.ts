@@ -33,3 +33,20 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   });
 }
+
+test('the bottom tab bar never moves or resizes between pages', async ({ app }) => {
+  const box = async () => (await app.getByTestId('tabbar').boundingBox())!;
+  const first = await box();
+  const vh = app.viewportSize()!.height;
+  expect(first.y + first.height).toBeCloseTo(vh, 0); // flush with the bottom edge
+  for (const route of ALL_ROUTES) {
+    await app.evaluate((h) => (location.hash = h), `#${route}`);
+    await expect(app.getByTestId('appbar-title')).toBeVisible();
+    const b = await box();
+    expect([b.x, b.y, b.width, b.height], route).toEqual([first.x, first.y, first.width, first.height]);
+  }
+  // also while a long page scrolls
+  await app.evaluate(() => (location.hash = '#/clean'));
+  await app.locator('[data-scroll-root]').evaluate((el) => (el.scrollTop = 10_000));
+  expect(await box()).toEqual(first);
+});
