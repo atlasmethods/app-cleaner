@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ShieldPlus, X } from 'lucide-react';
 import { Card } from '../../components/Card';
+import { t } from '../../i18n';
 import type { SectionProps } from './types';
 
 export function ExcludeSection({ settings, patch }: SectionProps) {
@@ -18,7 +19,7 @@ export function ExcludeSection({ settings, patch }: SectionProps) {
   const remove = (id: string) => void patch({ exclude: settings.exclude.filter((e) => e.id !== id) });
 
   return (
-    <Card title="Exclude from cleaning" testId="settings-exclude">
+    <Card title={t('settings.exclude')} testId="settings-exclude">
       <p className="m-0 mb-2 text-xs text-muted">
         Files and folders that are never deleted, by any cleaning. Use an absolute path or a pattern such as
         ~/Downloads/keep*. A folder protects everything inside it.

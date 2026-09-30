@@ -18,6 +18,7 @@ import {
   HardDrive,
   type LucideIcon,
 } from 'lucide-react';
+import { t as translate } from './i18n';
 import { isWindowsClient } from './lib/platform';
 
 export interface TabDef {
@@ -67,9 +68,11 @@ export const TOOLS: ToolDef[] = [
 
 /** Title + optional parent (drill-in pages get a back button) for a pathname. */
 export const CLEAN_HISTORY_PATH = '/clean/history';
+export const SCHEDULES_PATH = '/settings/schedules';
 
 export function routeMeta(pathname: string): { title: string; parent: string | null } {
   if (pathname === CLEAN_HISTORY_PATH) return { title: 'History', parent: '/clean' };
+  if (pathname === SCHEDULES_PATH) return { title: translate('schedules.title'), parent: '/settings' };
   const t = TOOLS.find((x) => x.path === pathname);
   if (t) return { title: t.label, parent: '/tools' };
   const tab = TABS.find((x) => x.path === pathname);

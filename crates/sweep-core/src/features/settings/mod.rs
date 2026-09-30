@@ -2,8 +2,10 @@
 //!
 //! Methods:
 //! - `settings.get`: the full settings object.
-//! - `settings.set`: RFC 7386 merge-patch, validated; returns the new settings.
-//! - `settings.reset`: restore defaults.
+//! - `settings.set`: RFC 7386 merge-patch, validated; returns the new settings. Setting
+//!   `runAtStartup` installs / removes the OS autostart entry (`crate::autostart`) and is
+//!   refused, with nothing saved, when that fails.
+//! - `settings.reset`: restore defaults (and remove the autostart entry).
 //!
 //! Adding a setting later: add a field to [`Settings`] (with a default) and, if it needs
 //! validation, one arm in [`Settings::validate_field`]. Old files keep loading (every
@@ -101,6 +103,10 @@ pub struct SmartSettings {
     pub clean_on_browser_close: Vec<String>,
     pub auto_clean: bool,
     pub notify: bool,
+    /// How often the background agent measures the junk (minutes, 5 or more).
+    pub check_interval_minutes: u32,
+    /// How often the background agent re-applies sleep mode (minutes, 1 or more).
+    pub enforce_sleep_minutes: u32,
 }
 
 impl Default for SmartSettings {
@@ -111,6 +117,8 @@ impl Default for SmartSettings {
             clean_on_browser_close: Vec::new(),
             auto_clean: false,
             notify: true,
+            check_interval_minutes: 60,
+            enforce_sleep_minutes: 15,
         }
     }
 }
@@ -130,7 +138,10 @@ pub struct Settings {
     /// `None` = every rule's own default.
     pub selected_rules: Option<Vec<String>>,
     pub smart: SmartSettings,
+    /// Launch the background agent at login (see `crate::autostart`).
     pub run_at_startup: bool,
+    /// Desktop app: the close button hides the window to the tray.
+    pub close_to_tray: bool,
     pub language: String,
     /// Software updater: ids (`apt:firefox`, `winget:Git.Git`, ...) the user chose to ignore.
     pub ignored_updates: Vec<String>,
@@ -149,6 +160,7 @@ impl Default for Settings {
             selected_rules: None,
             smart: SmartSettings::default(),
             run_at_startup: false,
+            close_to_tray: true,
             language: "en".to_string(),
             ignored_updates: Vec::new(),
         }
@@ -311,6 +323,18 @@ impl Settings {
                         .any(|s| s.trim().is_empty() || s.len() > 64)
                 {
                     return Err(err("invalid smart.cleanOnBrowserClose"));
+                }
+                let mut seen = HashSet::new();
+                self.smart
+                    .clean_on_browser_close
+                    .retain(|g| seen.insert(g.clone()));
+                if !(5..=10_080).contains(&self.smart.check_interval_minutes) {
+                    return Err(err(
+                        "smart.checkIntervalMinutes must be between 5 and 10080",
+                    ));
+                }
+                if !(1..=1_440).contains(&self.smart.enforce_sleep_minutes) {
+                    return Err(err("smart.enforceSleepMinutes must be between 1 and 1440"));
                 }
             }
             "ignoredUpdates" => {
@@ -534,8 +558,19 @@ pub fn update(ctx: &Ctx, f: impl FnOnce(&mut Settings)) -> Result<Settings> {
 
 // ---------------------------------------------------------------- API
 
+/// `runAtStartup` as the OS reports it: the autostart entry is the truth, the saved value is
+/// only a copy of it (someone may have removed the entry by hand or through the startup
+/// manager).
+fn reconcile_startup(ctx: &Ctx, s: &mut Settings) {
+    if let Some(actual) = crate::autostart::is_installed(ctx) {
+        s.run_at_startup = actual;
+    }
+}
+
 fn get(ctx: &Ctx, _params: Value, _job: &Job) -> Result<Value> {
-    Ok(serde_json::to_value(load(ctx))?)
+    let mut s = load(ctx);
+    reconcile_startup(ctx, &mut s);
+    Ok(serde_json::to_value(s)?)
 }
 
 fn set(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
@@ -554,13 +589,26 @@ fn set(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
     let mut next: Settings =
         serde_json::from_value(merged).map_err(|e| err(format!("invalid settings: {e}")))?;
     next.validate(&ctx.env, Some(&touched))?;
-    save_locked(&ctx.env, &next)?;
+    if touched.iter().any(|k| k == "runAtStartup") {
+        // Change the OS first: when that fails nothing is saved and the caller sees why.
+        crate::autostart::apply(ctx, next.run_at_startup)?;
+        if let Err(e) = save_locked(&ctx.env, &next) {
+            let _ = crate::autostart::apply(ctx, current.run_at_startup);
+            return Err(e);
+        }
+    } else {
+        // Never persist a stale copy of the startup flag along with an unrelated change.
+        reconcile_startup(ctx, &mut next);
+        save_locked(&ctx.env, &next)?;
+    }
     Ok(serde_json::to_value(next)?)
 }
 
 fn reset(ctx: &Ctx, _params: Value, _job: &Job) -> Result<Value> {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let s = Settings::default();
+    // Defaults mean "no autostart entry".
+    crate::autostart::apply(ctx, false)?;
     save_locked(&ctx.env, &s)?;
     Ok(serde_json::to_value(s)?)
 }
@@ -600,8 +648,10 @@ mod tests {
                 "cookieKeep": [],
                 "selectedRules": null,
                 "smart": {"enabled": false, "thresholdMb": 500, "cleanOnBrowserClose": [],
-                          "autoClean": false, "notify": true},
+                          "autoClean": false, "notify": true,
+                          "checkIntervalMinutes": 60, "enforceSleepMinutes": 15},
                 "runAtStartup": false,
+                "closeToTray": true,
                 "language": "en",
                 "ignoredUpdates": []
             })

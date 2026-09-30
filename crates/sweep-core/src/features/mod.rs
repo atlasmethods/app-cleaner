@@ -19,6 +19,7 @@ pub mod smart_cleaning;
 pub mod software_updater;
 pub mod startup;
 pub mod sysinfo;
+pub mod system;
 pub mod uninstall;
 pub mod wiper;
 
@@ -43,6 +44,7 @@ pub const FEATURES: &[(&str, &[&str])] = &[
     ("scheduler", scheduler::METHODS),
     ("settings", settings::METHODS),
     ("sysinfo", sysinfo::METHODS),
+    ("system", system::METHODS),
 ];
 
 pub fn register_all(r: &mut Registry) {
@@ -65,6 +67,7 @@ pub fn register_all(r: &mut Registry) {
     scheduler::register(r);
     settings::register(r);
     sysinfo::register(r);
+    system::register(r);
 }
 
 /// Every planned method name across all features.

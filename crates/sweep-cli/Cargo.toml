@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 description = "ClearSweep command line interface"
 
+[lib]
+name = "sweep_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "clearsweep"
 path = "src/main.rs"
@@ -15,6 +19,8 @@ testutil = ["sweep-core/testutil"]
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
+ctrlc = { version = "3.5.2", features = ["termination"] }
+notify-rust = "4.18.1"
 serde_json = "1.0.151"
 sweep-core = { version = "0.1.0", path = "../sweep-core" }
 sweep-server = { version = "0.1.0", path = "../sweep-server" }

@@ -1,6 +1,7 @@
 //! Running-process access behind a trait so cleaning logic is testable without real apps.
 
 use ::sysinfo as si;
+use std::sync::atomic::{AtomicUsize, Ordering};
 #[cfg(any(test, feature = "testutil"))]
 use std::sync::Mutex;
 
@@ -98,8 +99,38 @@ fn fake_from_env() -> Option<Vec<ProcInfo>> {
     )
 }
 
+/// Process names of step `step` of a `CLEARSWEEP_FAKE_PROCESSES_SEQ` value: steps are separated
+/// by `;`, names within a step by `,`; a step past the end repeats the last one.
+pub fn seq_step(seq: &str, step: usize) -> Vec<ProcInfo> {
+    let steps: Vec<&str> = seq.split(';').collect();
+    let names = steps[step.min(steps.len() - 1)];
+    names
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .enumerate()
+        .map(|(i, n)| ProcInfo {
+            pid: 4_100_000 + i as u32,
+            name: n.to_string(),
+        })
+        .collect()
+}
+
+/// Testing hook: `CLEARSWEEP_FAKE_PROCESSES_SEQ` makes each `list()` call return the next step
+/// of a scripted sequence (see [`seq_step`]), e.g. `chrome;;` = running, then closed. It takes
+/// precedence over `CLEARSWEEP_FAKE_PROCESSES`. Lets a sandboxed end-to-end run watch a
+/// browser "close" between two polls of the background agent.
+fn fake_seq_from_env() -> Option<Vec<ProcInfo>> {
+    static STEP: AtomicUsize = AtomicUsize::new(0);
+    let v = std::env::var("CLEARSWEEP_FAKE_PROCESSES_SEQ").ok()?;
+    Some(seq_step(&v, STEP.fetch_add(1, Ordering::SeqCst)))
+}
+
 impl ProcessSource for SystemProcesses {
     fn list(&self) -> Vec<ProcInfo> {
+        if let Some(f) = fake_seq_from_env() {
+            return f;
+        }
         if let Some(f) = fake_from_env() {
             return f;
         }
@@ -150,7 +181,8 @@ impl ProcessSource for SystemProcesses {
     }
 
     fn request_exit(&self, pid: u32) -> bool {
-        if fake_from_env().is_some() {
+        if fake_from_env().is_some() || std::env::var_os("CLEARSWEEP_FAKE_PROCESSES_SEQ").is_some()
+        {
             return false;
         }
         let mut sys = si::System::new();
@@ -279,6 +311,22 @@ mod tests {
         assert!(name_matches("chromium-browse", "chromium-browser"));
         assert!(!name_matches("chromium", "chrome"));
         assert!(!name_matches("notchrome", "chrome"));
+    }
+
+    #[test]
+    fn scripted_sequence_steps() {
+        let names = |s: &str, i: usize| -> Vec<String> {
+            seq_step(s, i).into_iter().map(|p| p.name).collect()
+        };
+        assert_eq!(names("chrome,slack;;code", 0), ["chrome", "slack"]);
+        assert!(names("chrome,slack;;code", 1).is_empty());
+        assert_eq!(names("chrome,slack;;code", 2), ["code"]);
+        assert_eq!(
+            names("chrome,slack;;code", 99),
+            ["code"],
+            "the last step repeats"
+        );
+        assert!(names("", 0).is_empty());
     }
 
     #[test]

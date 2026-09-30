@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CloseBrowsers, Passes } from '../../api/settings';
 import { Card } from '../../components/Card';
 import { Checkbox } from '../../components/Checkbox';
+import { t } from '../../i18n';
 import type { SectionProps } from './types';
 
 const PASSES: { value: Passes; label: string }[] = [
@@ -34,7 +35,7 @@ export function CleaningSection({ settings, patch }: SectionProps) {
   };
 
   return (
-    <Card title="Cleaning" testId="settings-cleaning">
+    <Card title={t('settings.cleaning')} testId="settings-cleaning">
       <div className="flex flex-col gap-3">
         <label className="flex min-w-0 items-start gap-2 text-sm">
           <span className="mt-0.5">

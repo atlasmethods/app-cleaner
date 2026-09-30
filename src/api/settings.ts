@@ -31,6 +31,10 @@ export interface SmartSettings {
   cleanOnBrowserClose: string[];
   autoClean: boolean;
   notify: boolean;
+  /** Minutes between junk checks of the background agent (5 or more; always sent by the server). */
+  checkIntervalMinutes?: number;
+  /** Minutes between sleep-mode re-checks (1 or more; always sent by the server). */
+  enforceSleepMinutes?: number;
 }
 
 export interface Settings {
@@ -45,6 +49,8 @@ export interface Settings {
   selectedRules: string[] | null;
   smart: SmartSettings;
   runAtStartup: boolean;
+  /** Desktop app: the close button hides the window to the tray (always sent by the server). */
+  closeToTray?: boolean;
   language: string;
   /** Software updater: ids such as `apt:firefox` that the user ignores (always sent by the server; optional here for older fixtures). */
   ignoredUpdates?: string[];
