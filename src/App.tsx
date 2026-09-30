@@ -12,6 +12,7 @@ import DuplicateFinderPage from './pages/DuplicateFinderPage';
 import HomePage from './pages/HomePage';
 import PerformancePage from './pages/PerformancePage';
 import RegistryPage from './pages/RegistryPage';
+import SchedulesPage from './pages/SchedulesPage';
 import SettingsPage from './pages/SettingsPage';
 import SoftwareUpdaterPage from './pages/SoftwareUpdaterPage';
 import StartupPage from './pages/StartupPage';
@@ -50,6 +51,7 @@ export default function App() {
           })}
           <Route path="performance" element={<PerformancePage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/schedules" element={<SchedulesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

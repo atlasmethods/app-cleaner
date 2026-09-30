@@ -22,7 +22,7 @@ const defaults: Settings = {
   exclude: [],
   cookieKeep: [],
   selectedRules: null,
-  smart: { enabled: false, thresholdMb: 500, cleanOnBrowserClose: [], autoClean: false, notify: true },
+  smart: { enabled: false, thresholdMb: 500, cleanOnBrowserClose: [], autoClean: false, notify: true, checkIntervalMinutes: 60, enforceSleepMinutes: 15 },
   runAtStartup: false,
   language: 'en',
 };
@@ -66,7 +66,7 @@ afterEach(() => {
 describe('SettingsPage', () => {
   it('renders every section', async () => {
     renderPage();
-    for (const id of ['appearance', 'cleaning', 'include', 'exclude']) {
+    for (const id of ['appearance', 'cleaning', 'include', 'exclude', 'smart', 'schedules', 'startup', 'language', 'about']) {
       expect(await screen.findByTestId(`settings-${id}`)).toBeInTheDocument();
     }
   });

@@ -1,6 +1,7 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import type { Theme } from '../../api/settings';
 import { Card } from '../../components/Card';
+import { t } from '../../i18n';
 import { applyTheme } from '../../lib/theme';
 import type { SectionProps } from './types';
 
@@ -16,7 +17,7 @@ export function AppearanceSection({ settings, patch }: SectionProps) {
     void patch({ theme });
   };
   return (
-    <Card title="Appearance" testId="settings-appearance">
+    <Card title={t('settings.appearance')} testId="settings-appearance">
       <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
         {THEMES.map(({ id, label, icon: Icon }) => {
           const on = settings.theme === id;

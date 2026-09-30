@@ -1,0 +1,17 @@
+{
+  "tab.home": "Home",
+  "tab.clean": "Clean",
+  "tab.tools": "Tools",
+  "tab.performance": "Performance",
+  "tab.settings": "Settings",
+  "settings.appearance": "Appearance",
+  "settings.cleaning": "Cleaning",
+  "settings.include": "Include folders",
+  "settings.exclude": "Exclude from cleaning",
+  "settings.smart": "Smart Cleaning",
+  "settings.schedules": "Scheduled Cleaning",
+  "settings.startup": "Startup & Background",
+  "settings.language": "Language",
+  "settings.about": "About",
+  "schedules.title": "Scheduled cleaning"
+}

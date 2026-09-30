@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FolderPlus, X } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Checkbox } from '../../components/Checkbox';
+import { t } from '../../i18n';
 import type { SectionProps } from './types';
 
 const inputClass = 'h-10 w-full min-w-0 rounded-xl border border-line bg-surface-2 px-2 text-sm';
@@ -31,7 +32,7 @@ export function IncludeSection({ settings, patch }: SectionProps) {
   const remove = (id: string) => void patch({ include: settings.include.filter((e) => e.id !== id) });
 
   return (
-    <Card title="Include folders" testId="settings-include">
+    <Card title={t('settings.include')} testId="settings-include">
       <p className="m-0 mb-2 text-xs text-muted">
         Extra folders to clean. Matching files are deleted when you clean the &ldquo;Custom folders&rdquo; item.
       </p>
