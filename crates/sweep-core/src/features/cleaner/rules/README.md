@@ -46,6 +46,8 @@ applies to all OSes of the rule.
 | `trash` | | the OS trash (XDG trash, `~/.Trash`, Windows Recycle Bin via PowerShell) |
 | `registry` | `key`, `values`, `subkeys` | Windows only; the key must be under `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\` |
 
+`minAgeFromSettings = true` (the temp-folder rules) does more than compare the modification time, so files that are still in use are never removed. A file counts as old only when its modification, access and status-change times (creation time on Windows) are all older than the setting, like `systemd-tmpfiles`. A whole top-level folder of the temp directory is kept when anything inside it (or the folder) is newer than that, or is open in a running program (Linux: read from `/proc`, including working directories and mapped files; on macOS and Windows this last guard is skipped, Windows refuses to delete open files anyway). Kept folders are reported as `inUseSkipped`, not as errors. Loose old files directly in the temp folder are cleaned as before.
+
 Details that matter for safety:
 
 * `files`: symlinks found while walking are removed as links and never followed; other

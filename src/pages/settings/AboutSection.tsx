@@ -8,7 +8,7 @@ import { ApiCallError, call } from '../../lib/transport';
 
 export function AboutSection() {
   const [info, setInfo] = useState<AppInfo | null>(null);
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<{ message: string; unsupported: boolean } | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -25,7 +25,8 @@ export function AboutSection() {
     try {
       await call('system.open_data_dir');
     } catch (e) {
-      setOpenError(ApiCallError.from(e).message);
+      const err = ApiCallError.from(e);
+      setOpenError({ message: err.message, unsupported: err.code === 'Unsupported' });
     }
   };
 
@@ -60,8 +61,12 @@ export function AboutSection() {
           <FolderOpen size={16} aria-hidden /> Open data folder
         </button>
         {openError && (
-          <span className="text-xs text-danger" role="alert" data-testid="about-open-error">
-            {openError}
+          <span
+            className={`text-xs ${openError.unsupported ? 'text-muted' : 'text-danger'}`}
+            role={openError.unsupported ? 'status' : 'alert'}
+            data-testid="about-open-error"
+          >
+            {openError.message}
           </span>
         )}
       </div>

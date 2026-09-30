@@ -22,6 +22,7 @@ fn call(base: &Path, method: &str, params: Value) -> (bool, Value) {
         .env("TMPDIR", base.join("root/tmp"))
         .env("PATH", &empty)
         .env("CLEARSWEEP_FAKE_PROCESSES", "")
+        .env("CLEARSWEEP_TEST_IGNORE_CTIME", "1")
         .output()
         .unwrap();
     let text = if out.status.success() {

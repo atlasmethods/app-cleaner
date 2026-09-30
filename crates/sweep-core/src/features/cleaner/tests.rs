@@ -981,6 +981,228 @@ fn files_owned_by_other_users_are_not_touched() {
     assert!(theirs.exists());
 }
 
+// ------------------------------------------------------------------ temp in-use guards
+
+#[cfg(unix)]
+mod temp_in_use {
+    use super::*;
+    use crate::fileuse::SystemFileUse;
+    use crate::testutil::{set_age_hours, set_mtime_atime_hours};
+
+    /// Make every directory under (and including) `root` look `hours` old. Call after all
+    /// the files exist, because creating a file bumps its parent's mtime.
+    fn age_dirs(root: &Path, hours: u64) {
+        let mut stack = vec![root.to_path_buf()];
+        let mut all = Vec::new();
+        while let Some(d) = stack.pop() {
+            all.push(d.clone());
+            for e in fs::read_dir(&d).unwrap().flatten() {
+                if e.file_type().unwrap().is_dir() {
+                    stack.push(e.path());
+                }
+            }
+        }
+        for d in all.iter().rev() {
+            set_age_hours(d, hours);
+        }
+    }
+
+    fn tmp(b: &Bed) -> PathBuf {
+        b.fx.env.temp_dir.clone()
+    }
+
+    /// Fake `/proc/<pid>` entries (under the fixture root) that make `target` look open.
+    fn fake_proc_fd(b: &Bed, pid: u32, fd: &str, target: &Path) {
+        let d = b.fx.env.sys_path(format!("/proc/{pid}/fd"));
+        fs::create_dir_all(&d).unwrap();
+        std::os::unix::fs::symlink(target, d.join(fd)).unwrap();
+    }
+
+    #[test]
+    fn old_mtime_but_recent_atime_is_kept() {
+        let b = bed();
+        let t = tmp(&b);
+        let read_recently = b.fx.file(t.join("node-compile-cache.bin"), 100);
+        set_mtime_atime_hours(&read_recently, 100, 2);
+        let idle = b.fx.aged_file(t.join("idle.tmp"), 100, 100);
+        let it = b.item("linux.temp");
+        assert_eq!(it.files, 1, "{:?}", it.sample_paths);
+        b.clean(&["linux.temp"]);
+        assert!(read_recently.exists(), "read within the threshold: in use");
+        assert!(!idle.exists());
+    }
+
+    #[test]
+    fn recent_ctime_keeps_a_file_that_looks_old_by_mtime_and_atime() {
+        let mut b = bed();
+        b.ctx = b.ctx.clone().with_file_use(Arc::new(SystemFileUse {
+            ignore_ctime: false,
+        }));
+        // mtime/atime 100h ago, but the inode was changed just now (ctime cannot be faked).
+        let f = b.fx.aged_file(tmp(&b).join("renamed.tmp"), 100, 100);
+        let it = b.item("linux.temp");
+        assert_eq!(it.files, 0);
+        b.clean(&["linux.temp"]);
+        assert!(f.exists());
+    }
+
+    #[test]
+    fn a_tree_with_one_recent_file_deep_inside_is_kept_whole() {
+        let b = bed();
+        let t = tmp(&b);
+        let old1 = b.fx.aged_file(t.join("claude-0/a/old1.txt"), 100, 100);
+        let old2 = b.fx.aged_file(t.join("claude-0/a/b/old2.txt"), 100, 100);
+        let hot = b.fx.aged_file(t.join("claude-0/a/b/c/hot.txt"), 100, 1);
+        age_dirs(&t.join("claude-0"), 100);
+        let loose = b.fx.aged_file(t.join("loose.tmp"), 100, 100);
+        let it = b.item("linux.temp");
+        assert_eq!(it.files, 1, "only the loose file: {:?}", it.sample_paths);
+        assert_eq!(it.in_use_skipped, 1);
+        assert!(it.errors.is_empty(), "{:?}", it.errors);
+        let rc = b.clean(&["linux.temp"]);
+        assert_eq!(b.result(&rc, "linux.temp").in_use_skipped, 1);
+        for p in [&old1, &old2, &hot] {
+            assert!(p.exists(), "{p:?}");
+        }
+        assert!(!loose.exists());
+    }
+
+    #[test]
+    fn a_recently_touched_directory_keeps_its_tree() {
+        let b = bed();
+        let t = tmp(&b);
+        let old = b.fx.aged_file(t.join("work/deep/old.txt"), 100, 100);
+        age_dirs(&t.join("work"), 100);
+        // something was just created/removed in a nested directory
+        set_age_hours(&t.join("work/deep"), 1);
+        assert_eq!(b.item("linux.temp").files, 0);
+        b.clean(&["linux.temp"]);
+        assert!(old.exists());
+    }
+
+    #[test]
+    fn a_fully_idle_tree_is_cleaned_away() {
+        let b = bed();
+        let t = tmp(&b);
+        b.fx.aged_file(t.join("idle/a/one.txt"), 100, 100);
+        b.fx.aged_file(t.join("idle/two.txt"), 200, 100);
+        age_dirs(&t.join("idle"), 100);
+        let it = b.item("linux.temp");
+        assert_eq!((it.files, it.bytes, it.in_use_skipped), (2, 300, 0));
+        let rc = b.clean(&["linux.temp"]);
+        let r = b.result(&rc, "linux.temp");
+        assert_eq!((r.removed_files, r.removed_bytes), (2, 300));
+        assert!(!t.join("idle").exists(), "emptied idle tree is removed");
+        assert!(t.exists());
+    }
+
+    #[test]
+    fn old_loose_top_level_files_are_still_cleaned() {
+        let b = bed();
+        let t = tmp(&b);
+        let a = b.fx.aged_file(t.join("a.tmp"), 10, 100);
+        let c = b.fx.aged_file(t.join("b.dat"), 10, 100);
+        // a busy tree next to them does not protect loose files
+        b.fx.aged_file(t.join("busy/x"), 10, 1);
+        b.clean(&["linux.temp"]);
+        assert!(!a.exists() && !c.exists());
+        assert!(t.join("busy/x").exists());
+    }
+
+    #[test]
+    fn an_open_file_is_kept_and_so_is_its_tree() {
+        let b = bed();
+        let t = tmp(&b);
+        let held = b.fx.aged_file(t.join("db-tree/data/held.sqlite"), 100, 100);
+        let sibling = b.fx.aged_file(t.join("db-tree/other.txt"), 100, 100);
+        age_dirs(&t.join("db-tree"), 100);
+        let loose_open = b.fx.aged_file(t.join("open-loose.log"), 100, 100);
+        let loose_idle = b.fx.aged_file(t.join("idle-loose.log"), 100, 100);
+        fake_proc_fd(&b, 4242, "7", &held);
+        fake_proc_fd(&b, 4242, "8", &loose_open);
+        let it = b.item("linux.temp");
+        assert_eq!(it.files, 1, "{:?}", it.sample_paths);
+        assert_eq!(it.in_use_skipped, 2, "the tree and the loose open file");
+        b.clean(&["linux.temp"]);
+        for p in [&held, &sibling, &loose_open] {
+            assert!(p.exists(), "{p:?}");
+        }
+        assert!(!loose_idle.exists());
+    }
+
+    #[test]
+    fn a_working_directory_or_mapped_file_makes_its_tree_busy() {
+        let b = bed();
+        let t = tmp(&b);
+        let cwd_file = b.fx.aged_file(t.join("cwd-tree/sub/f.txt"), 10, 100);
+        let map_file = b.fx.aged_file(t.join("map-tree/lib.so"), 10, 100);
+        age_dirs(&t.join("cwd-tree"), 100);
+        age_dirs(&t.join("map-tree"), 100);
+        let proc_dir = b.fx.env.sys_path("/proc/77");
+        fs::create_dir_all(&proc_dir).unwrap();
+        std::os::unix::fs::symlink(t.join("cwd-tree/sub"), proc_dir.join("cwd")).unwrap();
+        fs::write(
+            proc_dir.join("maps"),
+            format!(
+                "7f00-7f01 r-xp 00000000 08:01 99     {}\n7ffd-7ffe rw-p 00000000 00:00 0     [stack]\n",
+                map_file.display()
+            ),
+        )
+        .unwrap();
+        let it = b.item("linux.temp");
+        assert_eq!((it.files, it.in_use_skipped), (0, 2));
+        b.clean(&["linux.temp"]);
+        assert!(cwd_file.exists() && map_file.exists());
+    }
+
+    #[test]
+    fn unreadable_or_absent_proc_does_not_block_cleaning() {
+        let b = bed();
+        let old = b.fx.aged_file(tmp(&b).join("x.tmp"), 10, 100);
+        // a pid directory without fd/maps (like another user's process) is ignored
+        fs::create_dir_all(b.fx.env.sys_path("/proc/1")).unwrap();
+        fs::write(b.fx.env.sys_path("/proc/stat"), "x").unwrap();
+        b.clean(&["linux.temp"]);
+        assert!(!old.exists());
+    }
+
+    #[test]
+    fn analyze_and_clean_agree_with_the_guards_active() {
+        let b = bed();
+        let t = tmp(&b);
+        let held = b.fx.aged_file(t.join("held-tree/h.bin"), 111, 100);
+        b.fx.aged_file(t.join("idle-tree/a/i.bin"), 222, 100);
+        b.fx.aged_file(t.join("hot-tree/a/h.bin"), 333, 1);
+        let recent_read = b.fx.file(t.join("read.bin"), 444);
+        set_mtime_atime_hours(&recent_read, 100, 3);
+        b.fx.aged_file(t.join("loose.bin"), 555, 100);
+        for d in ["held-tree", "idle-tree", "hot-tree"] {
+            age_dirs(&t.join(d), 100);
+        }
+        // `hot-tree/a/h.bin` is young, so its dirs are aged but the file stays young
+        fake_proc_fd(&b, 9, "3", &held);
+        let a = b.item("linux.temp");
+        let rc = b.clean(&["linux.temp"]);
+        let c = b.result(&rc, "linux.temp");
+        assert_eq!((a.files, a.bytes), (c.removed_files, c.removed_bytes));
+        assert_eq!(a.in_use_skipped, c.in_use_skipped);
+        assert_eq!((a.files, a.bytes), (2, 222 + 555));
+        assert!(c.failed.is_empty(), "{:?}", c.failed);
+    }
+
+    #[test]
+    fn var_tmp_gets_the_same_guards() {
+        let b = bed();
+        let vt = b.fx.env.sys_path("/var/tmp");
+        let hot = b.fx.aged_file(vt.join("proj/deep/hot"), 10, 1);
+        let old = b.fx.aged_file(vt.join("proj/old"), 10, 100);
+        age_dirs(&vt.join("proj"), 100);
+        assert_eq!(b.item("linux.temp").files, 0);
+        b.clean(&["linux.temp"]);
+        assert!(hot.exists() && old.exists());
+    }
+}
+
 // ------------------------------------------------------------------ linux system rules
 
 #[test]

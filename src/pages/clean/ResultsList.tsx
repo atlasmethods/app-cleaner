@@ -62,6 +62,11 @@ export function ResultsList({ items, expanded, onToggle, totalBytes, totalFiles,
                       ))}
                     </ul>
                   )}
+                  {(it.inUseSkipped ?? 0) > 0 && (
+                    <p className="m-0 mt-1 text-[11px] text-muted" data-testid={`result-${it.ruleId}-in-use`}>
+                      {it.inUseSkipped} in-use {it.inUseSkipped === 1 ? 'item was' : 'items were'} left alone.
+                    </p>
+                  )}
                   {it.errors.length > 0 && (
                     <ul className="m-0 mt-1 list-none p-0" data-testid={`result-${it.ruleId}-errors`}>
                       {it.errors.map((e, i) => (

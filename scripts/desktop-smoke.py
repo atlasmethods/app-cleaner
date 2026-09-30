@@ -101,7 +101,7 @@ if FIXTURE_BIN and os.path.exists(FIXTURE_BIN):
     print("fixture:", "built" if r.returncode == 0 else "FAILED " + r.stderr[:200])
 else:
     print("fixture: skipped (no clearsweep test binary given); the machine is empty")
-env = dict(os.environ, **dirs, CLEARSWEEP_FAKE_PROCESSES="", TAURI_WEBVIEW_AUTOMATION="true")  # wry: allow WebKit automation
+env = dict(os.environ, **dirs, CLEARSWEEP_FAKE_PROCESSES="", CLEARSWEEP_TEST_IGNORE_CTIME="1", TAURI_WEBVIEW_AUTOMATION="true")  # wry: allow WebKit automation
 os.environ.update(env)
 
 driver = subprocess.Popen(["WebKitWebDriver", "--port=4444"])
@@ -192,7 +192,7 @@ finally:
         driver.kill()
 
 # ---- 4. the desktop executable doubles as the headless CLI (OS schedulers and autostart launch it)
-cli_env = dict(os.environ, **dirs, CLEARSWEEP_FAKE_PROCESSES="")
+cli_env = dict(os.environ, **dirs, CLEARSWEEP_FAKE_PROCESSES="", CLEARSWEEP_TEST_IGNORE_CTIME="1")
 r = subprocess.run([BIN, "call", "sysinfo.get"], env=cli_env, capture_output=True, text=True, timeout=60)
 check("headless `call` works without a window", r.returncode == 0 and '"cores"' in r.stdout, r.stderr)
 r = subprocess.run([BIN, "agent", "--once"], env=cli_env, capture_output=True, text=True, timeout=120)

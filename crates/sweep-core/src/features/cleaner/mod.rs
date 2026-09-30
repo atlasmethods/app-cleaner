@@ -206,6 +206,7 @@ fn engine<'a>(ctx: &'a Ctx, s: &'a Settings, safety: Arc<Safety>, mode: Mode) ->
         mode,
         secure_passes: (mode == Mode::Clean && s.secure_delete.enabled)
             .then_some(s.secure_delete.passes),
+        open: Default::default(),
     }
 }
 
@@ -246,6 +247,7 @@ pub fn analyze(ctx: &Ctx, rule_ids: Option<Vec<String>>, job: &Job) -> Result<An
             app_running: apps::is_running(rule, ctx.env.os, &procs),
             errors: out.errors,
             actions: out.actions,
+            in_use_skipped: out.in_use_skipped,
         });
     }
     job.progress(
@@ -275,6 +277,7 @@ fn skipped_result(rule: &Rule, why: Skipped, running: Vec<String>) -> RuleClean 
         actions: Vec::new(),
         running_apps: running,
         closed_apps: Vec::new(),
+        in_use_skipped: 0,
     }
 }
 
@@ -374,6 +377,7 @@ pub fn run_clean(
             actions: out.actions,
             running_apps: Vec::new(),
             closed_apps,
+            in_use_skipped: out.in_use_skipped,
         });
         if was_cancelled {
             cancelled = true;

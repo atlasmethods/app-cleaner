@@ -133,6 +133,37 @@ describe('DriverUpdaterPage', () => {
     expect(await screen.findByTestId('error-banner')).toHaveTextContent('fwupdmgr get-updates failed');
   });
 
+  it('no driver tool installed: friendly empty state with install hints, no error banner', async () => {
+    const { ApiCallError } = await import('../lib/transport');
+    const msg = 'Neither fwupd (fwupdmgr) nor ubuntu-drivers is installed, so there is nothing to scan';
+    api.current.handlers['driver_updater.scan'] = () => Promise.reject(new ApiCallError('Unsupported', msg));
+    renderPage();
+    await userEvent.setup().click(screen.getByTestId('btn-scan'));
+    const empty = await screen.findByTestId('drivers-unsupported');
+    expect(empty).toHaveTextContent("Driver updates aren't available on this system");
+    expect(screen.getByTestId('drivers-unsupported-detail')).toHaveTextContent(msg);
+    const hints = screen.getByTestId('drivers-unsupported-hints');
+    expect(hints).toHaveTextContent('sudo apt install fwupd');
+    expect(hints).toHaveTextContent('ubuntu-drivers-common');
+    expect(screen.queryByTestId('error-banner')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByTestId('btn-update-selected')).toBeNull();
+    // scanning again after installing the tool clears the notice
+    api.current.handlers['driver_updater.scan'] = () => drivers;
+    await userEvent.setup().click(screen.getByTestId('btn-scan'));
+    await screen.findByTestId('drivers-list');
+    expect(screen.queryByTestId('drivers-unsupported')).toBeNull();
+  });
+
+  it('Unsupported on another OS shows the server message without Linux install hints', async () => {
+    const { ApiCallError } = await import('../lib/transport');
+    api.current.handlers['driver_updater.scan'] = () => Promise.reject(new ApiCallError('Unsupported', 'PowerShell was not found'));
+    renderPage();
+    await userEvent.setup().click(screen.getByTestId('btn-scan'));
+    expect(await screen.findByTestId('drivers-unsupported-detail')).toHaveTextContent('PowerShell was not found');
+    expect(screen.queryByTestId('drivers-unsupported-hints')).toBeNull();
+  });
+
   it('shows progress and cancel while scanning', async () => {
     api.current.handlers['driver_updater.scan'] = (_p, opts) => {
       opts.onProgress?.({ stage: 'scan', message: 'Checking Windows Update' });

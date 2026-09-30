@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
+use crate::fileuse::{FileUse, SystemFileUse};
 use crate::procs::{ProcessSource, SystemProcesses};
 use crate::runner::{CommandRunner, MockRunner, SystemRunner};
 
@@ -131,6 +132,8 @@ pub struct Ctx {
     pub runner: Arc<dyn CommandRunner>,
     /// Running-process source (real system by default; faked in tests).
     pub procs: Arc<dyn ProcessSource>,
+    /// Evidence that a file is still in use (open handles, recent activity); faked in tests.
+    pub file_use: Arc<dyn FileUse>,
 }
 
 impl Ctx {
@@ -139,7 +142,13 @@ impl Ctx {
             env,
             runner,
             procs: Arc::new(SystemProcesses),
+            file_use: Arc::new(SystemFileUse::default()),
         }
+    }
+    /// Replace the in-use evidence source (tests).
+    pub fn with_file_use(mut self, file_use: Arc<dyn FileUse>) -> Self {
+        self.file_use = file_use;
+        self
     }
     /// Replace the process source (tests).
     pub fn with_procs(mut self, procs: Arc<dyn ProcessSource>) -> Self {

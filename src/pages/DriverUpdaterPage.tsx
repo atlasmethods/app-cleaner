@@ -6,6 +6,7 @@ import { Checkbox } from '../components/Checkbox';
 import { ConfirmSheet } from '../components/ConfirmSheet';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { NotAvailable } from '../components/NotAvailable';
 import { ProgressBar } from '../components/ProgressBar';
 import { useCall } from '../hooks/useCall';
 import { isWindowsClient } from '../lib/platform';
@@ -13,6 +14,8 @@ import { driverSourceLabel, driverVersions } from '../lib/drivers';
 import { toggleId } from '../lib/updates';
 
 type Confirm = 'update' | 'backup' | null;
+
+const LINUX_HINTS = ['sudo apt install fwupd', 'sudo apt install ubuntu-drivers-common'];
 
 export default function DriverUpdaterPage() {
   const scan = useCall<DriverEntry[]>('driver_updater.scan');
@@ -30,7 +33,9 @@ export default function DriverUpdaterPage() {
   const active = scan.loading ? scan : update.loading ? update : backup.loading ? backup : null;
   const results = useMemo(() => new Map((report?.results ?? []).map((r) => [r.id, r])), [report]);
   const needsReboot = report?.rebootRequired ?? false;
-  const error = scan.error ?? update.error ?? backup.error;
+  // No driver tool on this machine is a normal situation, not a failure.
+  const unsupported = scan.error?.code === 'Unsupported' ? scan.error : null;
+  const error = (unsupported ? null : scan.error) ?? update.error ?? backup.error;
 
   const runScan = async () => {
     setReport(null);
@@ -150,6 +155,15 @@ export default function DriverUpdaterPage() {
         </Card>
       )}
 
+      {unsupported && !scan.loading && (
+        <NotAvailable
+          testId="drivers-unsupported"
+          title="Driver updates aren't available on this system"
+          detail={unsupported.message}
+          hints={/fwupd|ubuntu-drivers/i.test(unsupported.message) ? LINUX_HINTS : undefined}
+        />
+      )}
+
       {drivers === null && !scan.loading && !scan.error && (
         <EmptyState
           icon={ScanSearch}
@@ -211,21 +225,23 @@ export default function DriverUpdaterPage() {
         </Card>
       )}
 
-      <div
-        data-testid="action-bar"
-        className="sticky bottom-0 z-10 mt-auto flex gap-2 rounded-xl border border-line bg-surface p-2 shadow-lg"
-      >
-        <button
-          type="button"
-          onClick={() => setConfirm('update')}
-          disabled={busy || ids.length === 0}
-          data-testid="btn-update-selected"
-          className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-accent px-2 text-sm font-semibold text-accent-fg disabled:opacity-50"
+      {!unsupported && (
+        <div
+          data-testid="action-bar"
+          className="sticky bottom-0 z-10 mt-auto flex gap-2 rounded-xl border border-line bg-surface p-2 shadow-lg"
         >
-          {update.loading && <Loader2 size={16} className="animate-spin" aria-hidden />}
-          Update selected ({ids.length})
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setConfirm('update')}
+            disabled={busy || ids.length === 0}
+            data-testid="btn-update-selected"
+            className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-accent px-2 text-sm font-semibold text-accent-fg disabled:opacity-50"
+          >
+            {update.loading && <Loader2 size={16} className="animate-spin" aria-hidden />}
+            Update selected ({ids.length})
+          </button>
+        </div>
+      )}
 
       <ConfirmSheet
         open={confirm === 'update'}

@@ -7,7 +7,7 @@ group = "System"
 category = "system"
 os = ["linux"]
 defaultEnabled = true
-description = "Files in the temporary folders (/tmp, /var/tmp) that you own and that are older than the minimum age set in Settings."
+description = "Files in the temporary folders (/tmp, /var/tmp) that you own and that are older than the minimum age set in Settings. Anything still in use (recently read or changed, open in a program, or inside a folder that is) is left alone."
 
 [[rule.targets]]
 kind = "files"

@@ -47,6 +47,7 @@ impl Box_ {
             .env("CLEARSWEEP_EXE", BIN)
             .env("CLEARSWEEP_NOTIFY_FILE", self.base().join("notes.txt"))
             .env("CLEARSWEEP_FAKE_PROCESSES", "")
+            .env("CLEARSWEEP_TEST_IGNORE_CTIME", "1")
             .env("FAKE_STATE", self.base().join("state"))
             .env("TMPDIR", self.base().join("root/tmp"));
         if let Some(s) = seq {

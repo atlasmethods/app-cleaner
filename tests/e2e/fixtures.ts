@@ -66,7 +66,7 @@ export async function startServer(args: string[] = ['--no-exit-on-idle']): Promi
   resetSandbox(tmp);
   // The server sees no external programs (clipboard, DNS tools, ...) and a fixed process
   // list, so a clean can never touch the developer's real desktop session.
-  const sandboxEnv = { ...dirs, PATH: empty, CLEARSWEEP_FAKE_PROCESSES: '' };
+  const sandboxEnv = { ...dirs, PATH: empty, CLEARSWEEP_FAKE_PROCESSES: '', CLEARSWEEP_TEST_IGNORE_CTIME: '1' };
 
   const child: ChildProcess = spawn(
     bin,

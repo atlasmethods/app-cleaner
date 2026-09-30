@@ -143,6 +143,7 @@ async function launch(
       PATH: fakeBin,
       FAKE_STATE: state,
       CLEARSWEEP_FAKE_PROCESSES: opts.processes ?? '',
+      CLEARSWEEP_TEST_IGNORE_CTIME: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
