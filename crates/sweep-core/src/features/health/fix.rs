@@ -65,7 +65,10 @@ fn label(part: Part) -> &'static str {
 
 fn dedupe(ids: &[String]) -> Vec<String> {
     let mut seen = HashSet::new();
-    ids.iter().filter(|i| seen.insert((*i).clone())).cloned().collect()
+    ids.iter()
+        .filter(|i| seen.insert((*i).clone()))
+        .cloned()
+        .collect()
 }
 
 // ---------------------------------------------------------------- privacy / space
@@ -73,7 +76,11 @@ fn dedupe(ids: &[String]) -> Vec<String> {
 fn describe_removed(bytes: u64, files: u64, rows: u64) -> String {
     let mut parts = Vec::new();
     if bytes > 0 || files > 0 {
-        parts.push(format!("{} in {}", fmt_bytes(bytes), plural(files, "file", "files")));
+        parts.push(format!(
+            "{} in {}",
+            fmt_bytes(bytes),
+            plural(files, "file", "files")
+        ));
     }
     if rows > 0 {
         parts.push(plural(rows, "database entry", "database entries"));
@@ -126,13 +133,22 @@ fn clean_part(
     let removed = describe_removed(rep.total_bytes, rep.total_files, rep.total_rows);
     let mut notes = Vec::new();
     if !blocked.is_empty() {
-        notes.push(format!("{} still running, so its data was left alone", blocked.join(", ")));
+        notes.push(format!(
+            "{} still running, so its data was left alone",
+            blocked.join(", ")
+        ));
     }
     if in_use > 0 {
-        notes.push(format!("{} in use", plural(in_use, "item was", "items were")));
+        notes.push(format!(
+            "{} in use",
+            plural(in_use, "item was", "items were")
+        ));
     }
     if failed > 0 {
-        notes.push(format!("{} could not be removed", plural(failed, "item", "items")));
+        notes.push(format!(
+            "{} could not be removed",
+            plural(failed, "item", "items")
+        ));
     }
     let something = rep.total_bytes > 0 || rep.total_files > 0 || rep.total_rows > 0;
     let status = if notes.is_empty() {
@@ -255,7 +271,10 @@ fn startup_part(ctx: &Ctx, ids: &[String], snap: &Snapshot, job: &Job) -> PartRe
 }
 
 fn str_of(v: &Value, key: &str) -> String {
-    v.get(key).and_then(Value::as_str).unwrap_or_default().to_string()
+    v.get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }
 
 fn sleep_part(ctx: &Ctx, ids: &[String], snap: &Snapshot, job: &Job) -> Result<PartResult> {
@@ -281,7 +300,11 @@ fn sleep_part(ctx: &Ctx, ids: &[String], snap: &Snapshot, job: &Job) -> Result<P
             } else {
                 let errs: Vec<String> = r["errors"]
                     .as_array()
-                    .map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|x| x.as_str().map(str::to_string))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 if errs.is_empty() {
                     str_of(&r, "error")
@@ -349,7 +372,11 @@ fn run_part(
         Part::Privacy | Part::Space => {
             let s = settings::load(ctx);
             let (privacy, space) = analyze::enabled_rule_ids(ctx, &s)?;
-            let ids = if part == Part::Privacy { privacy } else { space };
+            let ids = if part == Part::Privacy {
+                privacy
+            } else {
+                space
+            };
             clean_part(ctx, part, ids, req.close_apps, job)
         }
         Part::Startup | Part::Sleep => {
@@ -371,7 +398,9 @@ fn run_part(
 pub fn fix(ctx: &Ctx, req: &FixRequest, job: &Job) -> Result<FixReport> {
     let parts = req.parts();
     if parts.is_empty() {
-        return Err(ApiError::invalid_params("nothing to fix: no part was selected"));
+        return Err(ApiError::invalid_params(
+            "nothing to fix: no part was selected",
+        ));
     }
     // One slice per part plus one for the final re-scan.
     let slices = parts.len() as f64 + 1.0;
@@ -382,7 +411,11 @@ pub fn fix(ctx: &Ctx, req: &FixRequest, job: &Job) -> Result<FixReport> {
     for (i, part) in parts.iter().copied().enumerate() {
         if cancelled || job.is_cancelled() {
             cancelled = true;
-            results.push(PartResult::new(part, PartStatus::NotRun, "Not run: cancelled."));
+            results.push(PartResult::new(
+                part,
+                PartStatus::NotRun,
+                "Not run: cancelled.",
+            ));
             continue;
         }
         let base = i as f64 / slices;

@@ -52,13 +52,20 @@ fn score_table() {
         },
         Case {
             name: "1 GiB of junk costs 10",
-            inputs: all(SpaceIn { junk_bytes: GIB }, none_privacy, none_speed, none_security),
+            inputs: all(
+                SpaceIn { junk_bytes: GIB },
+                none_privacy,
+                none_speed,
+                none_security,
+            ),
             want: Some(90),
         },
         Case {
             name: "2.5 GiB of junk reaches the space cap (25)",
             inputs: all(
-                SpaceIn { junk_bytes: 5 * GIB / 2 },
+                SpaceIn {
+                    junk_bytes: 5 * GIB / 2,
+                },
                 none_privacy,
                 none_speed,
                 none_security,
@@ -68,7 +75,9 @@ fn score_table() {
         Case {
             name: "space is capped at 25 however much junk there is",
             inputs: all(
-                SpaceIn { junk_bytes: 500 * GIB },
+                SpaceIn {
+                    junk_bytes: 500 * GIB,
+                },
                 none_privacy,
                 none_speed,
                 none_security,
@@ -79,7 +88,10 @@ fn score_table() {
             name: "50 trackers cost 10",
             inputs: all(
                 none_space,
-                PrivacyIn { trackers: 50, history_rows: 0 },
+                PrivacyIn {
+                    trackers: 50,
+                    history_rows: 0,
+                },
                 none_speed,
                 none_security,
             ),
@@ -89,7 +101,10 @@ fn score_table() {
             name: "history rows cost 0.02 each: 500 rows = 10",
             inputs: all(
                 none_space,
-                PrivacyIn { trackers: 0, history_rows: 500 },
+                PrivacyIn {
+                    trackers: 0,
+                    history_rows: 500,
+                },
                 none_speed,
                 none_security,
             ),
@@ -99,7 +114,10 @@ fn score_table() {
             name: "privacy is capped at 20",
             inputs: all(
                 none_space,
-                PrivacyIn { trackers: 100_000, history_rows: 100_000 },
+                PrivacyIn {
+                    trackers: 100_000,
+                    history_rows: 100_000,
+                },
                 none_speed,
                 none_security,
             ),
@@ -110,7 +128,11 @@ fn score_table() {
             inputs: all(
                 none_space,
                 none_privacy,
-                SpeedIn { high_impact: 1, medium_impact: 2, background_apps: 0 },
+                SpeedIn {
+                    high_impact: 1,
+                    medium_impact: 2,
+                    background_apps: 0,
+                },
                 none_security,
             ),
             want: Some(90),
@@ -120,7 +142,11 @@ fn score_table() {
             inputs: all(
                 none_space,
                 none_privacy,
-                SpeedIn { high_impact: 0, medium_impact: 0, background_apps: 3 },
+                SpeedIn {
+                    high_impact: 0,
+                    medium_impact: 0,
+                    background_apps: 3,
+                },
                 none_security,
             ),
             want: Some(97),
@@ -130,7 +156,11 @@ fn score_table() {
             inputs: all(
                 none_space,
                 none_privacy,
-                SpeedIn { high_impact: 50, medium_impact: 50, background_apps: 50 },
+                SpeedIn {
+                    high_impact: 50,
+                    medium_impact: 50,
+                    background_apps: 50,
+                },
                 none_security,
             ),
             want: Some(75),
@@ -141,7 +171,10 @@ fn score_table() {
                 none_space,
                 none_privacy,
                 none_speed,
-                SecurityIn { updates: 3, security: 0 },
+                SecurityIn {
+                    updates: 3,
+                    security: 0,
+                },
             ),
             want: Some(97),
         },
@@ -151,7 +184,10 @@ fn score_table() {
                 none_space,
                 none_privacy,
                 none_speed,
-                SecurityIn { updates: 3, security: 2 },
+                SecurityIn {
+                    updates: 3,
+                    security: 2,
+                },
             ),
             want: Some(89),
         },
@@ -161,17 +197,32 @@ fn score_table() {
                 none_space,
                 none_privacy,
                 none_speed,
-                SecurityIn { updates: 400, security: 100 },
+                SecurityIn {
+                    updates: 400,
+                    security: 100,
+                },
             ),
             want: Some(70),
         },
         Case {
             name: "everything at its cap scores 0",
             inputs: all(
-                SpaceIn { junk_bytes: 100 * GIB },
-                PrivacyIn { trackers: 10_000, history_rows: 0 },
-                SpeedIn { high_impact: 10, medium_impact: 0, background_apps: 0 },
-                SecurityIn { updates: 100, security: 100 },
+                SpaceIn {
+                    junk_bytes: 100 * GIB,
+                },
+                PrivacyIn {
+                    trackers: 10_000,
+                    history_rows: 0,
+                },
+                SpeedIn {
+                    high_impact: 10,
+                    medium_impact: 0,
+                    background_apps: 0,
+                },
+                SecurityIn {
+                    updates: 100,
+                    security: 100,
+                },
             ),
             want: Some(0),
         },
@@ -188,9 +239,18 @@ fn score_table() {
         Case {
             name: "unavailable security with every other category at its cap is still 0",
             inputs: Inputs {
-                space: Some(SpaceIn { junk_bytes: 100 * GIB }),
-                privacy: Some(PrivacyIn { trackers: 10_000, history_rows: 0 }),
-                speed: Some(SpeedIn { high_impact: 10, medium_impact: 0, background_apps: 0 }),
+                space: Some(SpaceIn {
+                    junk_bytes: 100 * GIB,
+                }),
+                privacy: Some(PrivacyIn {
+                    trackers: 10_000,
+                    history_rows: 0,
+                }),
+                speed: Some(SpeedIn {
+                    high_impact: 10,
+                    medium_impact: 0,
+                    background_apps: 0,
+                }),
                 security: None,
             },
             want: Some(0),
@@ -198,7 +258,10 @@ fn score_table() {
         Case {
             name: "only one category available: its own cap is the whole scale",
             inputs: Inputs {
-                security: Some(SecurityIn { updates: 15, security: 0 }),
+                security: Some(SecurityIn {
+                    updates: 15,
+                    security: 0,
+                }),
                 ..Inputs::default()
             },
             want: Some(50),
@@ -219,7 +282,9 @@ fn score_never_increases_when_things_get_worse() {
     let mut prev = 101i32;
     for gb10 in 0..=40u64 {
         let s = score::overall(&Inputs {
-            space: Some(SpaceIn { junk_bytes: gb10 * GIB / 10 }),
+            space: Some(SpaceIn {
+                junk_bytes: gb10 * GIB / 10,
+            }),
             privacy: Some(PrivacyIn::default()),
             speed: Some(SpeedIn::default()),
             security: Some(SecurityIn::default()),
@@ -231,7 +296,10 @@ fn score_never_increases_when_things_get_worse() {
     let mut prev = 101i32;
     for updates in 0..=40u64 {
         let s = score::overall(&Inputs {
-            security: Some(SecurityIn { updates, security: updates / 2 }),
+            security: Some(SecurityIn {
+                updates,
+                security: updates / 2,
+            }),
             ..Inputs::default()
         })
         .unwrap() as i32;
@@ -270,10 +338,22 @@ fn inputs_are_read_from_metrics_and_unavailable_is_left_out() {
         ),
     ];
     let i = score::inputs_of(&cats);
-    assert_eq!(i.privacy, Some(PrivacyIn { trackers: 50, history_rows: 0 }));
+    assert_eq!(
+        i.privacy,
+        Some(PrivacyIn {
+            trackers: 50,
+            history_rows: 0
+        })
+    );
     assert_eq!(i.space, Some(SpaceIn { junk_bytes: GIB }));
     assert_eq!(i.speed, None, "unavailable metrics are ignored");
-    assert_eq!(i.security, Some(SecurityIn { updates: 3, security: 2 }));
+    assert_eq!(
+        i.security,
+        Some(SecurityIn {
+            updates: 3,
+            security: 2
+        })
+    );
     // 10 (space) + 10 (privacy) + 11 (security) of caps 25 + 20 + 30 = 75 -> scale 100/75
     let want = (100.0f64 - 31.0 * 100.0 / 75.0).round() as u8;
     assert_eq!(score::score_of(&cats), Some(want));
@@ -307,7 +387,13 @@ fn bed_with(procs: Vec<ProcDetail>, terminate: bool) -> Bed {
     let mock = MockRunner::new();
     let procs = Arc::new(FakeProcesses::with_details(procs, terminate));
     let ctx = Ctx::new(fx.env.clone(), Arc::new(mock.clone())).with_procs(procs.clone());
-    Bed { _tmp: tmp, fx, ctx, mock, procs }
+    Bed {
+        _tmp: tmp,
+        fx,
+        ctx,
+        mock,
+        procs,
+    }
 }
 
 fn bed() -> Bed {
@@ -348,15 +434,24 @@ impl Bed {
         self.mock
             .calls()
             .into_iter()
-            .filter(|(p, a)| match p.as_str() {
-                "apt-get" | "pkexec" | "osascript" | "taskkill" | "dnf" | "snap" | "flatpak" => {
-                    !(p == "flatpak" && a.first().map(String::as_str) == Some("remote-ls"))
-                        && !(p == "snap" && a.first().map(String::as_str) == Some("refresh") && a.get(1).map(String::as_str) == Some("--list"))
-                        && !(p == "dnf" && a.first().map(String::as_str) == Some("check-update"))
+            .filter(|(p, a)| {
+                let line = format!("{p} {}", a.join(" "));
+                let read_only = [
+                    "flatpak remote-ls",
+                    "snap refresh --list",
+                    "dnf check-update",
+                    "crontab -l",
+                    "systemctl list-unit-files",
+                    "systemctl --user list-unit-files",
+                ]
+                .iter()
+                .any(|r| line.starts_with(r));
+                match p.as_str() {
+                    "apt-get" | "pkexec" | "osascript" | "taskkill" | "dnf" | "snap"
+                    | "flatpak" | "crontab" => !read_only,
+                    "systemctl" => a.iter().any(|x| x == "enable" || x == "disable"),
+                    _ => false,
                 }
-                "systemctl" => a.iter().any(|x| x == "enable" || x == "disable"),
-                "crontab" => a.as_slice() != ["-l"],
-                _ => false,
             })
             .map(|(p, a)| format!("{p} {}", a.join(" ")))
             .collect()
@@ -373,7 +468,10 @@ fn cat_of(r: &HealthReport, id: CategoryId) -> &CategoryReport {
 }
 
 fn part(r: &FixReport, p: Part) -> &PartResult {
-    r.parts.iter().find(|x| x.part == p).unwrap_or_else(|| panic!("no part {p:?} in {:?}", r.parts))
+    r.parts
+        .iter()
+        .find(|x| x.part == p)
+        .unwrap_or_else(|| panic!("no part {p:?} in {:?}", r.parts))
 }
 
 const APT: &str = "\
@@ -400,16 +498,27 @@ fn speed_bed() -> Bed {
             proc(101, "spotify", "/opt/spotify/spotify", 60),
             proc(102, "tiny", "/opt/tiny/tiny", 5),
             proc(103, "mbam", "/opt/malwarebytes/mbam", 300),
-            proc(104, "polkit-gnome-au", "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1", 20),
+            proc(
+                104,
+                "polkit-gnome-au",
+                "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1",
+                20,
+            ),
             proc(105, "olddisabled", "/opt/old/olddisabled", 400),
             proc(106, "firefox", "/usr/lib/firefox/firefox", 500),
         ],
         true,
     );
     b.autostart("slack.desktop", &desktop("Slack", "/opt/Slack/slack -u %U"));
-    b.autostart("spotify.desktop", &desktop("Spotify", "/opt/spotify/spotify"));
+    b.autostart(
+        "spotify.desktop",
+        &desktop("Spotify", "/opt/spotify/spotify"),
+    );
     b.autostart("tiny.desktop", &desktop("Tiny", "/opt/tiny/tiny"));
-    b.autostart("malwarebytes.desktop", &desktop("Malwarebytes", "/opt/malwarebytes/mbam"));
+    b.autostart(
+        "malwarebytes.desktop",
+        &desktop("Malwarebytes", "/opt/malwarebytes/mbam"),
+    );
     b.autostart(
         "old.desktop",
         &format!("{}Hidden=true\n", desktop("Old", "/opt/old/olddisabled")),
@@ -423,7 +532,9 @@ fn speed_bed() -> Bed {
     );
     // Firefox is a running installed app but has no startup item: not a background app.
     write(
-        &b.ctx.env.sys_path("/usr/share/applications/firefox.desktop"),
+        &b.ctx
+            .env
+            .sys_path("/usr/share/applications/firefox.desktop"),
         &desktop("Firefox", "/usr/lib/firefox/firefox %u"),
     );
     b
@@ -439,7 +550,12 @@ fn analysis_has_four_categories_in_order_with_titles() {
     let ids: Vec<CategoryId> = r.categories.iter().map(|c| c.id).collect();
     assert_eq!(
         ids,
-        [CategoryId::Privacy, CategoryId::Space, CategoryId::Speed, CategoryId::Security]
+        [
+            CategoryId::Privacy,
+            CategoryId::Space,
+            CategoryId::Speed,
+            CategoryId::Security
+        ]
     );
     let titles: Vec<&str> = r.categories.iter().map(|c| c.title.as_str()).collect();
     assert_eq!(titles, ["Privacy", "Space", "Speed", "Security"]);
@@ -476,12 +592,24 @@ fn privacy_counts_only_cookies_off_the_keep_list() {
     let p = cat_of(&r, CategoryId::Privacy);
     // notgoogle.com (1) + tracker.example (2); google.com (3) and github.com (1) are kept.
     assert_eq!(p.metric("trackers"), 3);
-    assert!(p.metric("historyRows") > 0, "history / download rows are counted");
+    assert!(
+        p.metric("historyRows") > 0,
+        "history / download rows are counted"
+    );
     assert!(p.fixable);
     assert_eq!(p.status, Status::Warning);
-    assert!(matches!(&p.findings[0], Finding::Trackers { count: 3, browsers } if browsers == &["Google Chrome"]));
-    assert!(p.findings.iter().any(|f| matches!(f, Finding::History { .. })));
-    assert!(p.summary.contains("3 tracking cookies in 1 browser"), "{}", p.summary);
+    assert!(
+        matches!(&p.findings[0], Finding::Trackers { count: 3, browsers } if browsers == &["Google Chrome"])
+    );
+    assert!(p
+        .findings
+        .iter()
+        .any(|f| matches!(f, Finding::History { .. })));
+    assert!(
+        p.summary.contains("3 tracking cookies in 1 browser"),
+        "{}",
+        p.summary
+    );
 
     // With nothing kept every cookie is a tracker: 3 + 1 + 3.
     b.set_keep(&[]);
@@ -498,8 +626,13 @@ fn privacy_spans_browsers_and_names_them() {
     let p = cat_of(&b.analyze(), CategoryId::Privacy).clone();
     // Chrome: 3, Firefox: ads.example (2) + notmozilla.org (1).
     assert_eq!(p.metric("trackers"), 6);
-    let Finding::Trackers { browsers, .. } = &p.findings[0] else { panic!() };
-    assert_eq!(browsers, &["Google Chrome".to_string(), "Mozilla Firefox".to_string()]);
+    let Finding::Trackers { browsers, .. } = &p.findings[0] else {
+        panic!()
+    };
+    assert_eq!(
+        browsers,
+        &["Google Chrome".to_string(), "Mozilla Firefox".to_string()]
+    );
 }
 
 #[test]
@@ -517,7 +650,10 @@ fn privacy_follows_the_enabled_rule_selection() {
     let b = bed();
     b.chrome();
     // The user turned every cookie / history / download rule off on the Clean tab.
-    settings::update(&b.ctx, |s| s.selected_rules = Some(vec!["chrome.cache".into()])).unwrap();
+    settings::update(&b.ctx, |s| {
+        s.selected_rules = Some(vec!["chrome.cache".into()])
+    })
+    .unwrap();
     let p = cat_of(&b.analyze(), CategoryId::Privacy).clone();
     assert_eq!(p.status, Status::Good);
     assert_eq!(p.metric("trackers"), 0);
@@ -543,7 +679,10 @@ fn rule_selection_splits_into_privacy_and_space_without_overlap() {
         .collect();
     both.sort();
     enabled.sort();
-    assert_eq!(both, enabled, "together they are exactly the Clean tab's selection");
+    assert_eq!(
+        both, enabled,
+        "together they are exactly the Clean tab's selection"
+    );
 }
 
 #[test]
@@ -599,7 +738,9 @@ fn speed_lists_high_and_medium_startup_items_and_background_apps() {
     let sp = cat_of(&r, CategoryId::Speed);
     assert_eq!(sp.status, Status::Problem);
     assert!(sp.fixable);
-    let Finding::Startup { items } = &sp.findings[0] else { panic!("{:?}", sp.findings) };
+    let Finding::Startup { items } = &sp.findings[0] else {
+        panic!("{:?}", sp.findings)
+    };
     let got: Vec<(&str, Impact)> = items.iter().map(|i| (i.id.as_str(), i.impact)).collect();
     assert_eq!(
         got,
@@ -609,16 +750,28 @@ fn speed_lists_high_and_medium_startup_items_and_background_apps() {
         ],
         "not listed: low impact, security software, critical, already disabled"
     );
-    let Finding::BackgroundApps { apps } = &sp.findings[1] else { panic!("{:?}", sp.findings) };
-    let ids: Vec<(&str, u64)> = apps.iter().map(|a| (a.app_id.as_str(), a.memory_bytes)).collect();
+    let Finding::BackgroundApps { apps } = &sp.findings[1] else {
+        panic!("{:?}", sp.findings)
+    };
+    let ids: Vec<(&str, u64)> = apps
+        .iter()
+        .map(|a| (a.app_id.as_str(), a.memory_bytes))
+        .collect();
     // largest first; firefox (no startup item), the security tool and the tiny tool are not "background"
     assert_eq!(ids[0], ("slack", 300 * MB));
     assert_eq!(ids[1], ("spotify", 60 * MB));
-    assert!(ids.iter().all(|(id, _)| !["firefox", "mbam", "olddisabled"].contains(id)), "{ids:?}");
+    assert!(
+        ids.iter()
+            .all(|(id, _)| !["firefox", "mbam", "olddisabled"].contains(id)),
+        "{ids:?}"
+    );
     assert_eq!(sp.metric("highImpact"), 1);
     assert_eq!(sp.metric("mediumImpact"), 1);
     assert_eq!(sp.metric("startupItems"), 2);
-    assert_eq!(sp.metric("backgroundMemoryBytes"), ids.iter().map(|x| x.1).sum::<u64>());
+    assert_eq!(
+        sp.metric("backgroundMemoryBytes"),
+        ids.iter().map(|x| x.1).sum::<u64>()
+    );
 }
 
 #[test]
@@ -627,7 +780,8 @@ fn speed_is_good_on_a_quiet_machine_and_sleeping_apps_are_not_listed() {
     assert_eq!(cat_of(&b.analyze(), CategoryId::Speed).status, Status::Good);
 
     let b = speed_bed();
-    b.call("optimizer.sleep", json!({"appIds": ["slack"]})).unwrap();
+    b.call("optimizer.sleep", json!({"appIds": ["slack"]}))
+        .unwrap();
     let sp = cat_of(&b.analyze(), CategoryId::Speed).clone();
     for f in &sp.findings {
         match f {
@@ -647,7 +801,14 @@ fn security_counts_updates_and_security_updates_separately() {
     assert_eq!(sp.metric("updates"), 3);
     assert_eq!(sp.metric("securityUpdates"), 1);
     assert!(sp.fixable);
-    let Finding::Updates { count, security, items } = &sp.findings[0] else { panic!() };
+    let Finding::Updates {
+        count,
+        security,
+        items,
+    } = &sp.findings[0]
+    else {
+        panic!()
+    };
     assert_eq!((*count, *security), (3, 1));
     assert_eq!(items[0].id, "apt:firefox", "security updates come first");
     assert!(items[0].security && !items[1].security);
@@ -655,7 +816,10 @@ fn security_counts_updates_and_security_updates_separately() {
     // listed without refreshing the package index: only `apt list`, never `apt-get update`
     assert_eq!(
         b.mock.calls(),
-        vec![("apt".to_string(), vec!["list".to_string(), "--upgradable".to_string()])]
+        vec![(
+            "apt".to_string(),
+            vec!["list".to_string(), "--upgradable".to_string()]
+        )]
     );
 }
 
@@ -679,7 +843,11 @@ fn security_is_unavailable_without_package_tooling() {
     let r = b.analyze();
     let sp = cat_of(&r, CategoryId::Security);
     assert_eq!(sp.status, Status::Unavailable);
-    assert!(sp.summary.contains("No supported package manager"), "{}", sp.summary);
+    assert!(
+        sp.summary.contains("No supported package manager"),
+        "{}",
+        sp.summary
+    );
     assert!(!sp.fixable && sp.findings.is_empty());
     // and the score still exists, computed from the three other categories
     assert_eq!(r.score, Some(100));
@@ -693,7 +861,11 @@ fn a_failing_category_is_unavailable_and_the_others_are_reported() {
     b.chrome();
     b.fx.populate_linux_system();
     // Every package manager that is present fails.
-    b.mock.on("apt", &["list", "--upgradable"], CmdOutput::failed(100, "E: broken"));
+    b.mock.on(
+        "apt",
+        &["list", "--upgradable"],
+        CmdOutput::failed(100, "E: broken"),
+    );
     let r = b.analyze();
     let sec = cat_of(&r, CategoryId::Security);
     assert_eq!(sec.status, Status::Unavailable);
@@ -739,7 +911,10 @@ fn cancellation_is_not_swallowed_as_unavailable() {
     job.token().cancel();
     let e = analyze::analyze(&b.ctx, &job).unwrap_err();
     assert_eq!(e.code, ErrorCode::Cancelled);
-    assert!(store::load(&b.ctx).is_none(), "nothing stored for a cancelled scan");
+    assert!(
+        store::load(&b.ctx).is_none(),
+        "nothing stored for a cancelled scan"
+    );
 }
 
 #[test]
@@ -778,7 +953,9 @@ fn analysis_reports_progress_per_category() {
     let events = events.lock().unwrap();
     for word in ["privacy", "space", "speed", "security"] {
         assert!(
-            events.iter().any(|e| e.message.as_deref() == Some(&format!("Checking {word}"))),
+            events
+                .iter()
+                .any(|e| e.message.as_deref() == Some(&format!("Checking {word}"))),
             "no progress for {word}"
         );
     }
@@ -786,7 +963,9 @@ fn analysis_reports_progress_per_category() {
     assert_eq!(last.fraction, Some(1.0));
     // Inner progress is scaled into the category's slice, so the bar never runs backwards
     // beyond what the forwarding thread's ordering allows: every fraction stays in 0..=1.
-    assert!(events.iter().all(|e| e.fraction.is_none_or(|f| (0.0..=1.0).contains(&f))));
+    assert!(events
+        .iter()
+        .all(|e| e.fraction.is_none_or(|f| (0.0..=1.0).contains(&f))));
 }
 
 // ================================================================ last result
@@ -799,7 +978,10 @@ fn last_result_is_stored_and_read_back() {
     let r = b.call("health.analyze", json!({})).unwrap();
     assert!(b.ctx.env.data_dir.join("health-last.json").is_file());
     let last = b.call("health.last", Value::Null).unwrap();
-    assert_eq!(last, r, "health.last returns exactly what the scan returned");
+    assert_eq!(
+        last, r,
+        "health.last returns exactly what the scan returned"
+    );
     // a newer scan replaces it
     b.fx.populate_linux_system();
     let r2 = b.call("health.analyze", json!({})).unwrap();
@@ -812,7 +994,10 @@ fn a_damaged_last_result_reads_as_never_scanned() {
     let b = bed();
     write(&b.ctx.env.data_dir.join("health-last.json"), "{ not json");
     assert_eq!(b.call("health.last", json!({})).unwrap(), Value::Null);
-    write(&b.ctx.env.data_dir.join("health-last.json"), r#"{"score": "high"}"#);
+    write(
+        &b.ctx.env.data_dir.join("health-last.json"),
+        r#"{"score": "high"}"#,
+    );
     assert_eq!(b.call("health.last", json!({})).unwrap(), Value::Null);
     // and a scan simply overwrites it
     b.analyze();
@@ -845,7 +1030,11 @@ fn fix_space_only_never_touches_cookies_startup_or_updates() {
     assert_eq!(r.parts.len(), 1);
     let p = part(&r, Part::Space);
     assert_eq!(p.status, PartStatus::Done, "{}", p.message);
-    assert!(p.removed_bytes >= junk_before, "{} < {junk_before}", p.removed_bytes);
+    assert!(
+        p.removed_bytes >= junk_before,
+        "{} < {junk_before}",
+        p.removed_bytes
+    );
     // junk is gone ...
     assert!(!sys.old_tmp.exists());
     assert!(!chrome.cache.join("Cache/Cache_Data/data_0").exists());
@@ -881,10 +1070,22 @@ fn fix_privacy_only_removes_tracking_data_and_keeps_the_keep_list_and_all_junk()
     assert_eq!(p.removed_files, 0);
     // kept sites stay signed in: 3 google + 1 github
     assert_eq!(query_i64(&cookies, "SELECT COUNT(*) FROM cookies"), 4);
-    assert_eq!(query_i64(&cookies, "SELECT COUNT(*) FROM cookies WHERE host_key LIKE '%tracker%'"), 0);
+    assert_eq!(
+        query_i64(
+            &cookies,
+            "SELECT COUNT(*) FROM cookies WHERE host_key LIKE '%tracker%'"
+        ),
+        0
+    );
     assert_eq!(query_i64(&history, "SELECT COUNT(*) FROM urls"), 0);
     assert_eq!(query_i64(&history, "SELECT COUNT(*) FROM downloads"), 0);
-    assert_eq!(query_i64(&ff.data.join("cookies.sqlite"), "SELECT COUNT(*) FROM moz_cookies"), 2);
+    assert_eq!(
+        query_i64(
+            &ff.data.join("cookies.sqlite"),
+            "SELECT COUNT(*) FROM moz_cookies"
+        ),
+        2
+    );
     // no junk file was touched
     assert!(chrome.cache.join("Cache/Cache_Data/data_0").exists());
     assert!(sys.old_tmp.exists() && sys.apt_deb.exists());
@@ -909,7 +1110,10 @@ fn fix_privacy_and_space_raises_the_score() {
     b.set_keep(&["google.com"]);
     let before = b.analyze();
     let r = b.fix(json!({"privacy": true, "space": true}));
-    assert_eq!(r.parts.iter().map(|p| p.part).collect::<Vec<_>>(), [Part::Privacy, Part::Space]);
+    assert_eq!(
+        r.parts.iter().map(|p| p.part).collect::<Vec<_>>(),
+        [Part::Privacy, Part::Space]
+    );
     let after = r.report.unwrap();
     assert!(after.score.unwrap() > before.score.unwrap() || before.score == Some(100));
     assert_eq!(cat_of(&after, CategoryId::Space).status, Status::Good);
@@ -922,7 +1126,10 @@ fn fix_privacy_and_space_raises_the_score() {
 
 #[test]
 fn fix_reports_a_running_browser_instead_of_touching_it() {
-    let b = bed_with(vec![proc(500, "chrome", "/opt/google/chrome/chrome", 200)], true);
+    let b = bed_with(
+        vec![proc(500, "chrome", "/opt/google/chrome/chrome", 200)],
+        true,
+    );
     let chrome = b.chrome();
     let cookies = chrome.data.join("Network/Cookies");
     let before = fs::read(&cookies).unwrap();
@@ -933,7 +1140,11 @@ fn fix_reports_a_running_browser_instead_of_touching_it() {
     assert_eq!(p.blocked_apps, ["Google Chrome"]);
     assert!(p.message.contains("Google Chrome"), "{}", p.message);
     assert_eq!(fs::read(&cookies).unwrap(), before);
-    assert_eq!(b.procs.exit_requests(), Vec::<u32>::new(), "nothing was asked to quit");
+    assert_eq!(
+        b.procs.exit_requests(),
+        Vec::<u32>::new(),
+        "nothing was asked to quit"
+    );
     // "ask" cannot be answered by the server: it behaves like "skip"
     let r = b.fix(json!({"privacy": true, "closeApps": "ask"}));
     assert_eq!(part(&r, Part::Privacy).blocked_apps, ["Google Chrome"]);
@@ -974,19 +1185,37 @@ fn fix_startup_disables_only_the_listed_valid_items() {
     let by = |id: &str| p.items.iter().find(|i| i.id == id).unwrap();
     assert!(by("xdg:user:slack.desktop").ok);
     let critical = by("xdg:system:polkit-gnome-authentication-agent-1.desktop");
-    assert!(!critical.ok && critical.message.starts_with("Refused"), "{critical:?}");
-    assert!(by("xdg:user:nope.desktop").message.contains("no longer exists"));
+    assert!(
+        !critical.ok && critical.message.starts_with("Refused"),
+        "{critical:?}"
+    );
+    assert!(by("xdg:user:nope.desktop")
+        .message
+        .contains("no longer exists"));
     assert!(by("xdg:user:old.desktop").ok, "already off: nothing to do");
     // on disk
     assert!(fs::read_to_string(&slack).unwrap().contains("Hidden=true"));
-    assert_eq!(fs::read(&spotify).unwrap(), spotify_before, "unlisted items are untouched");
+    assert_eq!(
+        fs::read(&spotify).unwrap(),
+        spotify_before,
+        "unlisted items are untouched"
+    );
     assert!(!fs::read_to_string(&tiny).unwrap().contains("Hidden"));
     assert_eq!(fs::read(&polkit).unwrap(), polkit_before);
-    assert_eq!(b.procs.exit_requests(), Vec::<u32>::new(), "processes are not stopped here");
+    assert_eq!(
+        b.procs.exit_requests(),
+        Vec::<u32>::new(),
+        "processes are not stopped here"
+    );
     // the fresh result no longer offers slack
     let fresh = r.report.unwrap();
-    let Finding::Startup { items } = &cat_of(&fresh, CategoryId::Speed).findings[0] else { panic!() };
-    assert_eq!(items.iter().map(|i| i.id.as_str()).collect::<Vec<_>>(), ["xdg:user:spotify.desktop"]);
+    let Finding::Startup { items } = &cat_of(&fresh, CategoryId::Speed).findings[0] else {
+        panic!()
+    };
+    assert_eq!(
+        items.iter().map(|i| i.id.as_str()).collect::<Vec<_>>(),
+        ["xdg:user:spotify.desktop"]
+    );
 }
 
 #[test]
@@ -1002,10 +1231,18 @@ fn fix_startup_refuses_services_and_never_calls_systemctl() {
         crate::features::startup::linux::SYSTEMCTL_SYSTEM_LIST,
         CmdOutput::ok("cups.service enabled enabled\n"),
     );
-    let r = b.fix(json!({"startupIds": ["systemd:user:syncthing.service", "systemd:system:cups.service"]}));
+    let r = b.fix(
+        json!({"startupIds": ["systemd:user:syncthing.service", "systemd:system:cups.service"]}),
+    );
     let p = part(&r, Part::Startup);
     assert_eq!(p.status, PartStatus::Failed);
-    assert!(p.items.iter().all(|i| !i.ok && i.message.starts_with("Refused")), "{:?}", p.items);
+    assert!(
+        p.items
+            .iter()
+            .all(|i| !i.ok && i.message.starts_with("Refused")),
+        "{:?}",
+        p.items
+    );
     assert_eq!(b.mutating_calls(), Vec::<String>::new());
 }
 
@@ -1016,17 +1253,32 @@ fn fix_sleep_puts_only_listed_background_apps_to_sleep() {
     let r = b.fix(json!({"sleepAppIds": ["spotify", "firefox", "mbam", "nope"]}));
     let p = part(&r, Part::Sleep);
     assert_eq!(p.status, PartStatus::Partial, "{}", p.message);
-    let by = |id: &str| p.items.iter().find(|i| i.id == id).unwrap_or_else(|| panic!("{id}: {:?}", p.items));
+    let by = |id: &str| {
+        p.items
+            .iter()
+            .find(|i| i.id == id)
+            .unwrap_or_else(|| panic!("{id}: {:?}", p.items))
+    };
     assert!(by("spotify").ok, "{:?}", by("spotify"));
     for id in ["firefox", "mbam", "nope"] {
-        assert!(!by(id).ok && by(id).message.starts_with("Refused"), "{:?}", by(id));
+        assert!(
+            !by(id).ok && by(id).message.starts_with("Refused"),
+            "{:?}",
+            by(id)
+        );
     }
     // only Spotify's process was asked to quit, only its startup item was switched off
     assert_eq!(b.procs.exit_requests(), vec![101]);
-    assert!(fs::read_to_string(user.join("spotify.desktop")).unwrap().contains("Hidden=true"));
-    assert!(!fs::read_to_string(user.join("slack.desktop")).unwrap().contains("Hidden"));
-    let state: Value =
-        serde_json::from_str(&fs::read_to_string(b.ctx.env.data_dir.join("optimizer.json")).unwrap()).unwrap();
+    assert!(fs::read_to_string(user.join("spotify.desktop"))
+        .unwrap()
+        .contains("Hidden=true"));
+    assert!(!fs::read_to_string(user.join("slack.desktop"))
+        .unwrap()
+        .contains("Hidden"));
+    let state: Value = serde_json::from_str(
+        &fs::read_to_string(b.ctx.env.data_dir.join("optimizer.json")).unwrap(),
+    )
+    .unwrap();
     assert!(state["sleeping"]["spotify"].is_object());
     assert!(state["sleeping"].get("firefox").is_none());
 }
@@ -1035,14 +1287,24 @@ fn fix_sleep_puts_only_listed_background_apps_to_sleep() {
 fn fix_updates_installs_only_listed_updates_and_refuses_ignored_and_unknown_ids() {
     let b = bed();
     script_apt(&b.mock);
-    b.mock.on("apt-get", &["install", "--only-upgrade", "-y", "firefox"], CmdOutput::ok("done"));
+    b.mock.on(
+        "apt-get",
+        &["install", "--only-upgrade", "-y", "firefox"],
+        CmdOutput::ok("done"),
+    );
     settings::update(&b.ctx, |s| s.ignored_updates = vec!["apt:vim".into()]).unwrap();
-    let r = with_elevation(true, || b.fix(json!({"updateIds": ["apt:firefox", "apt:vim", "apt:ghost"]})));
+    let r = with_elevation(true, || {
+        b.fix(json!({"updateIds": ["apt:firefox", "apt:vim", "apt:ghost"]}))
+    });
     let p = part(&r, Part::Updates);
     assert_eq!(p.status, PartStatus::Partial, "{}", p.message);
     let by = |id: &str| p.items.iter().find(|i| i.id == id).unwrap();
     assert!(by("apt:firefox").ok);
-    assert!(by("apt:vim").message.contains("ignore"), "{:?}", by("apt:vim"));
+    assert!(
+        by("apt:vim").message.contains("ignore"),
+        "{:?}",
+        by("apt:vim")
+    );
     assert!(!by("apt:ghost").ok && by("apt:ghost").message.contains("no update"));
     let installs: Vec<String> = b
         .mock
@@ -1059,7 +1321,11 @@ fn fix_runs_the_parts_in_a_fixed_order_and_each_part_on_its_own() {
     let b = speed_bed();
     b.chrome();
     script_apt(&b.mock);
-    b.mock.on("apt-get", &["install", "--only-upgrade", "-y", "vim"], CmdOutput::ok(""));
+    b.mock.on(
+        "apt-get",
+        &["install", "--only-upgrade", "-y", "vim"],
+        CmdOutput::ok(""),
+    );
     let r = with_elevation(true, || {
         b.fix(json!({
             "updateIds": ["apt:vim"],
@@ -1071,7 +1337,13 @@ fn fix_runs_the_parts_in_a_fixed_order_and_each_part_on_its_own() {
     });
     assert_eq!(
         r.parts.iter().map(|p| p.part).collect::<Vec<_>>(),
-        [Part::Privacy, Part::Space, Part::Startup, Part::Sleep, Part::Updates]
+        [
+            Part::Privacy,
+            Part::Space,
+            Part::Startup,
+            Part::Sleep,
+            Part::Updates
+        ]
     );
     // (the fake machine runs Firefox and Slack, so the cleaner leaves their data alone: partial)
     for p in &r.parts {
@@ -1079,7 +1351,12 @@ fn fix_runs_the_parts_in_a_fixed_order_and_each_part_on_its_own() {
         assert_ne!(p.status, PartStatus::NotRun, "{p:?}");
     }
     for which in [Part::Startup, Part::Sleep, Part::Updates] {
-        assert_eq!(part(&r, which).status, PartStatus::Done, "{:?}", part(&r, which));
+        assert_eq!(
+            part(&r, which).status,
+            PartStatus::Done,
+            "{:?}",
+            part(&r, which)
+        );
     }
 }
 
@@ -1094,9 +1371,19 @@ fn fix_progress_names_each_part() {
             m2.lock().unwrap().push(m);
         }
     });
-    dispatch(&b.ctx, "health.fix", json!({"privacy": true, "space": true}), &job).unwrap();
+    dispatch(
+        &b.ctx,
+        "health.fix",
+        json!({"privacy": true, "space": true}),
+        &job,
+    )
+    .unwrap();
     let msgs = msgs.lock().unwrap();
-    let pos = |m: &str| msgs.iter().position(|x| x == m).unwrap_or_else(|| panic!("{m} not in {msgs:?}"));
+    let pos = |m: &str| {
+        msgs.iter()
+            .position(|x| x == m)
+            .unwrap_or_else(|| panic!("{m} not in {msgs:?}"))
+    };
     assert!(pos("Removing tracking data") < pos("Deleting junk files"));
     assert!(pos("Deleting junk files") < pos("Re-checking"));
 }
@@ -1140,10 +1427,19 @@ fn a_cancelled_fix_stops_between_parts_and_forgets_the_stale_result() {
     assert_eq!(part(&r, Part::Sleep).status, PartStatus::NotRun);
     // the first two parts really happened, the rest did not
     assert!(!sys.old_tmp.exists());
-    assert_eq!(query_i64(&chrome.data.join("Network/Cookies"), "SELECT COUNT(*) FROM cookies"), 3);
+    assert_eq!(
+        query_i64(
+            &chrome.data.join("Network/Cookies"),
+            "SELECT COUNT(*) FROM cookies"
+        ),
+        3
+    );
     assert_eq!(fs::read(&slack).unwrap(), slack_before);
     assert_eq!(b.procs.exit_requests(), Vec::<u32>::new());
-    assert!(store::load(&b.ctx).is_none(), "the stored result no longer describes the machine");
+    assert!(
+        store::load(&b.ctx).is_none(),
+        "the stored result no longer describes the machine"
+    );
 }
 
 #[test]
@@ -1152,7 +1448,11 @@ fn a_fix_cancelled_before_it_starts_changes_nothing() {
     let sys = b.fx.populate_linux_system();
     let job = Job::detached();
     job.token().cancel();
-    let req = FixRequest { space: true, privacy: true, ..FixRequest::default() };
+    let req = FixRequest {
+        space: true,
+        privacy: true,
+        ..FixRequest::default()
+    };
     let r = fix::fix(&b.ctx, &req, &job).unwrap();
     assert!(r.cancelled && r.report.is_none());
     assert!(r.parts.iter().all(|p| p.status == PartStatus::NotRun));

@@ -8,7 +8,10 @@ use crate::ctx::Ctx;
 use crate::error::{ErrorCode, Result};
 use crate::features::cleaner::rules::{Category, Rule};
 use crate::features::cleaner::{self, AnalyzeReport};
-use crate::features::optimizer::{self, apps::{entry_app_key, is_security_software}};
+use crate::features::optimizer::{
+    self,
+    apps::{entry_app_key, is_security_software},
+};
 use crate::features::settings::{self, Settings};
 use crate::features::software_updater;
 use crate::features::startup::{self, Entry, Impact, Kind};
@@ -85,7 +88,9 @@ pub fn fmt_bytes(b: u64) -> String {
 /// Browser rules that hold tracking data: cookies, history and download history.
 fn is_privacy_rule(r: &Rule) -> bool {
     r.category == Category::Browser
-        && (r.id.ends_with(".cookies") || r.id.ends_with(".history") || r.id.ends_with(".downloads"))
+        && (r.id.ends_with(".cookies")
+            || r.id.ends_with(".history")
+            || r.id.ends_with(".downloads"))
 }
 
 /// The enabled rules (the Clean tab's selection) split into (privacy, space).

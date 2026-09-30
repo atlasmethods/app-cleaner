@@ -86,12 +86,22 @@ pub struct UpdateFinding {
 
 /// One thing a category found. `kind` is the discriminator on the wire.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
 pub enum Finding {
     /// Cookies of sites that are not on the keep list.
-    Trackers { count: u64, browsers: Vec<String> },
+    Trackers {
+        count: u64,
+        browsers: Vec<String>,
+    },
     /// Browsing / download history rows.
-    History { count: u64, browsers: Vec<String> },
+    History {
+        count: u64,
+        browsers: Vec<String>,
+    },
     /// Junk of one application or system area.
     Junk {
         group: String,
@@ -99,8 +109,12 @@ pub enum Finding {
         files: u64,
         rows: u64,
     },
-    Startup { items: Vec<StartupFinding> },
-    BackgroundApps { apps: Vec<AppFinding> },
+    Startup {
+        items: Vec<StartupFinding>,
+    },
+    BackgroundApps {
+        apps: Vec<AppFinding>,
+    },
     Updates {
         count: u64,
         security: u64,
