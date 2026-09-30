@@ -8,7 +8,7 @@ use crate::ctx::Ctx;
 use crate::error::{ErrorCode, Result};
 use crate::features::cleaner::rules::{Category, Rule};
 use crate::features::cleaner::{self, AnalyzeReport};
-use crate::features::optimizer;
+use crate::features::optimizer::{self, apps::{entry_app_key, is_security_software}};
 use crate::features::settings::{self, Settings};
 use crate::features::software_updater;
 use crate::features::startup::{self, Entry, Impact, Kind};
@@ -257,6 +257,9 @@ pub fn startup_candidate(e: &Entry) -> bool {
         && e.item.can_disable
         && !startup::needs_admin(&e.target)
         && matches!(e.item.kind, Kind::Autostart | Kind::LaunchAgent)
+        // Security software is never switched off (the optimizer protects it the same way).
+        && !is_security_software(&entry_app_key(e))
+        && !is_security_software(&e.item.name)
 }
 
 /// Background apps: running, not asleep, not protected and started automatically by an
@@ -450,7 +453,7 @@ pub fn security(ctx: &Ctx, job: &Job) -> Result<CategoryReport> {
 // ---------------------------------------------------------------- everything
 
 /// Compute one category. Any failure except cancellation becomes `unavailable`.
-fn category(id: CategoryId, ctx: &Ctx, job: &Job) -> Result<CategoryReport> {
+pub(super) fn category(id: CategoryId, ctx: &Ctx, job: &Job) -> Result<CategoryReport> {
     let r = match id {
         CategoryId::Privacy => privacy(ctx, job),
         CategoryId::Space => space(ctx, job),
