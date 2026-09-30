@@ -143,6 +143,8 @@ pub struct Settings {
     /// Desktop app: the close button hides the window to the tray.
     pub close_to_tray: bool,
     pub language: String,
+    /// Always use the compact (phone-width, bottom tab bar) layout, even on wide windows.
+    pub compact_mode: bool,
     /// Software updater: ids (`apt:firefox`, `winget:Git.Git`, ...) the user chose to ignore.
     pub ignored_updates: Vec<String>,
 }
@@ -162,6 +164,7 @@ impl Default for Settings {
             run_at_startup: false,
             close_to_tray: true,
             language: "en".to_string(),
+            compact_mode: false,
             ignored_updates: Vec::new(),
         }
     }
@@ -653,6 +656,7 @@ mod tests {
                 "runAtStartup": false,
                 "closeToTray": true,
                 "language": "en",
+                "compactMode": false,
                 "ignoredUpdates": []
             })
         );

@@ -178,7 +178,7 @@ export default function CookiesPage() {
                   onClick={() => setConfirmDelete(true)}
                   disabled={busy}
                   data-testid="btn-cookies-delete"
-                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
                 >
                   <Trash2 size={16} aria-hidden /> Delete selected ({chosen.length})
                 </button>

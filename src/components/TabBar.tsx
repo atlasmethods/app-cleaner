@@ -7,7 +7,7 @@ export function TabBar() {
     <nav
       aria-label="Main"
       data-testid="tabbar"
-      className="fixed bottom-0 left-1/2 z-20 w-full max-w-[480px] -translate-x-1/2 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+      className="z-20 w-full shrink-0 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="m-0 flex list-none p-0">
         {TABS.map(({ id, path, icon: Icon }) => (
@@ -23,7 +23,7 @@ export function TabBar() {
               }
             >
               <Icon size={20} aria-hidden />
-              <span className="max-w-full whitespace-nowrap">{t(`tab.${id}`)}</span>
+              <span className="max-w-full truncate">{t(`tab.${id}`)}</span>
             </NavLink>
           </li>
         ))}

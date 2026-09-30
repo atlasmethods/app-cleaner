@@ -2,6 +2,7 @@ import {
   Cookie,
   Database,
   Eraser,
+  FileX,
   Gauge,
   History,
   House,
@@ -61,6 +62,7 @@ export const TOOLS: ToolDef[] = [
   tool('duplicates', 'Duplicate Finder', Copy),
   tool('restore', 'System Restore', History),
   tool('wiper', 'Drive Wiper', Eraser),
+  tool('shredder', 'File Shredder', FileX),
   tool('registry', isWindowsClient() ? 'Registry' : 'Config Issues', Database),
   tool('sysinfo', 'System Info', Info),
   tool('cookies', 'Cookies', Cookie),
@@ -76,5 +78,5 @@ export function routeMeta(pathname: string): { title: string; parent: string | n
   const t = TOOLS.find((x) => x.path === pathname);
   if (t) return { title: t.label, parent: '/tools' };
   const tab = TABS.find((x) => x.path === pathname);
-  return { title: tab?.label ?? 'ClearSweep', parent: null };
+  return { title: tab?.label ?? 'Page not found', parent: null };
 }

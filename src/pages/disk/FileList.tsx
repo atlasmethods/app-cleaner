@@ -274,7 +274,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
             onClick={() => setConfirm(true)}
             disabled={busy}
             data-testid="btn-disk-delete"
-            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
           >
             {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Trash2 size={16} aria-hidden />}
             Delete {selected.size} {selected.size === 1 ? 'file' : 'files'} ({formatBytes(selectedBytes)})

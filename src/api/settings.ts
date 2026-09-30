@@ -52,6 +52,8 @@ export interface Settings {
   /** Desktop app: the close button hides the window to the tray (always sent by the server). */
   closeToTray?: boolean;
   language: string;
+  /** Force the compact phone-width layout on wide windows too (default: automatic). */
+  compactMode?: boolean;
   /** Software updater: ids such as `apt:firefox` that the user ignores (always sent by the server; optional here for older fixtures). */
   ignoredUpdates?: string[];
 }

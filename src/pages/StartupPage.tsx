@@ -290,7 +290,7 @@ export default function StartupPage() {
                   setPending({ kind: 'delete', item });
                 }}
                 data-testid="startup-action-delete"
-                className="flex h-11 w-full items-center gap-2 rounded-xl border-0 bg-danger px-3 text-left text-sm font-medium text-white"
+                className="flex h-11 w-full items-center gap-2 rounded-xl border-0 bg-danger px-3 text-left text-sm font-medium text-danger-fg"
               >
                 <Trash2 size={16} aria-hidden /> Delete
               </button>

@@ -324,7 +324,7 @@ export default function DriveWiperPage() {
           onClick={() => setConfirm(true)}
           disabled={!ready || running}
           data-testid="btn-wiper-start"
-          className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
         >
           {running ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Eraser size={16} aria-hidden />}
           {mode === 'free' ? 'Wipe free space' : 'Wipe entire drive'}

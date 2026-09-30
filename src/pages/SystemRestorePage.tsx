@@ -28,7 +28,7 @@ function Badge({ children, tone = 'muted', testId }: { children: string; tone?: 
     <span
       data-testid={testId}
       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-        tone === 'accent' ? 'bg-accent/15 text-accent' : 'bg-surface-2 text-muted'
+        tone === 'accent' ? 'bg-accent/15 text-accent-strong' : 'bg-surface-2 text-muted'
       }`}
     >
       {children}
