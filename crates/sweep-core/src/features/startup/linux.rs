@@ -634,10 +634,7 @@ pub fn collect_systemd(ctx: &Ctx) -> Vec<Entry> {
                     user,
                 },
             );
-            e.exe = exec
-                .as_deref()
-                .and_then(exe_from_command)
-                .or(Some(stem));
+            e.exe = exec.as_deref().and_then(exe_from_command).or(Some(stem));
             out.push(e);
         }
     }
