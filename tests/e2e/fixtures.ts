@@ -97,7 +97,7 @@ export async function startServer(args: string[] = ['--no-exit-on-idle']): Promi
   const u = new URL(url);
   const info: ServerInfo = { url, origin: u.origin, token: u.searchParams.get('t') ?? '', dir: tmp };
   const stop = async () => {
-    if (child.exitCode === null) {
+    if (child.exitCode === null && child.signalCode === null) {
       const exited = new Promise<void>((r) => child.once('exit', () => r()));
       child.kill('SIGTERM');
       const t = setTimeout(() => child.kill('SIGKILL'), 3000);
@@ -153,7 +153,10 @@ export const test = base.extend<TestFixtures & TestOptions, WorkerFixtures>({
   consoleErrors: [
     async ({ page, allowHttpStatuses }, use) => {
       const errors: string[] = [];
-      const allowed = (text: string) => allowHttpStatuses.some((s) => text.includes(`status of ${s}`));
+      // 0 stands for "the connection itself failed" (net::ERR_*), used when a test stops the server.
+      const allowed = (text: string) =>
+        allowHttpStatuses.some((s) => text.includes(`status of ${s}`)) ||
+        (allowHttpStatuses.includes(0) && text.includes('net::ERR_'));
       page.on('console', (m) => {
         if (m.type() === 'error' && !allowed(m.text())) errors.push(`console.error: ${m.text()}`);
       });
