@@ -63,9 +63,10 @@ for (const t of TILES) {
   });
 }
 
-test('placeholder pages say Coming soon', async ({ app }) => {
+test('the Home tab is the health check, not a placeholder', async ({ app }) => {
   await app.getByTestId('tab-home').click();
-  await expect(app.getByTestId('page-home')).toContainText('Coming soon');
+  await expect(app.getByTestId('btn-scan')).toBeVisible();
+  await expect(app.getByTestId('page-home')).not.toContainText('Coming soon');
 });
 
 test('System Info shows CPU, memory and disks', async ({ app }) => {
