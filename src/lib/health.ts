@@ -133,6 +133,10 @@ function count(n: number, one: string, many: string): string {
  */
 export function describeFix(report: HealthReport, p: FixParams): string {
   const parts: string[] = [];
+  if (p.space) {
+    const bytes = categoryOf(report, 'space')?.metrics.bytes ?? 0;
+    parts.push(`delete ${formatBytes(bytes)} of junk`);
+  }
   if (p.privacy) {
     const c = categoryOf(report, 'privacy');
     const what: string[] = [];
@@ -141,10 +145,6 @@ export function describeFix(report: HealthReport, p: FixParams): string {
     const browsers = privacyBrowsers(c).length;
     if (what.length === 0) what.push('clear browser data');
     parts.push(`${what.join(' and ')}${browsers > 0 ? ` from ${count(browsers, 'browser', 'browsers')}` : ''}`);
-  }
-  if (p.space) {
-    const bytes = categoryOf(report, 'space')?.metrics.bytes ?? 0;
-    parts.push(`delete ${formatBytes(bytes)} of junk`);
   }
   if (p.startupIds?.length) parts.push(`disable ${count(p.startupIds.length, 'startup item', 'startup items')}`);
   if (p.sleepAppIds?.length) parts.push(`put ${count(p.sleepAppIds.length, 'app', 'apps')} to sleep`);
