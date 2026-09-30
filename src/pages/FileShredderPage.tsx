@@ -23,6 +23,7 @@ export default function FileShredderPage() {
   const [confirm, setConfirm] = useState(false);
   const [report, setReport] = useState<SecureDeleteResult | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const loadSettings = settingsCall.run;
   useEffect(() => {
@@ -65,6 +66,11 @@ export default function FileShredderPage() {
       setPaths((cur) => cur.filter((p) => failed.has(p)));
     }
   };
+
+  // The result is below the form: bring it into view when it arrives.
+  useEffect(() => {
+    if (report) resultRef.current?.scrollIntoView?.({ block: 'start' });
+  }, [report]);
 
   const summary = report ? summarize(report.results) : null;
   const passWord = shownPasses === 1 ? 'pass' : 'passes';
@@ -203,6 +209,7 @@ export default function FileShredderPage() {
       )}
 
       {report && summary && !running && (
+        <div ref={resultRef} className="scroll-mt-2">
         <Card title="Result" testId="shredder-result">
           <p role="status" className="m-0 mb-2 break-words text-sm" data-testid="shredder-summary">
             {summary.done > 0 && `Shredded ${summary.done} ${summary.done === 1 ? 'item' : 'items'} (${formatBytes(summary.bytes)}).`}
@@ -231,6 +238,7 @@ export default function FileShredderPage() {
             ))}
           </ul>
         </Card>
+        </div>
       )}
 
       {paths.length === 0 && !report && !running && (

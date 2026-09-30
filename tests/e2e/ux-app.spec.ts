@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { callApi, expect, test } from './fixtures';
-import { auditPage, auditProblems } from './helpers/audit';
+import { auditPage, auditProblems, contrastProblems } from './helpers/audit';
 import { ALL_ROUTES, TOOL_TILES } from './helpers/routes';
 
 test.skip(process.platform !== 'linux', 'uses the Linux layout of the fake machine');
@@ -84,6 +84,7 @@ test.describe('wide layout (1280x800)', () => {
         await expect(app.getByTestId('appbar-title')).toBeVisible();
         await app.waitForLoadState('networkidle');
         expect(auditProblems(await auditPage(app)), route).toEqual([]);
+        expect(await contrastProblems(app), `${route} contrast`).toEqual([]);
       }
     });
   }

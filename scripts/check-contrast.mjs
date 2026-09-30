@@ -74,7 +74,7 @@ export const PAIRS = [
   ['danger', 'bg', T, 'error text on page'],
   ['danger', 'danger/0.1@surface', T, 'error banner text'],
   ['danger', 'danger/0.1@bg', T, 'error banner text on page'],
-  ['danger', 'danger/0.15@surface', T, 'danger badge'],
+  ['danger', 'danger/0.1@surface-2', T, 'danger badge on inset rows'],
   ['fg', 'danger/0.1@surface', T, 'banner body text'],
   ['warn', 'surface', T, 'warning text on card'],
   ['warn', 'bg', T, 'warning text on page'],

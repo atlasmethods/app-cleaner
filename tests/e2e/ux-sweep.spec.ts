@@ -1,4 +1,4 @@
-import { auditPage, auditProblems } from './helpers/audit';
+import { auditPage, auditProblems, contrastProblems } from './helpers/audit';
 import { expect, test } from './fixtures';
 import { ALL_ROUTES } from './helpers/routes';
 
@@ -19,6 +19,7 @@ for (const scheme of ['light', 'dark'] as const) {
         await app.waitForLoadState('networkidle');
         const problems = auditProblems(await auditPage(app));
         expect(problems).toEqual([]);
+        expect(await contrastProblems(app), 'rendered text contrast').toEqual([]);
         // Keyboard focus is visible: tabbing to the first control draws the focus ring.
         await app.keyboard.press('Tab');
         const ring = await app.evaluate(() => {

@@ -17,7 +17,7 @@ function Badge({ children, tone }: { children: string; tone: 'warn' | 'muted' })
   return (
     <span
       className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-        tone === 'warn' ? 'bg-warn/15 text-warn' : 'bg-surface-2 text-muted'
+        tone === 'warn' ? 'bg-warn/10 text-warn' : 'bg-surface-2 text-muted'
       }`}
     >
       {children}

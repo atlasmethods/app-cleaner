@@ -23,7 +23,7 @@ function Badge({ children, tone, testId }: { children: string; tone: 'danger' | 
     <span
       data-testid={testId}
       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-        tone === 'danger' ? 'bg-danger/15 text-danger' : 'bg-surface-2 text-muted'
+        tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-surface-2 text-muted'
       }`}
     >
       {children}

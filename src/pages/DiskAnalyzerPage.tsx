@@ -1,5 +1,5 @@
 import { HardDrive, Loader2, PieChart, Plus, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CategoryTotals,
   DeleteFilesResult,
@@ -38,6 +38,13 @@ export default function DiskAnalyzerPage() {
   // Totals after deletions, newer than the scan's own.
   const [live, setLive] = useState<Live | null>(null);
   const [treeVersion, setTreeVersion] = useState(0);
+
+  // The drive picker is tall: when a scan finishes, bring its results into view.
+  const summaryRef = useRef<HTMLParagraphElement>(null);
+  const scanned = scan.data?.scanId;
+  useEffect(() => {
+    if (scanned) summaryRef.current?.scrollIntoView?.({ block: 'start' });
+  }, [scanned]);
 
   const runDrives = drivesCall.run;
   useEffect(() => {
@@ -175,7 +182,7 @@ export default function DiskAnalyzerPage() {
 
       {summary && !scan.loading && (
         <>
-          <p className="m-0 text-xs text-muted" data-testid="disk-summary">
+          <p ref={summaryRef} className="m-0 scroll-mt-2 text-xs text-muted" data-testid="disk-summary">
             {totalFiles} {totalFiles === 1 ? 'file' : 'files'}, {formatBytes(totalBytes)} in {(summary.durationMs / 1000).toFixed(1)}s
             {summary.errors.count > 0 && ` - ${summary.errors.count} folders could not be read`}
           </p>

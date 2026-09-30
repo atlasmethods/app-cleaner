@@ -187,7 +187,7 @@ export default function DriverUpdaterPage() {
                       </span>
                       <span className="rounded bg-surface-2 px-1 text-[11px] text-muted">{driverSourceLabel(d.source)}</span>
                       {d.rebootRequired && (
-                        <span className="rounded bg-warn/15 px-1 text-[11px] text-warn" data-testid="driver-reboot">
+                        <span className="rounded bg-warn/10 px-1 text-[11px] text-warn" data-testid="driver-reboot">
                           Restart needed
                         </span>
                       )}

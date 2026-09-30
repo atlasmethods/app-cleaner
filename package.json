@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "e2e": "playwright test",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts",
+    "contrast": "node scripts/check-contrast.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -197,7 +197,7 @@ export default function SoftwareUpdaterPage() {
                       </span>
                       {e.security && (
                         <span
-                          className="flex items-center gap-0.5 rounded bg-danger/15 px-1 text-[11px] font-medium text-danger"
+                          className="flex items-center gap-0.5 rounded bg-danger/10 px-1 text-[11px] font-medium text-danger"
                           data-testid="update-security"
                         >
                           <ShieldAlert size={11} aria-hidden /> Security

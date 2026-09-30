@@ -142,6 +142,8 @@ export async function checkSheet(page: Page, opener: Locator): Promise<void> {
   expect(box.y + box.height).toBeLessThanOrEqual(vp.height + 0.5);
   expect(auditProblems(await auditPage(page, '[role="dialog"]')).filter((p) => !p.startsWith('document scrolls'))).toEqual([]);
 
+  expect(await contrastProblems(page, '[role="dialog"]'), 'sheet text contrast').toEqual([]);
+
   const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
   expect(await inside(), 'focus starts inside the dialog').toBe(true);
   for (let i = 0; i < 25; i++) {
@@ -173,4 +175,88 @@ export async function checkSheet(page: Page, opener: Locator): Promise<void> {
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
+}
+
+/**
+ * Rendered text contrast (WCAG AA: 4.5:1, or 3:1 for large text), measured on the real page:
+ * each element with its own text against the first opaque background behind it, translucent
+ * fills composited. Disabled controls and anything faded with `opacity` are exempt.
+ */
+export async function contrastProblems(page: Page, scope?: string): Promise<string[]> {
+  return page.evaluate((scopeSel) => {
+    const root: ParentNode = scopeSel ? (document.querySelector(scopeSel) ?? document) : document;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const cx = canvas.getContext('2d', { willReadFrequently: true })!;
+    const parse = (css: string): [number, number, number, number] => {
+      cx.clearRect(0, 0, 1, 1);
+      cx.fillStyle = '#000';
+      cx.fillStyle = css;
+      cx.fillRect(0, 0, 1, 1);
+      const d = cx.getImageData(0, 0, 1, 1).data;
+      return [d[0]!, d[1]!, d[2]!, d[3]! / 255];
+    };
+    const over = (f: number[], b: number[]): [number, number, number, number] => {
+      const a = f[3]!;
+      return [0, 1, 2].map((i) => f[i]! * a + b[i]! * (1 - a)).concat([1]) as [number, number, number, number];
+    };
+    const lum = (c: number[]) => {
+      const l = (v: number) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * l(c[0]!) + 0.7152 * l(c[1]!) + 0.0722 * l(c[2]!);
+    };
+    const ratio = (a: number[], b: number[]) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi! + 0.05) / (lo! + 0.05);
+    };
+    const backdrop = (el: Element): [number, number, number, number] => {
+      const layers: [number, number, number, number][] = [];
+      for (let e: Element | null = el; e; e = e.parentElement) {
+        const bg = parse(getComputedStyle(e).backgroundColor);
+        if (bg[3] > 0) {
+          layers.push(bg);
+          if (bg[3] >= 1) break;
+        }
+      }
+      let acc: [number, number, number, number] = parse(getComputedStyle(document.body).backgroundColor);
+      if (acc[3] < 1) acc = [255, 255, 255, 1];
+      for (const l of layers.reverse()) acc = over(l, acc);
+      return acc;
+    };
+    const faded = (el: Element) => {
+      for (let e: Element | null = el; e; e = e.parentElement) {
+        if (parseFloat(getComputedStyle(e).opacity) < 1) return true;
+        if ((e as HTMLElement).matches?.(':disabled, [aria-disabled="true"]')) return true;
+      }
+      return false;
+    };
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const el of Array.from(root.querySelectorAll('*'))) {
+      const own = Array.from(el.childNodes).some((n) => n.nodeType === 3 && (n.textContent ?? '').trim());
+      if (!own || el.closest('.sr-only, svg, option')) continue;
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      if (r.width === 0 || r.height === 0 || cs.visibility === 'hidden' || faded(el)) continue;
+      const fgRaw = parse(cs.color);
+      const bg = backdrop(el);
+      const fg = over(fgRaw, bg);
+      const size = parseFloat(cs.fontSize);
+      const bold = parseInt(cs.fontWeight, 10) >= 700;
+      const large = size >= 24 || (size >= 18.66 && bold);
+      const need = large ? 3 : 4.5;
+      const got = ratio(fg, bg);
+      if (got < need - 0.01) {
+        const id = el.getAttribute('data-testid');
+        const text = (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 30);
+        const key = `${el.tagName}|${cs.color}|${bg.join(',')}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(`${el.tagName.toLowerCase()}${id ? `[${id}]` : ''} "${text}" ${got.toFixed(2)}:1 (need ${need}) fg ${cs.color} on rgb(${bg.slice(0, 3).map(Math.round).join(',')})`);
+      }
+    }
+    return out.slice(0, 10);
+  }, scope ?? null);
 }
