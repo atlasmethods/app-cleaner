@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 export interface AuditResult {
   /** Visible elements that extend past the viewport (clipped content or a horizontal scrollbar). */
@@ -123,4 +123,54 @@ export function auditProblems(a: AuditResult): string[] {
   for (const x of a.unnamed) out.push(`no accessible name: ${x}`);
   for (const x of a.unlabeled) out.push(`form control without a label: ${x}`);
   return out;
+}
+
+/**
+ * Behaviour every open sheet must have: inside the viewport, scrollable (or scrolling its body)
+ * when tall, focus moves in and is trapped, the page behind cannot scroll, Escape closes it and
+ * focus returns to the control that opened it. `opener` is that control's locator.
+ */
+export async function checkSheet(page: Page, opener: Locator): Promise<void> {
+  const { expect } = await import('@playwright/test');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  const vp = page.viewportSize()!;
+  const box = (await dialog.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(-0.5);
+  expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 0.5);
+  expect(box.y).toBeGreaterThanOrEqual(-0.5);
+  expect(box.y + box.height).toBeLessThanOrEqual(vp.height + 0.5);
+  expect(auditProblems(await auditPage(page, '[role="dialog"]')).filter((p) => !p.startsWith('document scrolls'))).toEqual([]);
+
+  const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
+  expect(await inside(), 'focus starts inside the dialog').toBe(true);
+  for (let i = 0; i < 25; i++) {
+    await page.keyboard.press('Tab');
+    expect(await inside(), `focus stays inside after Tab #${i + 1}`).toBe(true);
+  }
+  await page.keyboard.press('Shift+Tab');
+  expect(await inside(), 'focus stays inside after Shift+Tab').toBe(true);
+
+  // Background: the page's scroller is locked and a wheel over the backdrop does nothing.
+  const locked = await page.evaluate(() => getComputedStyle(document.querySelector('[data-scroll-root]')!).overflowY);
+  expect(locked).toBe('hidden');
+  const before = await page.evaluate(() => document.querySelector('[data-scroll-root]')!.scrollTop);
+  await page.mouse.move(vp.width / 2, 4);
+  await page.mouse.wheel(0, 400);
+  expect(await page.evaluate(() => document.querySelector('[data-scroll-root]')!.scrollTop)).toBe(before);
+
+  // A body taller than the sheet scrolls inside it.
+  const scrolls = await dialog.evaluate((d) => {
+    const el = [d, ...Array.from(d.querySelectorAll<HTMLElement>('*'))].find(
+      (x) => ['auto', 'scroll'].includes(getComputedStyle(x).overflowY) && x.scrollHeight > x.clientHeight + 1,
+    );
+    if (!el) return 'fits';
+    el.scrollTop = 10_000;
+    return el.scrollTop > 0 ? 'scrolls' : 'stuck';
+  });
+  expect(['fits', 'scrolls']).toContain(scrolls);
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
 }

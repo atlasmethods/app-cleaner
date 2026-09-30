@@ -40,7 +40,15 @@ export async function callApi<T = unknown>(server: ServerInfo, method: string, p
   return last.value as T;
 }
 
-async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<void> }> {
+export interface StartedServer {
+  info: ServerInfo;
+  stop: () => Promise<void>;
+  /** The server process (for tests that watch it exit). */
+  child: ChildProcess;
+}
+
+/** Start a sandboxed `clearsweep ui`; `args` replaces the default `--no-exit-on-idle`. */
+export async function startServer(args: string[] = ['--no-exit-on-idle']): Promise<StartedServer> {
   // Everything the app could touch lives in a throwaway directory.
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'clearsweep-e2e-'));
   const empty = path.join(tmp, 'empty-path');
@@ -62,7 +70,7 @@ async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<vo
 
   const child: ChildProcess = spawn(
     bin,
-    ['ui', '--no-open', '--no-exit-on-idle', '--port', '0', '--print-url'],
+    ['ui', '--no-open', ...args, '--port', '0', '--print-url'],
     { env: { ...process.env, ...sandboxEnv }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
 
@@ -98,7 +106,7 @@ async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<vo
     }
     rmSync(tmp, { recursive: true, force: true });
   };
-  return { info, stop };
+  return { info, stop, child };
 }
 
 /** Where things live inside the fake machine (Linux layout). */
