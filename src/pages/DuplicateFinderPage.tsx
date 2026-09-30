@@ -219,7 +219,7 @@ export default function DuplicateFinderPage() {
                 onClick={() => setAutoOpen(true)}
                 disabled={busy}
                 data-testid="btn-dup-auto"
-                className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
+                className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
               >
                 <Wand2 size={15} aria-hidden /> Auto select
               </button>
@@ -228,7 +228,7 @@ export default function DuplicateFinderPage() {
                 onClick={() => setExportOpen(true)}
                 disabled={busy}
                 data-testid="btn-dup-export"
-                className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
+                className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
               >
                 <Download size={15} aria-hidden /> Export
               </button>
@@ -281,7 +281,7 @@ export default function DuplicateFinderPage() {
                 onClick={() => setConfirm(true)}
                 disabled={!deletable || busy}
                 data-testid="btn-dup-delete"
-                className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+                className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Trash2 size={16} aria-hidden />}
                 <span className="truncate">

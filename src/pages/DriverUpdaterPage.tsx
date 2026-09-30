@@ -104,7 +104,7 @@ export default function DriverUpdaterPage() {
             type="button"
             onClick={() => active.cancel()}
             data-testid="btn-cancel"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
           >
             Cancel
           </button>
@@ -187,7 +187,7 @@ export default function DriverUpdaterPage() {
                       </span>
                       <span className="rounded bg-surface-2 px-1 text-[11px] text-muted">{driverSourceLabel(d.source)}</span>
                       {d.rebootRequired && (
-                        <span className="rounded bg-warn/15 px-1 text-[11px] text-warn" data-testid="driver-reboot">
+                        <span className="rounded bg-warn/10 px-1 text-[11px] text-warn" data-testid="driver-reboot">
                           Restart needed
                         </span>
                       )}

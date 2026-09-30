@@ -64,7 +64,7 @@ export function BackupsView({ onBack }: Props) {
         type="button"
         onClick={onBack}
         data-testid="backups-back"
-        className="flex h-9 w-fit items-center gap-1 rounded-xl border border-line bg-surface-2 px-3 text-sm"
+        className="flex h-10 w-fit items-center gap-1 rounded-xl border border-line bg-surface-2 px-3 text-sm"
       >
         <ArrowLeft size={14} aria-hidden /> Back
       </button>
@@ -108,7 +108,7 @@ export function BackupsView({ onBack }: Props) {
                     disabled={busy}
                     onClick={() => setPending({ kind: 'restore', backup: b })}
                     data-testid={`backup-restore-${b.id}`}
-                    className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
+                    className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
                   >
                     <RotateCcw size={14} aria-hidden /> Restore
                   </button>
@@ -117,7 +117,7 @@ export function BackupsView({ onBack }: Props) {
                     disabled={busy}
                     onClick={() => setPending({ kind: 'delete', backup: b })}
                     data-testid={`backup-delete-${b.id}`}
-                    className="flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm text-danger disabled:opacity-50"
+                    className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm text-danger disabled:opacity-50"
                   >
                     <Trash2 size={14} aria-hidden /> Delete
                   </button>

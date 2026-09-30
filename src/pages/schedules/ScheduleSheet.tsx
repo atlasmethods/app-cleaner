@@ -134,7 +134,7 @@ export function ScheduleSheet({ editing, others, onClose, onSaved }: Props) {
                   set({ weekdays: on ? draft.weekdays.filter((d) => d !== day) : [...draft.weekdays, day] })
                 }
                 data-testid={`schedule-weekday-${day}`}
-                className={`h-9 min-w-10 rounded-full border px-2 text-xs font-medium ${
+                className={`h-10 min-w-10 rounded-full border px-2 text-xs font-medium ${
                   on ? 'border-accent bg-accent/10 text-accent-strong' : 'border-line bg-surface-2'
                 }`}
               >
@@ -197,7 +197,7 @@ export function ScheduleSheet({ editing, others, onClose, onSaved }: Props) {
 
       <fieldset className="m-0 min-w-0 border-0 p-0 text-sm">
         <legend className="mb-1 p-0 font-medium">What to clean</legend>
-        <label className="flex min-h-9 items-center gap-2">
+        <label className="flex min-h-10 items-center gap-2">
           <input
             type="radio"
             name="schedule-what"
@@ -207,7 +207,7 @@ export function ScheduleSheet({ editing, others, onClose, onSaved }: Props) {
           />
           <span className="min-w-0 break-words">The items selected on the Clean page</span>
         </label>
-        <label className="flex min-h-9 items-center gap-2">
+        <label className="flex min-h-10 items-center gap-2">
           <input
             type="radio"
             name="schedule-what"
@@ -224,7 +224,7 @@ export function ScheduleSheet({ editing, others, onClose, onSaved }: Props) {
               const n = g.rules.filter((r) => selected.has(r.id)).length;
               return (
                 <li key={g.group}>
-                  <label className="flex min-h-9 min-w-0 items-center gap-2">
+                  <label className="flex min-h-10 min-w-0 items-center gap-2">
                     <Checkbox
                       checked={n === g.rules.length}
                       indeterminate={n > 0 && n < g.rules.length}

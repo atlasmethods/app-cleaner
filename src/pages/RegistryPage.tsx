@@ -134,7 +134,7 @@ export default function RegistryPage() {
         <div className="mb-2 flex gap-3 text-xs">
           <button
             type="button"
-            className="border-0 bg-transparent p-0 text-accent underline"
+            className="min-h-10 min-w-10 border-0 bg-transparent px-2 text-accent underline"
             onClick={() => setChosen(new Set(categories.map((c) => c.id)))}
             data-testid="registry-cats-all"
           >
@@ -142,7 +142,7 @@ export default function RegistryPage() {
           </button>
           <button
             type="button"
-            className="border-0 bg-transparent p-0 text-accent underline"
+            className="min-h-10 min-w-10 border-0 bg-transparent px-2 text-accent underline"
             onClick={() => setChosen(new Set())}
             data-testid="registry-cats-none"
           >
@@ -152,7 +152,7 @@ export default function RegistryPage() {
         <ul className="m-0 grid list-none grid-cols-1 gap-1 p-0">
           {categories.map((c) => (
             <li key={c.id}>
-              <label className="flex min-h-9 cursor-pointer items-center gap-2">
+              <label className="flex min-h-10 cursor-pointer items-center gap-2">
                 <Checkbox
                   checked={chosen.has(c.id)}
                   onChange={() => toggleCategory(c.id)}
@@ -218,7 +218,7 @@ export default function RegistryPage() {
                 onClick={() => setConfirmRestore(true)}
                 disabled={running}
                 data-testid="registry-restore-backup"
-                className="flex h-9 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
+                className="flex h-10 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm disabled:opacity-50"
               >
                 <RotateCcw size={14} aria-hidden /> Restore backup
               </button>
@@ -245,7 +245,7 @@ export default function RegistryPage() {
       {allIssues.length > 0 && (
         <>
           <div className="flex items-center justify-between gap-2" data-testid="registry-results">
-            <label className="flex min-h-9 items-center gap-2 text-sm">
+            <label className="flex min-h-10 items-center gap-2 text-sm">
               <Checkbox
                 checked={allSelected}
                 indeterminate={selected.size > 0 && !allSelected}
@@ -274,7 +274,7 @@ export default function RegistryPage() {
         type="button"
         onClick={() => setView('backups')}
         data-testid="registry-open-backups"
-        className="mt-auto flex h-9 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm"
+        className="mt-auto flex h-10 items-center justify-center gap-1 rounded-xl border border-line bg-surface-2 text-sm"
       >
         <Archive size={14} aria-hidden /> Backups
       </button>

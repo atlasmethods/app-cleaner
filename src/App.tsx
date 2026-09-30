@@ -1,6 +1,9 @@
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { useSyncExternalStore } from 'react';
+import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { isAuthRequired, subscribeAuth } from './lib/transport';
 import { TOOLS } from './nav';
+import AuthRequiredPage from './pages/AuthRequiredPage';
 import BrowserPluginsPage from './pages/BrowserPluginsPage';
 import CleanHistoryPage from './pages/CleanHistoryPage';
 import CleanPage from './pages/CleanPage';
@@ -9,7 +12,9 @@ import DiskAnalyzerPage from './pages/DiskAnalyzerPage';
 import DriveWiperPage from './pages/DriveWiperPage';
 import DriverUpdaterPage from './pages/DriverUpdaterPage';
 import DuplicateFinderPage from './pages/DuplicateFinderPage';
+import FileShredderPage from './pages/FileShredderPage';
 import HomePage from './pages/HomePage';
+import NotFoundPage from './pages/NotFoundPage';
 import PerformancePage from './pages/PerformancePage';
 import RegistryPage from './pages/RegistryPage';
 import SchedulesPage from './pages/SchedulesPage';
@@ -31,12 +36,15 @@ const toolPages: Record<string, React.ComponentType> = {
   duplicates: DuplicateFinderPage,
   restore: SystemRestorePage,
   wiper: DriveWiperPage,
+  shredder: FileShredderPage,
   registry: RegistryPage,
   sysinfo: SysInfoPage,
   cookies: CookiesPage,
 };
 
 export default function App() {
+  const authRequired = useSyncExternalStore(subscribeAuth, isAuthRequired, () => false);
+  if (authRequired) return <AuthRequiredPage />;
   return (
     <HashRouter>
       <Routes>
@@ -52,7 +60,7 @@ export default function App() {
           <Route path="performance" element={<PerformancePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/schedules" element={<SchedulesPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </HashRouter>

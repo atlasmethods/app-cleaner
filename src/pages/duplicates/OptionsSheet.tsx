@@ -44,7 +44,7 @@ function PathList({
               onClick={() => onChange(items.filter((x) => x !== p))}
               aria-label={`Remove ${p}`}
               data-testid={`${testId}-remove`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
             >
               <X size={16} aria-hidden />
             </button>

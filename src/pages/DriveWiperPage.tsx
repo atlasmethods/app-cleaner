@@ -23,7 +23,7 @@ function Badge({ children, tone, testId }: { children: string; tone: 'danger' | 
     <span
       data-testid={testId}
       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-        tone === 'danger' ? 'bg-danger/15 text-danger' : 'bg-surface-2 text-muted'
+        tone === 'danger' ? 'bg-danger/10 text-danger' : 'bg-surface-2 text-muted'
       }`}
     >
       {children}
@@ -144,7 +144,7 @@ export default function DriveWiperPage() {
             disabled={running}
             onClick={() => switchMode(m)}
             data-testid={`wiper-mode-${m}`}
-            className={`h-9 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
+            className={`h-10 min-w-0 flex-1 rounded-lg border-0 text-sm font-medium ${
               mode === m ? 'bg-surface shadow-sm' : 'bg-transparent text-muted'
             }`}
           >
@@ -324,7 +324,7 @@ export default function DriveWiperPage() {
           onClick={() => setConfirm(true)}
           disabled={!ready || running}
           data-testid="btn-wiper-start"
-          className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
         >
           {running ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Eraser size={16} aria-hidden />}
           {mode === 'free' ? 'Wipe free space' : 'Wipe entire drive'}

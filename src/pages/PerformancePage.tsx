@@ -193,7 +193,7 @@ export default function PerformancePage() {
                   onClick={() => void doWake([a.appId])}
                   disabled={busy}
                   data-testid={`perf-wake-${a.appId}`}
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-sm font-medium disabled:opacity-50"
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-sm font-medium disabled:opacity-50"
                 >
                   <Sun size={14} aria-hidden /> Wake
                 </button>

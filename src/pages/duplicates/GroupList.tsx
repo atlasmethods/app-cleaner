@@ -69,7 +69,7 @@ export function GroupList({ groups, selected, onChange }: Props) {
                       aria-label={`Keep only ${name} (${i + 1}) and select the other copies`}
                       title="Keep only this one"
                       data-testid="dup-keep-only"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
                     >
                       <Pin size={15} className="text-muted" aria-hidden />
                     </button>
@@ -85,7 +85,7 @@ export function GroupList({ groups, selected, onChange }: Props) {
           type="button"
           onClick={() => setShown((n) => n + STEP)}
           data-testid="dup-show-more"
-          className="h-9 rounded-xl border border-line bg-surface-2 text-sm font-medium"
+          className="h-10 rounded-xl border border-line bg-surface-2 text-sm font-medium"
         >
           Show more groups ({groups.length - shown} left)
         </button>

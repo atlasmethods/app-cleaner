@@ -34,7 +34,7 @@ export function ExcludeSection({ settings, patch }: SectionProps) {
                 onClick={() => remove(e.id)}
                 aria-label={`Remove ${e.pattern}`}
                 data-testid={`exclude-remove-${e.id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
               >
                 <X size={16} aria-hidden />
               </button>

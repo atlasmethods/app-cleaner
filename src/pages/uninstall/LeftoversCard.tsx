@@ -56,7 +56,7 @@ export function LeftoversCard({ appName, items, selected, busy, onToggle, onRemo
           onClick={onRemove}
           disabled={busy || selected.size === 0}
           data-testid="btn-remove-leftovers"
-          className="flex h-10 min-w-0 flex-[2] items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+          className="flex h-10 min-w-0 flex-[2] items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
         >
           <Trash2 size={16} aria-hidden /> Remove ({formatBytes(total)})
         </button>

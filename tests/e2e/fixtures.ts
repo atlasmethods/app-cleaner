@@ -40,7 +40,15 @@ export async function callApi<T = unknown>(server: ServerInfo, method: string, p
   return last.value as T;
 }
 
-async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<void> }> {
+export interface StartedServer {
+  info: ServerInfo;
+  stop: () => Promise<void>;
+  /** The server process (for tests that watch it exit). */
+  child: ChildProcess;
+}
+
+/** Start a sandboxed `clearsweep ui`; `args` replaces the default `--no-exit-on-idle`. */
+export async function startServer(args: string[] = ['--no-exit-on-idle']): Promise<StartedServer> {
   // Everything the app could touch lives in a throwaway directory.
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'clearsweep-e2e-'));
   const empty = path.join(tmp, 'empty-path');
@@ -62,7 +70,7 @@ async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<vo
 
   const child: ChildProcess = spawn(
     bin,
-    ['ui', '--no-open', '--no-exit-on-idle', '--port', '0', '--print-url'],
+    ['ui', '--no-open', ...args, '--port', '0', '--print-url'],
     { env: { ...process.env, ...sandboxEnv }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
 
@@ -89,7 +97,7 @@ async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<vo
   const u = new URL(url);
   const info: ServerInfo = { url, origin: u.origin, token: u.searchParams.get('t') ?? '', dir: tmp };
   const stop = async () => {
-    if (child.exitCode === null) {
+    if (child.exitCode === null && child.signalCode === null) {
       const exited = new Promise<void>((r) => child.once('exit', () => r()));
       child.kill('SIGTERM');
       const t = setTimeout(() => child.kill('SIGKILL'), 3000);
@@ -98,7 +106,7 @@ async function startServer(): Promise<{ info: ServerInfo; stop: () => Promise<vo
     }
     rmSync(tmp, { recursive: true, force: true });
   };
-  return { info, stop };
+  return { info, stop, child };
 }
 
 /** Where things live inside the fake machine (Linux layout). */
@@ -107,6 +115,11 @@ export interface Sandbox {
   home: string;
   chromeCache: (profile?: string) => string;
   chromeData: (profile?: string) => string;
+}
+
+interface TestOptions {
+  /** HTTP statuses (and the console line the browser logs for them) that a test expects. */
+  allowHttpStatuses: number[];
 }
 
 interface TestFixtures {
@@ -122,7 +135,9 @@ interface WorkerFixtures {
   server: ServerInfo;
 }
 
-export const test = base.extend<TestFixtures, WorkerFixtures>({
+export const test = base.extend<TestFixtures & TestOptions, WorkerFixtures>({
+  allowHttpStatuses: [[], { option: true }],
+
   server: [
     async ({}, use) => {
       const { info, stop } = await startServer();
@@ -136,14 +151,18 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
 
   consoleErrors: [
-    async ({ page }, use) => {
+    async ({ page, allowHttpStatuses }, use) => {
       const errors: string[] = [];
+      // 0 stands for "the connection itself failed" (net::ERR_*), used when a test stops the server.
+      const allowed = (text: string) =>
+        allowHttpStatuses.some((s) => text.includes(`status of ${s}`)) ||
+        (allowHttpStatuses.includes(0) && text.includes('net::ERR_'));
       page.on('console', (m) => {
-        if (m.type() === 'error') errors.push(`console.error: ${m.text()}`);
+        if (m.type() === 'error' && !allowed(m.text())) errors.push(`console.error: ${m.text()}`);
       });
       page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
       page.on('response', (r) => {
-        if (r.status() >= 400) errors.push(`http ${r.status()}: ${r.url()}`);
+        if (r.status() >= 400 && !allowHttpStatuses.includes(r.status())) errors.push(`http ${r.status()}: ${r.url()}`);
       });
       await use(errors);
       expect(errors, 'no console errors / page errors').toEqual([]);
@@ -165,7 +184,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   app: async ({ page, server, sandbox }, use) => {
     void sandbox; // every test starts on a freshly built machine and default settings
     await page.goto(server.url);
-    await expect(page.getByTestId('tabbar')).toBeVisible();
+    // The tab bar (compact) or the navigation rail (wide) both carry the tab test ids.
+    await expect(page.getByTestId('tab-home')).toBeVisible();
     await use(page);
   },
 });

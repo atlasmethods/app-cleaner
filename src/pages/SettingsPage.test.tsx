@@ -85,6 +85,23 @@ describe('SettingsPage', () => {
     expect(server.theme).toBe('light');
   });
 
+  it('compact mode applies at once, is remembered locally and saved', async () => {
+    const { getCompactMode, _resetLayoutForTests } = await import('../lib/layout');
+    renderPage();
+    const user = userEvent.setup();
+    const sw = await screen.findByTestId('setting-compact-mode');
+    expect(sw).toHaveAttribute('aria-checked', 'false');
+    await user.click(sw);
+    expect(getCompactMode()).toBe(true);
+    expect(window.localStorage.getItem('clearsweep.compact')).toBe('1');
+    await waitFor(() => expect(server.compactMode).toBe(true));
+    expect(api.current.paramsOf('settings.set').at(-1)).toEqual({ compactMode: true });
+    await waitFor(() => expect(screen.getByTestId('setting-compact-mode')).toHaveAttribute('aria-checked', 'true'));
+    await user.click(screen.getByTestId('setting-compact-mode'));
+    expect(getCompactMode()).toBe(false);
+    _resetLayoutForTests();
+  });
+
   it('secure deletion toggle and passes', async () => {
     renderPage();
     const user = userEvent.setup();

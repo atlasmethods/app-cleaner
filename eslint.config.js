@@ -28,7 +28,7 @@ export default tseslint.config(
   },
   {
     // Playwright fixtures destructure `{}` for "no dependencies".
-    files: ['tests/e2e/**/*.ts'],
+    files: ['tests/e2e/**/*.ts', 'scripts/**/*.ts'],
     rules: { 'no-empty-pattern': 'off' },
   },
 );

@@ -4,17 +4,20 @@
  *  - Browser: `POST /api/call` returning an NDJSON stream (progress lines, then exactly
  *    one result or error line), authenticated with the per-launch token.
  */
-import type { ApiErrorBody, ErrorCode, ProgressEvent, WireMessage } from '../api/types';
+import type { ApiErrorBody, ClientErrorCode, ErrorCode, ProgressEvent, WireMessage } from '../api/types';
 
 export interface CallOptions {
   onProgress?: (e: ProgressEvent) => void;
   signal?: AbortSignal;
 }
 
+export const UNREACHABLE_MESSAGE =
+  'The ClearSweep background service is not reachable. It may have been closed or stopped. Start it again (run `clearsweep ui` or reopen the app), then retry.';
+
 /** Error thrown by `call()`; `code` mirrors the Rust `ErrorCode`. */
 export class ApiCallError extends Error {
-  readonly code: ErrorCode;
-  constructor(code: ErrorCode, message: string) {
+  readonly code: ErrorCode | ClientErrorCode;
+  constructor(code: ErrorCode | ClientErrorCode, message: string) {
     super(message);
     this.name = 'ApiCallError';
     this.code = code;
@@ -75,6 +78,33 @@ export function _resetTokenForTests(): void {
   memoryToken = null;
 }
 
+// ---------------------------------------------------------------- auth state
+
+let authRequired = false;
+const authListeners = new Set<() => void>();
+
+/** True once the server rejected our token (missing, stale or from another launch). */
+export function isAuthRequired(): boolean {
+  return authRequired;
+}
+
+export function subscribeAuth(cb: () => void): () => void {
+  authListeners.add(cb);
+  return () => authListeners.delete(cb);
+}
+
+function setAuthRequired(v: boolean): void {
+  if (authRequired === v) return;
+  authRequired = v;
+  authListeners.forEach((l) => l());
+}
+
+/** Test helper. */
+export function _resetAuthForTests(): void {
+  authRequired = false;
+  authListeners.clear();
+}
+
 // ---------------------------------------------------------------- NDJSON
 
 /**
@@ -100,7 +130,15 @@ export async function readNdjson(
     onMessage(parsed as WireMessage);
   };
   for (;;) {
-    const { done, value } = await reader.read();
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch (e) {
+      // A dropped connection surfaces as a TypeError ("network error"); an abort stays an abort.
+      if (e instanceof TypeError) throw new ApiCallError('Unreachable', UNREACHABLE_MESSAGE);
+      throw e;
+    }
+    const { done, value } = chunk;
     if (done) break;
     buf += decoder.decode(value, { stream: true });
     let nl: number;
@@ -135,7 +173,8 @@ export async function consumeCallStream<T>(
         break;
     }
   });
-  if (!outcome) throw new ApiCallError('Internal', 'Connection closed before the call finished');
+  // A stream that ends without a result line means the server went away mid-call.
+  if (!outcome) throw new ApiCallError('Unreachable', `The connection was lost before the call finished. ${UNREACHABLE_MESSAGE}`);
   const o = outcome as { ok: true; value: T } | { ok: false; error: ApiCallError };
   if (o.ok) return o.value;
   throw o.error;
@@ -200,13 +239,21 @@ async function callHttp<T>(callId: string, method: string, params: unknown, opts
   };
   opts.signal?.addEventListener('abort', onAbort, { once: true });
   try {
-    const res = await fetch('/api/call', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ callId, method, params: params ?? null }),
-      signal: controller.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ callId, method, params: params ?? null }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      // fetch() rejects with a TypeError when nothing answers (server stopped, connection refused).
+      if (e instanceof TypeError) throw new ApiCallError('Unreachable', UNREACHABLE_MESSAGE);
+      throw e;
+    }
     if (!res.ok || !res.body) {
+      if (res.status === 401) setAuthRequired(true);
       if (res.status === 401 || res.status === 403) {
         throw new ApiCallError(
           'PermissionDenied',
@@ -230,9 +277,21 @@ async function callHttp<T>(callId: string, method: string, params: unknown, opts
 export function startHeartbeat(intervalMs = 5000): () => void {
   if (isTauri()) return () => undefined;
   const beat = () => {
-    void fetch('/api/heartbeat', { method: 'POST', headers: authHeaders() }).catch(() => undefined);
+    void fetch('/api/heartbeat', { method: 'POST', headers: authHeaders() })
+      .then((r) => {
+        if (r.status === 401) setAuthRequired(true);
+      })
+      .catch(() => undefined);
   };
   beat();
   const id = setInterval(beat, intervalMs);
-  return () => clearInterval(id);
+  // A hidden tab's timers may be throttled to one per minute: beat as soon as it is shown again.
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') beat();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+  return () => {
+    clearInterval(id);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
 }

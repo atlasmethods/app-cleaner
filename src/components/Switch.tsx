@@ -21,7 +21,7 @@ export function Switch({ checked, onChange, ariaLabel, disabled = false, testId 
     >
       <span
         aria-hidden
-        className={`relative block h-6 w-10 rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-line'}`}
+        className={`relative block h-6 w-10 rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-muted'}`}
       >
         <span
           className={`absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition-[left] ${checked ? 'left-[18px]' : 'left-0.5'}`}

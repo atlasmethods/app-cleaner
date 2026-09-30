@@ -158,6 +158,13 @@ export default function CleanPage() {
   const errors = [rules.error, analyze.error, clean.error, settingsError];
   const firstError = errors.find((e) => e !== null) ?? null;
 
+  // The rule list is long: after an analysis or a clean, bring the outcome into view.
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const outcome = report && !analyze.loading ? report : summary && !busy ? summary : null;
+  useEffect(() => {
+    if (outcome) resultsRef.current?.scrollIntoView?.({ block: 'start' });
+  }, [outcome]);
+
   const progress = analyze.loading ? analyze.progress : clean.loading ? clean.progress : null;
 
   return (
@@ -201,13 +208,14 @@ export default function CleanPage() {
             type="button"
             onClick={() => (analyze.loading ? analyze.cancel() : clean.cancel())}
             data-testid="btn-cancel"
-            className="mt-2 h-9 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
+            className="mt-2 h-10 w-full rounded-xl border border-line bg-surface-2 text-sm font-medium"
           >
             Cancel
           </button>
         </Card>
       )}
 
+      <div ref={resultsRef} className="flex min-w-0 flex-col gap-3 scroll-mt-2 empty:hidden" data-testid="clean-results-anchor">
       {report && !analyze.loading && (
         <>
           {stale && (
@@ -227,6 +235,7 @@ export default function CleanPage() {
       )}
 
       {summary && !busy && <CleanSummary report={summary} names={names} />}
+      </div>
 
       <div
         data-testid="action-bar"

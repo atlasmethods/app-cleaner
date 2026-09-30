@@ -2,7 +2,9 @@ import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import type { Theme } from '../../api/settings';
 import { Card } from '../../components/Card';
 import { t } from '../../i18n';
+import { setCompactMode } from '../../lib/layout';
 import { applyTheme } from '../../lib/theme';
+import { SwitchRow } from './SwitchRow';
 import type { SectionProps } from './types';
 
 const THEMES: { id: Theme; label: string; icon: LucideIcon }[] = [
@@ -15,6 +17,10 @@ export function AppearanceSection({ settings, patch }: SectionProps) {
   const choose = (theme: Theme) => {
     applyTheme(theme); // immediate; the server copy makes it survive restarts
     void patch({ theme });
+  };
+  const chooseCompact = (compactMode: boolean) => {
+    setCompactMode(compactMode); // immediate; the server copy makes it survive restarts
+    void patch({ compactMode });
   };
   return (
     <Card title={t('settings.appearance')} testId="settings-appearance">
@@ -38,6 +44,15 @@ export function AppearanceSection({ settings, patch }: SectionProps) {
             </button>
           );
         })}
+      </div>
+      <div className="mt-3">
+        <SwitchRow
+          label="Compact mode"
+          hint="Always use the phone-sized layout with the bottom tab bar, even in a wide window. Off: the layout follows the window width."
+          checked={settings.compactMode === true}
+          onChange={chooseCompact}
+          testId="setting-compact-mode"
+        />
       </div>
     </Card>
   );

@@ -141,7 +141,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
           onClick={onBack}
           aria-label="Back"
           data-testid="disk-files-back"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2"
         >
           <ChevronLeft size={18} aria-hidden />
         </button>
@@ -162,7 +162,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
           value={sort}
           onChange={(e) => changeSort(e.target.value as FileSort)}
           data-testid="disk-sort"
-          className="h-9 shrink-0 rounded-xl border border-line bg-surface-2 px-2 text-sm"
+          className="h-10 shrink-0 rounded-xl border border-line bg-surface-2 px-2 text-sm"
         >
           <option value="size">Size</option>
           <option value="name">Name</option>
@@ -237,7 +237,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
                 onClick={() => void openFolder(r.path)}
                 aria-label={`Show ${r.name} in its folder`}
                 data-testid={`disk-open-${r.name}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-0 bg-transparent"
               >
                 <FolderOpen size={17} className="text-muted" aria-hidden />
               </button>
@@ -261,7 +261,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
           type="button"
           onClick={() => void loadMore()}
           data-testid="disk-load-more"
-          className="h-9 rounded-xl border border-line bg-surface-2 text-sm font-medium"
+          className="h-10 rounded-xl border border-line bg-surface-2 text-sm font-medium"
         >
           Load more ({total - rows.length} left)
         </button>
@@ -274,7 +274,7 @@ export function FileList({ scanId, filter, title, onBack, onDeleted }: Props) {
             onClick={() => setConfirm(true)}
             disabled={busy}
             data-testid="btn-disk-delete"
-            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-white disabled:opacity-50"
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border-0 bg-danger text-sm font-semibold text-danger-fg disabled:opacity-50"
           >
             {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Trash2 size={16} aria-hidden />}
             Delete {selected.size} {selected.size === 1 ? 'file' : 'files'} ({formatBytes(selectedBytes)})

@@ -17,7 +17,7 @@ function Badge({ children, tone }: { children: string; tone: 'warn' | 'muted' })
   return (
     <span
       className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-        tone === 'warn' ? 'bg-warn/15 text-warn' : 'bg-surface-2 text-muted'
+        tone === 'warn' ? 'bg-warn/10 text-warn' : 'bg-surface-2 text-muted'
       }`}
     >
       {children}
@@ -66,7 +66,7 @@ export function IssueGroups({ groups, selected, onChange, disabled }: Props) {
                   type="button"
                   onClick={() => setLimits((l) => ({ ...l, [category.id]: limit + 200 }))}
                   data-testid={`registry-more-${category.id}`}
-                  className="h-9 w-full rounded-xl border border-line bg-surface-2 text-sm"
+                  className="h-10 w-full rounded-xl border border-line bg-surface-2 text-sm"
                 >
                   Show more ({issues.length - limit})
                 </button>

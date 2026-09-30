@@ -53,7 +53,7 @@ export function IncludeSection({ settings, patch }: SectionProps) {
                 onClick={() => remove(e.id)}
                 aria-label={`Remove ${e.path}`}
                 data-testid={`include-remove-${e.id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-0 bg-transparent"
               >
                 <X size={16} aria-hidden />
               </button>
@@ -78,11 +78,11 @@ export function IncludeSection({ settings, patch }: SectionProps) {
           data-testid="include-mask"
           className={inputClass}
         />
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-10 items-center gap-2 text-sm">
           <Checkbox checked={recursive} onChange={setRecursive} testId="include-recursive" />
           Include subfolders
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-10 items-center gap-2 text-sm">
           <Checkbox checked={emptyDirs} onChange={setEmptyDirs} testId="include-empty-dirs" />
           Remove empty folders afterwards
         </label>

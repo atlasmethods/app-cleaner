@@ -54,7 +54,7 @@ impl Default for ServeOptions {
             token: generate_token(),
             exit_on_idle: true,
             dist_override: None,
-            idle_timeout: Duration::from_secs(30),
+            idle_timeout: Duration::from_secs(90),
             ctx: None,
         }
     }

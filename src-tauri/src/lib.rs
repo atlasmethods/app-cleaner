@@ -6,11 +6,17 @@
 //! - `--hidden` starts minimised to the tray (for users who autostart the desktop app; the
 //!   built-in "Run at startup" setting launches the headless `agent` instead, see
 //!   `sweep_core::autostart`). Without a working tray the window is always shown.
+//! - Without a usable display / WebView (no `DISPLAY` or `WAYLAND_DISPLAY` on Linux, or the window
+//!   cannot be created) the app falls back to browser mode: it starts the local web server and
+//!   opens the default browser, exactly like `clearsweep ui`. `CLEARSWEEP_BROWSER=1` or `--browser`
+//!   forces that. (A WebView library that is not installed at all stops the executable in the
+//!   dynamic linker before any code runs; that case cannot be caught here.)
 //! - The in-process agent only starts when no other agent (for example the headless one from
 //!   autostart) holds the lock.
 
 use serde_json::Value;
 use std::collections::HashMap;
+use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use sweep_cli::notify::DesktopNotifier;
@@ -209,54 +215,89 @@ fn start_agent(ctx: Arc<Ctx>, stop: Arc<AtomicBool>) {
     });
 }
 
-pub fn run() {
+/// True when a desktop window cannot possibly be shown, so the browser fallback is used at once.
+fn force_browser() -> bool {
+    let forced = std::env::var_os("CLEARSWEEP_BROWSER").is_some_and(|v| !v.is_empty() && v != "0")
+        || std::env::args().any(|a| a == "--browser");
+    #[cfg(target_os = "linux")]
+    let no_display = std::env::var_os("DISPLAY").is_none_or(|v| v.is_empty())
+        && std::env::var_os("WAYLAND_DISPLAY").is_none_or(|v| v.is_empty());
+    #[cfg(not(target_os = "linux"))]
+    let no_display = false;
+    forced || no_display
+}
+
+/// Browser mode: the same as `clearsweep ui`. A hidden (autostart) launch has nobody to show a
+/// browser to, so it just ends.
+fn run_browser_fallback(reason: &str, hidden: bool) -> ExitCode {
+    eprintln!("clearsweep: no desktop window available ({reason}); using browser mode");
+    if hidden {
+        return ExitCode::SUCCESS;
+    }
+    sweep_cli::run(["clearsweep", "ui"].map(std::ffi::OsString::from))
+}
+
+pub fn run() -> ExitCode {
     let hidden = std::env::args().any(|a| a == "--hidden");
+    if force_browser() {
+        return run_browser_fallback("no display or browser mode requested", hidden);
+    }
     let agent_stop = Arc::new(AtomicBool::new(false));
-    let app = tauri::Builder::default()
-        .manage(AppState {
-            ctx: Arc::new(Ctx::system()),
-            calls: Mutex::new(HashMap::new()),
-            tray_ok: AtomicBool::new(false),
-            agent_stop: agent_stop.clone(),
-            smart_item: Mutex::new(None),
-            cleaning: AtomicBool::new(false),
-        })
-        .invoke_handler(tauri::generate_handler![api_call, api_cancel])
-        .on_window_event(|window, event| {
-            let app = window.app_handle();
-            match event {
-                WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
-                    let state = app.state::<AppState>();
-                    if state.tray_ok.load(Ordering::SeqCst)
-                        && settings::load(&state.ctx).close_to_tray
-                    {
-                        api.prevent_close();
-                        let _ = window.hide();
+    // Window-system initialisation failures panic inside tao/gtk instead of returning an error,
+    // so catch both kinds and fall back to the browser.
+    let built = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        tauri::Builder::default()
+            .manage(AppState {
+                ctx: Arc::new(Ctx::system()),
+                calls: Mutex::new(HashMap::new()),
+                tray_ok: AtomicBool::new(false),
+                agent_stop: agent_stop.clone(),
+                smart_item: Mutex::new(None),
+                cleaning: AtomicBool::new(false),
+            })
+            .invoke_handler(tauri::generate_handler![api_call, api_cancel])
+            .on_window_event(|window, event| {
+                let app = window.app_handle();
+                match event {
+                    WindowEvent::CloseRequested { api, .. } if window.label() == "main" => {
+                        let state = app.state::<AppState>();
+                        if state.tray_ok.load(Ordering::SeqCst)
+                            && settings::load(&state.ctx).close_to_tray
+                        {
+                            api.prevent_close();
+                            let _ = window.hide();
+                        }
                     }
+                    WindowEvent::Focused(true) => refresh_smart_item(app),
+                    _ => {}
                 }
-                WindowEvent::Focused(true) => refresh_smart_item(app),
-                _ => {}
-            }
-        })
-        .setup(move |app| {
-            let state = app.state::<AppState>();
-            // A missing tray host (e.g. minimal Linux desktops) must not stop the app.
-            match build_tray(app.handle()) {
-                Ok(()) => state.tray_ok.store(true, Ordering::SeqCst),
-                Err(e) => eprintln!("clearsweep: tray icon unavailable: {e}"),
-            }
-            // The window starts hidden (tauri.conf.json) so `--hidden` never flashes it.
-            if !(hidden && state.tray_ok.load(Ordering::SeqCst)) {
-                show_main_window(app.handle());
-            }
-            start_agent(state.ctx.clone(), state.agent_stop.clone());
-            Ok(())
-        })
-        .build(tauri::generate_context!())
-        .expect("error while building ClearSweep");
-    app.run(move |_app, event| {
-        if let RunEvent::Exit = event {
-            agent_stop.store(true, Ordering::SeqCst);
+            })
+            .setup(move |app| {
+                let state = app.state::<AppState>();
+                // A missing tray host (e.g. minimal Linux desktops) must not stop the app.
+                match build_tray(app.handle()) {
+                    Ok(()) => state.tray_ok.store(true, Ordering::SeqCst),
+                    Err(e) => eprintln!("clearsweep: tray icon unavailable: {e}"),
+                }
+                // The window starts hidden (tauri.conf.json) so `--hidden` never flashes it.
+                if !(hidden && state.tray_ok.load(Ordering::SeqCst)) {
+                    show_main_window(app.handle());
+                }
+                start_agent(state.ctx.clone(), state.agent_stop.clone());
+                Ok(())
+            })
+            .build(tauri::generate_context!())
+    }));
+    match built {
+        Ok(Ok(app)) => {
+            app.run(move |_app, event| {
+                if let RunEvent::Exit = event {
+                    agent_stop.store(true, Ordering::SeqCst);
+                }
+            });
+            ExitCode::SUCCESS
         }
-    });
+        Ok(Err(e)) => run_browser_fallback(&e.to_string(), hidden),
+        Err(_) => run_browser_fallback("the window system could not be initialised", hidden),
+    }
 }

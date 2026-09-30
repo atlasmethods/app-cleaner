@@ -1,4 +1,5 @@
 import type { Settings, Theme } from '../api/settings';
+import { setCompactMode } from './layout';
 import { call } from './transport';
 
 const KEY = 'clearsweep.theme';
@@ -20,8 +21,8 @@ export function applyTheme(theme: Theme): void {
 }
 
 /**
- * Apply the last known theme synchronously (no flash), then confirm it against the
- * persisted setting. Never throws: theming must not break app start-up.
+ * Apply the last known theme (and layout preference) synchronously (no flash), then confirm
+ * them against the persisted settings. Never throws: theming must not break app start-up.
  */
 export function initTheme(): void {
   try {
@@ -33,6 +34,7 @@ export function initTheme(): void {
   void call<Settings>('settings.get')
     .then((s) => {
       if (isTheme(s.theme)) applyTheme(s.theme);
+      setCompactMode(s.compactMode === true);
     })
     .catch(() => undefined);
 }

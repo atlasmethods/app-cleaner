@@ -163,7 +163,7 @@ export default function StartupPage() {
               onClick={() => setKind(k.kind)}
               aria-pressed={activeKind === k.kind}
               data-testid={`chip-${k.kind}`}
-              className={`h-8 rounded-full border px-3 text-xs font-medium ${
+              className={`h-10 rounded-full border px-3 text-xs font-medium ${
                 activeKind === k.kind ? 'border-accent bg-accent text-accent-fg' : 'border-line bg-surface-2'
               }`}
             >
@@ -173,7 +173,7 @@ export default function StartupPage() {
         </div>
       )}
 
-      <label className="flex items-center gap-1.5 text-xs">
+      <label className="flex min-h-10 items-center gap-1.5 text-xs">
         <Checkbox
           checked={showSystem}
           onChange={setShowSystem}
@@ -250,7 +250,7 @@ export default function StartupPage() {
                     disabled={busyId !== null}
                     aria-label={`More for ${i.name}`}
                     data-testid={`startup-menu-${i.id}`}
-                    className="flex h-11 w-9 shrink-0 items-center justify-center border-0 bg-transparent p-0 disabled:opacity-50"
+                    className="flex h-11 w-10 shrink-0 items-center justify-center border-0 bg-transparent p-0 disabled:opacity-50"
                   >
                     <EllipsisVertical size={18} aria-hidden />
                   </button>
@@ -290,7 +290,7 @@ export default function StartupPage() {
                   setPending({ kind: 'delete', item });
                 }}
                 data-testid="startup-action-delete"
-                className="flex h-11 w-full items-center gap-2 rounded-xl border-0 bg-danger px-3 text-left text-sm font-medium text-white"
+                className="flex h-11 w-full items-center gap-2 rounded-xl border-0 bg-danger px-3 text-left text-sm font-medium text-danger-fg"
               >
                 <Trash2 size={16} aria-hidden /> Delete
               </button>

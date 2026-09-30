@@ -99,7 +99,7 @@ export function SmartCleaningSection({ settings, patch }: SectionProps) {
                   aria-pressed={on}
                   onClick={() => pickPreset(mb)}
                   data-testid={`smart-threshold-${mb}`}
-                  className={`h-9 rounded-full border px-3 text-xs font-medium ${
+                  className={`h-10 rounded-full border px-3 text-xs font-medium ${
                     on ? 'border-accent bg-accent/10 text-accent-strong' : 'border-line bg-surface-2'
                   }`}
                 >
@@ -154,7 +154,7 @@ export function SmartCleaningSection({ settings, patch }: SectionProps) {
             <ul className="m-0 flex list-none flex-col gap-1 p-0">
               {browsers.map((b) => (
                 <li key={b}>
-                  <label className="flex min-h-9 min-w-0 items-center gap-2">
+                  <label className="flex min-h-10 min-w-0 items-center gap-2">
                     <Checkbox
                       checked={smart.cleanOnBrowserClose.includes(b)}
                       onChange={(on) => toggleBrowser(b, on)}
