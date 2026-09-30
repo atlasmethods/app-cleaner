@@ -125,6 +125,8 @@ pub enum Source {
     Auto,
     Smart,
     Scheduled,
+    /// The Health Check's one-click fix.
+    Health,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

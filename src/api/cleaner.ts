@@ -93,7 +93,7 @@ export interface CleanParams {
   closeApps?: CloseBrowsers;
 }
 
-export type HistorySource = 'manual' | 'auto' | 'smart' | 'scheduled';
+export type HistorySource = 'manual' | 'auto' | 'smart' | 'scheduled' | 'health';
 
 export interface HistoryEntry {
   id: string;

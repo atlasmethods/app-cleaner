@@ -12,6 +12,7 @@ const SOURCE_LABEL: Record<HistorySource, string> = {
   auto: 'Automatic',
   smart: 'Smart cleaning',
   scheduled: 'Scheduled',
+  health: 'Health check',
 };
 
 export default function CleanHistoryPage() {
