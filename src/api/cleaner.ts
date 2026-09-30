@@ -54,6 +54,8 @@ export interface AnalyzeItem {
   appRunning: boolean;
   errors: PathErr[];
   actions: string[];
+  /** Temp folders / files left alone because a program still uses them (not an error). */
+  inUseSkipped?: number;
 }
 
 export interface AnalyzeReport {
@@ -76,6 +78,8 @@ export interface RuleClean {
   actions: string[];
   runningApps: string[];
   closedApps: string[];
+  /** Temp folders / files left alone because a program still uses them (not an error). */
+  inUseSkipped?: number;
 }
 
 export interface CleanReport {

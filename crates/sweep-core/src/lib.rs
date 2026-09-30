@@ -14,6 +14,7 @@ pub mod exe;
 #[cfg(test)]
 pub(crate) mod fakesys;
 pub mod features;
+pub mod fileuse;
 pub mod fsutil;
 pub mod job;
 pub mod osjobs;

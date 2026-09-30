@@ -83,7 +83,7 @@ group = "System"
 category = "system"
 os = ["macos"]
 defaultEnabled = true
-description = "Files in your temporary folder that you own and that are older than the minimum age set in Settings."
+description = "Files in your temporary folder that you own and that are older than the minimum age set in Settings. Anything still in use (recently read or changed, open in a program, or inside a folder that is) is left alone."
 
 [[rule.targets]]
 kind = "files"

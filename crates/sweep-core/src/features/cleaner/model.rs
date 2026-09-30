@@ -64,6 +64,9 @@ pub struct AnalyzeItem {
     pub app_running: bool,
     pub errors: Vec<PathErr>,
     pub actions: Vec<String>,
+    /// Temp folders / files left alone because a program still uses them (not an error).
+    #[serde(default)]
+    pub in_use_skipped: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -101,6 +104,9 @@ pub struct RuleClean {
     pub running_apps: Vec<String>,
     /// Apps that were asked to close (and did) before cleaning.
     pub closed_apps: Vec<String>,
+    /// Temp folders / files left alone because a program still uses them (not an error).
+    #[serde(default)]
+    pub in_use_skipped: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

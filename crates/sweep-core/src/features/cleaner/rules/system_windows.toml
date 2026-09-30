@@ -7,7 +7,7 @@ group = "System"
 category = "system"
 os = ["windows"]
 defaultEnabled = true
-description = "Files in your temp folder and in C:\\Windows\\Temp older than the minimum age set in Settings. Files in use are skipped and reported."
+description = "Files in your temp folder and in C:\\Windows\\Temp older than the minimum age set in Settings. Anything still in use (recently read or changed, open in a program, or inside a folder that is) is left alone. Files in use are skipped and reported."
 
 [[rule.targets]]
 kind = "files"

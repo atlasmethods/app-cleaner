@@ -128,7 +128,7 @@ export async function startFakeMachine(): Promise<FakeMachine> {
   writeFileSync(path.join(state, 'log.txt'), '');
 
   const child: ChildProcess = spawn(bin, ['ui', '--no-open', '--no-exit-on-idle', '--port', '0', '--print-url'], {
-    env: { ...process.env, ...dirs, PATH: fakeBin, FAKE_STATE: state, CLEARSWEEP_FAKE_PROCESSES: '' },
+    env: { ...process.env, ...dirs, PATH: fakeBin, FAKE_STATE: state, CLEARSWEEP_FAKE_PROCESSES: '', CLEARSWEEP_TEST_IGNORE_CTIME: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let stderr = '';

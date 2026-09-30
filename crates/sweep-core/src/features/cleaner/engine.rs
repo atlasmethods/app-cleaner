@@ -3,8 +3,9 @@
 //! guarantees that a clean removes exactly what the preceding analysis reported.
 
 use globset::{Glob, GlobBuilder, GlobMatcher, GlobSet, GlobSetBuilder};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime};
 use walkdir::WalkDir;
 
@@ -20,6 +21,7 @@ use crate::features::cleaner::rules::{
 use crate::features::cleaner::sqlite::{self, CookieSelect, DbError};
 use crate::features::cleaner::template;
 use crate::features::settings::Settings;
+use crate::fileuse::{is_idle, FileUse, OpenFiles};
 use crate::job::Job;
 use crate::safety::{io_message, SafeDeleter, Safety};
 
@@ -48,6 +50,9 @@ pub struct Engine<'a> {
     pub mode: Mode,
     /// Overwrite files before deleting (Clean mode only).
     pub secure_passes: Option<u32>,
+    /// Files open by running programs, read at most once per run and only by rules that
+    /// use the temp age (see [`Engine::open_files`]).
+    pub open: OnceLock<OpenFiles>,
 }
 
 /// Accumulated result of running all targets of one rule.
@@ -66,6 +71,9 @@ pub struct Outcome {
     pub unsupported: u64,
     /// Targets that did real work or found something to do (used for `skipped` decisions).
     pub touched: u64,
+    /// Temp-folder items (whole top-level folders, or single files) left alone because a
+    /// program still uses them. Informational, not an error.
+    pub in_use_skipped: u64,
     /// Paths already accepted by an earlier target of the same rule (overlap guard, so
     /// nothing is counted or deleted twice).
     seen: std::collections::HashSet<PathBuf>,
@@ -161,6 +169,17 @@ impl Engine<'_> {
                 .min_age_from_settings
                 .then_some(self.settings.temp_min_age_hours))
             .map(|h| Duration::from_secs(u64::from(h) * 3600));
+        // Rules that use the settings temp age get the in-use protections on top of the age
+        // filter: newest-of-all-timestamps file age, whole-tree activity guard, open files.
+        let guarded = t.min_age_from_settings && min_age.is_some();
+        let fu: &dyn FileUse = self.ctx.file_use.as_ref();
+        let open: Option<&OpenFiles> = guarded.then(|| self.open_files());
+        let age = Filter {
+            min_age,
+            owned_by_user: t.owned_by_user,
+            now: self.now,
+            guard: open.map(|o| (fu, o)),
+        };
 
         for base in self.bases(t, out) {
             job.check_cancelled()?;
@@ -173,15 +192,23 @@ impl Engine<'_> {
             };
             let mut cands: Vec<(PathBuf, u64)> = Vec::new();
             let mut dirs: Vec<PathBuf> = Vec::new();
+            let busy = if guarded {
+                self.busy_trees(&base, &skip, &age, job, out)?
+            } else {
+                HashSet::new()
+            };
             let walker = WalkDir::new(&base)
                 .follow_links(false)
                 .same_file_system(true)
                 .min_depth(1)
                 .max_depth(if t.recursive { usize::MAX } else { 1 });
             let excludes = &self.safety.excludes;
-            let entries = walker
-                .into_iter()
-                .filter_entry(|e| !skip.is_match(e.file_name()) && !excludes.is_excluded(e.path()));
+            let entries = walker.into_iter().filter_entry(|e| {
+                let hidden = skip.is_match(e.file_name())
+                    || excludes.is_excluded(e.path())
+                    || (e.depth() == 1 && busy.contains(e.path()));
+                !hidden
+            });
             for entry in entries {
                 if cands.len() & 1023 == 0 {
                     job.check_cancelled()?;
@@ -201,9 +228,7 @@ impl Engine<'_> {
                 let ft = entry.file_type();
                 let Ok(meta) = entry.metadata() else { continue };
                 if ft.is_dir() {
-                    if t.remove_empty_dirs
-                        && filters_pass(&meta, min_age, t.owned_by_user, self.now)
-                    {
+                    if t.remove_empty_dirs && age.pass(&meta, true) {
                         dirs.push(entry.path().to_path_buf());
                     }
                     continue;
@@ -214,7 +239,11 @@ impl Engine<'_> {
                 if !matcher.is_match(entry.file_name()) {
                     continue;
                 }
-                if !filters_pass(&meta, min_age, t.owned_by_user, self.now) {
+                if !age.pass(&meta, false) {
+                    continue;
+                }
+                if open.is_some_and(|o| o.contains(&meta)) {
+                    out.in_use_skipped += 1;
                     continue;
                 }
                 match deleter.check(entry.path()) {
@@ -268,6 +297,81 @@ impl Engine<'_> {
             out.touched += 1;
         }
         Ok(())
+    }
+
+    /// Files open by running programs (Linux `/proc`; empty elsewhere). Built once per run.
+    fn open_files(&self) -> &OpenFiles {
+        self.open
+            .get_or_init(|| self.ctx.file_use.open_files(&self.ctx.env))
+    }
+
+    /// Top-level folders of `base` that must be left alone this run because something inside
+    /// them (or the folder itself) is in use: any timestamp (modified, accessed unless a
+    /// folder, changed) newer than the age threshold, or an open file / working directory.
+    /// A program's live working folder is old by mtime yet actively used, so the whole
+    /// tree is kept or cleaned together. Symbolic links are not followed.
+    fn busy_trees(
+        &self,
+        base: &Path,
+        skip: &GlobSet,
+        f: &Filter,
+        job: &Job,
+        out: &mut Outcome,
+    ) -> Result<HashSet<PathBuf>> {
+        let mut busy = HashSet::new();
+        let (Some(age), Some((fu, open))) = (f.min_age, f.guard) else {
+            return Ok(busy);
+        };
+        let Ok(rd) = std::fs::read_dir(base) else {
+            return Ok(busy);
+        };
+        for entry in rd.flatten() {
+            job.check_cancelled()?;
+            let path = entry.path();
+            let Ok(meta) = std::fs::symlink_metadata(&path) else {
+                continue;
+            };
+            if !meta.is_dir()
+                || skip.is_match(entry.file_name())
+                || self.safety.excludes.is_excluded(&path)
+            {
+                continue;
+            }
+            if self.tree_in_use(&path, age, fu, open, job)? {
+                if !f.owned_by_user || owned_by_current_user(&meta) {
+                    out.in_use_skipped += 1;
+                }
+                busy.insert(path);
+            }
+        }
+        Ok(busy)
+    }
+
+    /// Is anything in the subtree at `root` (including `root`) active or open? Stops at the
+    /// first hit. Unreadable entries are ignored: they cannot be deleted by us either.
+    fn tree_in_use(
+        &self,
+        root: &Path,
+        age: Duration,
+        fu: &dyn FileUse,
+        open: &OpenFiles,
+        job: &Job,
+    ) -> Result<bool> {
+        let walker = WalkDir::new(root)
+            .follow_links(false)
+            .same_file_system(true);
+        for (n, entry) in walker.into_iter().enumerate() {
+            if n & 1023 == 0 {
+                job.check_cancelled()?;
+            }
+            let Ok(entry) = entry else { continue };
+            let Ok(meta) = entry.metadata() else { continue };
+            let is_dir = entry.file_type().is_dir();
+            if !is_idle(fu.last_activity(&meta, is_dir), age, self.now) || open.contains(&meta) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     // ------------------------------------------------------------ single files
@@ -566,28 +670,33 @@ fn compile_skip(names: &[String]) -> GlobSet {
     b.build().unwrap_or_else(|_| GlobSet::empty())
 }
 
-/// Age and ownership filters.
-fn filters_pass(
-    meta: &std::fs::Metadata,
+/// Age and ownership filters of a `files` target.
+struct Filter<'a> {
     min_age: Option<Duration>,
     owned_by_user: bool,
     now: SystemTime,
-) -> bool {
-    if owned_by_user && !owned_by_current_user(meta) {
-        return false;
-    }
-    if let Some(age) = min_age {
-        match meta
-            .modified()
-            .ok()
-            .and_then(|m| now.duration_since(m).ok())
-        {
-            Some(d) if d >= age => {}
-            // Younger, unreadable or future-dated mtime: keep it.
-            _ => return false,
+    /// Temp-age rules: the activity source and the open files (see `fileuse`). Without it
+    /// the age is judged by the modification time alone.
+    guard: Option<(&'a dyn FileUse, &'a OpenFiles)>,
+}
+
+impl Filter<'_> {
+    fn pass(&self, meta: &std::fs::Metadata, is_dir: bool) -> bool {
+        if self.owned_by_user && !owned_by_current_user(meta) {
+            return false;
         }
+        if let Some(age) = self.min_age {
+            let activity = match self.guard {
+                Some((fu, _)) => fu.last_activity(meta, is_dir),
+                None => meta.modified().ok(),
+            };
+            // Younger, unreadable or future-dated: keep it.
+            if !is_idle(activity, age, self.now) {
+                return false;
+            }
+        }
+        true
     }
-    true
 }
 
 #[cfg(unix)]

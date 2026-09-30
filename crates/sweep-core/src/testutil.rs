@@ -446,6 +446,14 @@ pub fn set_age_hours(path: &Path, hours: u64) {
     filetime::set_symlink_file_times(path, ft, ft).expect("set file times");
 }
 
+/// Set a file's modification and access times independently (`hours` ago each).
+pub fn set_mtime_atime_hours(path: &Path, mtime_hours: u64, atime_hours: u64) {
+    let ago =
+        |h: u64| FileTime::from_system_time(SystemTime::now() - Duration::from_secs(h * 3600));
+    filetime::set_symlink_file_times(path, ago(atime_hours), ago(mtime_hours))
+        .expect("set file times");
+}
+
 /// Remove everything below `dir` (but keep `dir`).
 pub fn clear_dir(dir: &Path) {
     if let Ok(rd) = fs::read_dir(dir) {
@@ -461,6 +469,29 @@ pub fn clear_dir(dir: &Path) {
 }
 
 // ---------------------------------------------------------------- snapshots
+
+/// Read a file without touching its access time where the OS allows it: the cleaner treats a
+/// recently read file as in use, so a test that snapshots the tree must not make every file
+/// look freshly read.
+fn read_no_atime(path: &Path) -> Vec<u8> {
+    use std::io::Read;
+    #[cfg(target_os = "linux")]
+    let opened = {
+        use std::os::unix::fs::OpenOptionsExt;
+        fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOATIME)
+            .open(path)
+            .or_else(|_| fs::File::open(path))
+    };
+    #[cfg(not(target_os = "linux"))]
+    let opened = fs::File::open(path);
+    let mut buf = Vec::new();
+    if let Ok(mut f) = opened {
+        let _ = f.read_to_end(&mut buf);
+    }
+    buf
+}
 
 /// One line per entry under `root`: type, size, content hash, mtime. Symlinks are not
 /// followed. Two snapshots are equal iff the tree is byte-for-byte unchanged.
@@ -490,7 +521,7 @@ pub fn tree_snapshot(root: &Path) -> BTreeMap<String, String> {
             "dir".to_string()
         } else {
             let mut h = std::collections::hash_map::DefaultHasher::new();
-            fs::read(e.path()).unwrap_or_default().hash(&mut h);
+            read_no_atime(e.path()).hash(&mut h);
             format!("file {} {:x} {mtime}", md.len(), h.finish())
         };
         out.insert(rel, desc);

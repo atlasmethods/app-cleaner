@@ -46,6 +46,7 @@ fn sandboxed(base: &Path, fake_procs: &str) -> Command {
         .env("CLEARSWEEP_ROOT", base.join("root"))
         .env("CLEARSWEEP_DATA_DIR", base.join("data"))
         .env("TMPDIR", base.join("root/tmp"))
+        .env("CLEARSWEEP_TEST_IGNORE_CTIME", "1")
         .env("CLEARSWEEP_FAKE_PROCESSES", fake_procs);
     c
 }
