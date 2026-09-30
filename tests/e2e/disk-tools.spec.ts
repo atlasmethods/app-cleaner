@@ -152,7 +152,7 @@ test.describe('disk analyzer', () => {
     }
   });
 
-  test('opening a folder without a file manager shows an error instead of failing silently', async ({ app, server }) => {
+  test('opening a folder without a file manager explains itself instead of failing silently', async ({ app, server }) => {
     const dir = workdir(server, 'disk-open');
     try {
       put(path.join(dir, 'a.txt'), 'hello');
@@ -162,8 +162,10 @@ test.describe('disk analyzer', () => {
       await app.getByTestId('btn-disk-analyze').click();
       await app.getByTestId('disk-cat-documents').click();
       await app.getByTestId('disk-open-a.txt').click();
-      // The sandbox has no programs on PATH.
-      await expect(app.getByTestId('error-banner')).toContainText('xdg-open');
+      // The sandbox has no programs on PATH. A missing file manager is explained, not flagged
+      // as a red error.
+      await expect(app.getByTestId('info-banner')).toContainText('xdg-open');
+      await expect(app.getByTestId('error-banner')).toHaveCount(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
