@@ -170,8 +170,8 @@ describe('Home: results', () => {
     await scanned(user, report100);
     expect(screen.getByRole('img', { name: 'Health score 100 of 100' })).toBeInTheDocument();
     expect(screen.getByTestId('health-status')).toHaveTextContent('Excellent - nothing needs attention');
-    expect(screen.getByTestId('btn-fix-all')).toBeDisabled();
-    expect(screen.getByTestId('btn-fix-all')).toHaveTextContent('Nothing to fix');
+    // nothing to fix: no Fix all button at all
+    expect(screen.queryByTestId('btn-fix-all')).toBeNull();
   });
 });
 
@@ -302,7 +302,7 @@ describe('Home: confirm and fix', () => {
     expect(screen.getByRole('img', { name: 'Health score 100 of 100' })).toBeInTheDocument();
     // the categories now show the fresh state; nothing left to fix
     expect(screen.getByTestId('cat-space-status')).toHaveTextContent('Good');
-    expect(screen.getByTestId('btn-fix-all')).toBeDisabled();
+    expect(screen.queryByTestId('btn-fix-all')).toBeNull();
     expect(screen.queryByTestId('health-blocked')).toBeNull();
   });
 

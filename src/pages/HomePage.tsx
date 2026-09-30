@@ -203,7 +203,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {fresh && !busy && (
+      {fresh && !busy && anythingFixable && (
         <div
           data-testid="action-bar"
           className="sticky bottom-0 z-10 flex gap-2 rounded-xl border border-line bg-surface p-2 shadow-lg"
@@ -211,12 +211,12 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setConfirming(true)}
-            disabled={!anythingFixable || isEmptyFix(params)}
+            disabled={isEmptyFix(params)}
             data-testid="btn-fix-all"
             className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-accent text-sm font-semibold text-accent-fg disabled:opacity-50"
           >
             <Wrench size={16} aria-hidden />
-            {anythingFixable ? 'Fix all' : 'Nothing to fix'}
+            Fix all
           </button>
         </div>
       )}
