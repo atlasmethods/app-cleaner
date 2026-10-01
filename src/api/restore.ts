@@ -11,7 +11,7 @@ export const RESTORE_METHODS = [
 export type RestoreMethod = (typeof RESTORE_METHODS)[number];
 
 export type PointKind = 'windows-restore-point' | 'timeshift' | 'snapper' | 'tmutil' | 'clearsweep-backup';
-export type BackupKind = 'registry' | 'config' | 'uninstall-entry' | 'drivers';
+export type BackupKind = 'registry' | 'config' | 'uninstall-entry' | 'drivers' | 'startup' | 'plugins';
 
 export interface RestorePoint {
   id: string;

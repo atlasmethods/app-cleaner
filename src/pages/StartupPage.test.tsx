@@ -137,6 +137,51 @@ describe('StartupPage', () => {
     expect(screen.getByTestId('startup-note')).toHaveTextContent('Backup saved as startup-1');
   });
 
+  it('offers Undo after a delete and puts the item back from its backup', async () => {
+    api.current.handlers['startup.remove'] = () => {
+      items = items.filter((i) => i.id !== SLACK.id);
+      return { ok: true, id: SLACK.id, backupId: 'startup-17', backupPath: '/x' };
+    };
+    api.current.handlers['startup.restore_backup'] = () => {
+      items = [SLACK, SSH, DBUS, CRON];
+      return { ok: true, id: 'startup-17', restored: 1, notes: [], name: 'Slack' };
+    };
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('startup-list');
+    expect(screen.queryByTestId('startup-undo')).toBeNull();
+    await user.click(screen.getByTestId(`startup-menu-${SLACK.id}`));
+    await user.click(screen.getByTestId('startup-action-delete'));
+    await user.click(screen.getByTestId('confirm-sheet-confirm'));
+    await waitFor(() => expect(screen.queryByTestId(`startup-row-${SLACK.id}`)).toBeNull());
+    await user.click(screen.getByTestId('startup-undo'));
+    await waitFor(() => expect(screen.getByTestId(`startup-row-${SLACK.id}`)).toBeInTheDocument());
+    expect(api.current.paramsOf('startup.restore_backup')).toEqual([{ id: 'startup-17' }]);
+    expect(screen.getByTestId('startup-note')).toHaveTextContent('Slack is back.');
+    expect(screen.queryByTestId('startup-undo')).toBeNull();
+  });
+
+  it('says so when Undo could not put the item back, and keeps Undo after an error', async () => {
+    api.current.handlers['startup.remove'] = () => ({ ok: true, id: SLACK.id, backupId: 'startup-18', backupPath: '/x' });
+    let n = 0;
+    api.current.handlers['startup.restore_backup'] = () => {
+      n += 1;
+      if (n === 1) throw Object.assign(new Error('x'), { code: 'Io', message: 'could not read the backup' });
+      return { ok: true, id: 'startup-18', restored: 0, notes: ['/home/u/.config/autostart/slack.desktop already exists; left as it is'], name: 'Slack' };
+    };
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('startup-list');
+    await user.click(screen.getByTestId(`startup-menu-${SLACK.id}`));
+    await user.click(screen.getByTestId('startup-action-delete'));
+    await user.click(screen.getByTestId('confirm-sheet-confirm'));
+    await user.click(await screen.findByTestId('startup-undo'));
+    expect(await screen.findByTestId('error-banner')).toHaveTextContent('could not read the backup');
+    await user.click(screen.getByTestId('startup-undo'));
+    await waitFor(() => expect(screen.getByTestId('startup-note')).toHaveTextContent('was not put back'));
+    expect(screen.getByTestId('startup-note')).toHaveTextContent('already exists');
+  });
+
   it('does not offer delete for items that can only be switched', async () => {
     renderPage();
     const user = userEvent.setup();

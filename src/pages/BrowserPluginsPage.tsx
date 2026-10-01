@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Lock, RefreshCw, Search, Trash2 } from 'lucide-react';
-import type { Plugin, RemovePluginResult, SetPluginResult } from '../api/browser_plugins';
+import { Lock, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react';
+import type { Plugin, RemovePluginResult, RestorePluginResult, SetPluginResult } from '../api/browser_plugins';
 import { Card } from '../components/Card';
 import { ConfirmSheet } from '../components/ConfirmSheet';
 import { EmptyState } from '../components/EmptyState';
@@ -16,7 +16,7 @@ export default function BrowserPluginsPage() {
   const [query, setQuery] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Plugin | null>(null);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string; undo?: { backupId: string; name: string } } | null>(null);
   const [closeFirst, setCloseFirst] = useState<string | null>(null);
   const [actionError, setActionError] = useState<ApiCallError | null>(null);
 
@@ -68,8 +68,28 @@ export default function BrowserPluginsPage() {
       setNote({
         ok: true,
         text: `${p.name} was removed. Backup saved as ${r.backupId}.${r.note ? ` ${r.note}` : ''}`,
+        undo: { backupId: r.backupId, name: p.name },
       });
     } catch (e) {
+      fail(e);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** Put a just-removed add-on back from its backup (the browser must still be closed). */
+  const undoRemove = async (backupId: string, name: string) => {
+    setNote(null);
+    setActionError(null);
+    setCloseFirst(null);
+    setBusyId(backupId);
+    try {
+      const r = await call<RestorePluginResult>('browser_plugins.restore_backup', { id: backupId });
+      await reload();
+      setNote({ ok: true, text: `${name} is back.${r.notes.length ? ` ${r.notes.join(' ')}` : ''}` });
+    } catch (e) {
+      // Kept so it can be tried again, for example after closing the browser.
+      setNote({ ok: true, text: `${name} was removed. Backup saved as ${backupId}.`, undo: { backupId, name } });
       fail(e);
     } finally {
       setBusyId(null);
@@ -118,13 +138,24 @@ export default function BrowserPluginsPage() {
       </div>
 
       {note && (
-        <p
-          className={`m-0 break-words rounded-xl border p-2 text-xs ${note.ok ? 'border-ok/40 bg-ok/10' : 'border-danger/40 bg-danger/10'}`}
-          data-testid="plugins-note"
-          role="status"
+        <div
+          className={`flex min-w-0 flex-col gap-2 rounded-xl border p-2 text-xs ${note.ok ? 'border-ok/40 bg-ok/10' : 'border-danger/40 bg-danger/10'}`}
         >
-          {note.text}
-        </p>
+          <p className="m-0 break-words" data-testid="plugins-note" role="status">
+            {note.text}
+          </p>
+          {note.undo && (
+            <button
+              type="button"
+              onClick={() => note.undo && void undoRemove(note.undo.backupId, note.undo.name)}
+              disabled={busyId !== null}
+              data-testid="plugins-undo"
+              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
+            >
+              <RotateCcw size={14} aria-hidden /> Undo
+            </button>
+          )}
+        </div>
       )}
 
       {plugins === null && !list.error && (
