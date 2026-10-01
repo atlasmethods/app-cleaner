@@ -49,3 +49,12 @@ export interface RemoveResult {
   backupId: string;
   backupPath: string;
 }
+
+export interface RestoreStartupResult {
+  ok: boolean;
+  id: string;
+  restored: number;
+  /** Things left as they were (for example a file that already exists again). */
+  notes: string[];
+  name?: string | null;
+}

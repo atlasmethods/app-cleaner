@@ -32,8 +32,24 @@ export function backupKindLabel(p: RestorePoint): string {
       return 'Uninstall entry backup';
     case 'drivers':
       return 'Driver backup';
+    case 'startup':
+      return 'Startup item';
+    case 'plugins':
+      return 'Browser add-on';
     default:
       return 'Backup';
+  }
+}
+
+/** What the confirmation before restoring a ClearSweep backup says. */
+export function restoreMessage(p: RestorePoint): string {
+  switch (p.backupKind) {
+    case 'startup':
+      return 'The startup item is put back as it was. If a file with the same name already exists it is left alone.';
+    case 'plugins':
+      return 'The add-on is put back into its browser profile. The browser must be closed, and an add-on that is already installed is never replaced.';
+    default:
+      return 'The saved items are put back as they were. Changes made to them since then are overwritten.';
   }
 }
 

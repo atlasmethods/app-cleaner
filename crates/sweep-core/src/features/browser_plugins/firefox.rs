@@ -210,6 +210,101 @@ pub fn compute_edit(
     Ok(Edited { json, startup })
 }
 
+/// The new contents of both files for putting add-on `id` back: its record in the backed-up
+/// `extensions.json` replaces (or is added to) the current one, and its `addonStartup.json`
+/// entries are merged into the current startup cache. Nothing else changes. Computed before
+/// anything is written, so a damaged file aborts cleanly.
+pub fn compute_restore(
+    profile: &Path,
+    id: &str,
+    backup_json: &Path,
+    backup_startup: Option<&Path>,
+) -> Result<Edited> {
+    let saved = read_json(backup_json)
+        .ok_or_else(|| ApiError::io("damaged backup: the saved extensions.json cannot be read"))?;
+    let record = saved
+        .get("addons")
+        .and_then(Value::as_array)
+        .and_then(|a| {
+            a.iter()
+                .find(|x| x.get("id").and_then(Value::as_str) == Some(id))
+        })
+        .cloned()
+        .ok_or_else(|| {
+            ApiError::io("damaged backup: the add-on is not in the saved extensions.json")
+        })?;
+    let path = extensions_json(profile);
+    let mut db = read_json(&path)
+        .ok_or_else(|| ApiError::io(format!("could not read {}", path.display())))?;
+    let addons = db
+        .get_mut("addons")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| ApiError::io("extensions.json has an unexpected layout"))?;
+    match addons
+        .iter_mut()
+        .find(|x| x.get("id").and_then(Value::as_str) == Some(id))
+    {
+        Some(cur) => *cur = record,
+        None => addons.push(record),
+    }
+    let json = serde_json::to_vec(&db)?;
+
+    let startup = match (backup_startup, fs::read(startup_lz4(profile))) {
+        (Some(saved_path), Ok(cur_bytes)) => {
+            let saved_raw = mozlz4::decompress(&fs::read(saved_path)?)?;
+            let saved: Value = serde_json::from_slice(&saved_raw)
+                .map_err(|e| ApiError::io(format!("damaged backup: addonStartup.json.lz4: {e}")))?;
+            let cur_raw = mozlz4::decompress(&cur_bytes)?;
+            let mut cur: Value = serde_json::from_slice(&cur_raw)
+                .map_err(|e| ApiError::io(format!("addonStartup.json.lz4 is damaged: {e}")))?;
+            if merge_startup(&mut cur, &saved, id) {
+                Some(mozlz4::compress(&serde_json::to_vec(&cur)?))
+            } else {
+                None
+            }
+        }
+        (_, Err(e)) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
+        _ => None,
+    };
+    Ok(Edited { json, startup })
+}
+
+/// Copy `id`'s entry of every location of `saved` into `cur`. Returns whether anything was
+/// copied.
+fn merge_startup(cur: &mut Value, saved: &Value, id: &str) -> bool {
+    let (Some(saved_locs), Some(cur_locs)) = (saved.as_object(), cur.as_object_mut()) else {
+        return false;
+    };
+    let mut changed = false;
+    for (loc, sv) in saved_locs {
+        let Some(entry) = sv
+            .get("addons")
+            .and_then(Value::as_object)
+            .and_then(|m| m.get(id))
+        else {
+            continue;
+        };
+        let target = cur_locs.entry(loc.clone()).or_insert_with(|| {
+            // A location the current cache lacks: keep its other keys (such as `path`).
+            let mut m = sv.as_object().cloned().unwrap_or_default();
+            m.insert("addons".into(), Value::Object(Default::default()));
+            Value::Object(m)
+        });
+        if let Some(addons) = target
+            .as_object_mut()
+            .map(|o| {
+                o.entry("addons".to_string())
+                    .or_insert_with(|| Value::Object(Default::default()))
+            })
+            .and_then(Value::as_object_mut)
+        {
+            addons.insert(id.to_string(), entry.clone());
+            changed = true;
+        }
+    }
+    changed
+}
+
 /// Write the edit: `extensions.json` first, then the startup cache; if the second write
 /// fails the first is rolled back from `original_json`.
 pub fn write_edit(profile: &Path, edit: &Edited, original_json: &[u8]) -> Result<()> {

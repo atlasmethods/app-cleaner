@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { EllipsisVertical, Lock, RefreshCw, Search, Trash2 } from 'lucide-react';
-import type { RemoveResult, SetEnabledResult, StartupItem, StartupKind } from '../api/startup';
+import { EllipsisVertical, Lock, RefreshCw, RotateCcw, Search, Trash2 } from 'lucide-react';
+import type { RemoveResult, RestoreStartupResult, SetEnabledResult, StartupItem, StartupKind } from '../api/startup';
 import { BottomSheet } from '../components/BottomSheet';
 import { Card } from '../components/Card';
 import { Checkbox } from '../components/Checkbox';
@@ -32,7 +32,7 @@ export default function StartupPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menu, setMenu] = useState<StartupItem | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string; undo?: { backupId: string; name: string } } | null>(null);
   const [actionError, setActionError] = useState<ApiCallError | null>(null);
 
   const load = list.run;
@@ -87,8 +87,34 @@ export default function StartupPage() {
     try {
       const r = await call<RemoveResult>('startup.remove', { id: item.id });
       setItems((cur) => cur?.filter((i) => i.id !== item.id) ?? cur);
-      setNote({ ok: true, text: `${item.name} was deleted. Backup saved as ${r.backupId}.` });
+      setNote({
+        ok: true,
+        text: `${item.name} was deleted. Backup saved as ${r.backupId}.`,
+        undo: { backupId: r.backupId, name: item.name },
+      });
     } catch (e) {
+      setActionError(ApiCallError.from(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** Put a just-deleted item back from its backup. */
+  const undoDelete = async (backupId: string, name: string) => {
+    setNote(null);
+    setActionError(null);
+    setBusyId(backupId);
+    try {
+      const r = await call<RestoreStartupResult>('startup.restore_backup', { id: backupId });
+      await reload();
+      setNote(
+        r.restored > 0
+          ? { ok: true, text: `${name} is back.` }
+          : { ok: false, text: `${name} was not put back: ${r.notes.join('; ') || 'nothing to restore'}.` },
+      );
+    } catch (e) {
+      // Kept so it can be tried again.
+      setNote({ ok: true, text: `${name} was deleted. Backup saved as ${backupId}.`, undo: { backupId, name } });
       setActionError(ApiCallError.from(e));
     } finally {
       setBusyId(null);
@@ -184,13 +210,24 @@ export default function StartupPage() {
       </label>
 
       {note && (
-        <p
-          className={`m-0 break-words rounded-xl border p-2 text-xs ${note.ok ? 'border-ok/40 bg-ok/10' : 'border-danger/40 bg-danger/10'}`}
-          data-testid="startup-note"
-          role="status"
+        <div
+          className={`flex min-w-0 flex-col gap-2 rounded-xl border p-2 text-xs ${note.ok ? 'border-ok/40 bg-ok/10' : 'border-danger/40 bg-danger/10'}`}
         >
-          {note.text}
-        </p>
+          <p className="m-0 break-words" data-testid="startup-note" role="status">
+            {note.text}
+          </p>
+          {note.undo && (
+            <button
+              type="button"
+              onClick={() => note.undo && void undoDelete(note.undo.backupId, note.undo.name)}
+              disabled={busyId !== null}
+              data-testid="startup-undo"
+              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 text-sm font-medium disabled:opacity-50"
+            >
+              <RotateCcw size={14} aria-hidden /> Undo
+            </button>
+          )}
+        </div>
       )}
 
       {items === null && !list.error && (

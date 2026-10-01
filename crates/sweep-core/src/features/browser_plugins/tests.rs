@@ -955,3 +955,462 @@ fn real_chromium_profile_with_an_unpacked_extension() {
     }
     assert_eq!(p["enabled"], true);
 }
+
+// ---------------------------------------------------------------- restore from a backup
+
+fn backup_dir(c: &Ctx, id: &str) -> PathBuf {
+    c.env.data_dir.join("backups").join(id)
+}
+
+fn edit_manifest(c: &Ctx, id: &str, f: impl FnOnce(&mut Value)) {
+    let p = backup_dir(c, id).join("manifest.json");
+    let mut m = read_json(&p);
+    f(&mut m);
+    fs::write(&p, serde_json::to_vec_pretty(&m).unwrap()).unwrap();
+}
+
+fn tree(dir: &Path) -> Vec<(String, Vec<u8>)> {
+    let mut v: Vec<(String, Vec<u8>)> = walkdir::WalkDir::new(dir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .map(|e| {
+            (
+                e.path()
+                    .strip_prefix(dir)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned(),
+                fs::read(e.path()).unwrap(),
+            )
+        })
+        .collect();
+    v.sort();
+    v
+}
+
+fn remove_a(c: &Ctx) -> String {
+    call(c, "browser_plugins.remove", json!({"id": pid(ID_A)})).unwrap()["backupId"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+fn remove_ubo(c: &Ctx) -> String {
+    call(c, "browser_plugins.remove", json!({"id": fid(FX_UBO)})).unwrap()["backupId"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn chromium_restore_round_trip_through_the_restore_feature() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let prefs_before = read_json(&ch.prefs());
+    let dir_before = tree(&ch.ext(ID_A));
+    let bid = remove_a(&c);
+    assert!(!ch.ext(ID_A).exists());
+
+    // System Restore lists it with a clear description and can restore it.
+    let list = call(&c, "restore.list_points", json!({})).unwrap();
+    let pt = list["points"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == format!("clearsweep:{bid}"))
+        .unwrap_or_else(|| panic!("backup not listed: {list}"));
+    assert_eq!(
+        pt["description"],
+        "Removed browser add-on: Ad Blocker Pro (Google Chrome)"
+    );
+    assert_eq!(pt["backupKind"], "plugins");
+    assert_eq!(pt["restorable"], true);
+
+    let r = call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap();
+    assert_eq!(r["ok"], true);
+    assert!(r["message"]
+        .as_str()
+        .unwrap()
+        .starts_with("Restored browser add-on Ad Blocker Pro (Google Chrome)"));
+    assert_eq!(tree(&ch.ext(ID_A)), dir_before);
+    assert_eq!(read_json(&ch.prefs()), prefs_before);
+    let listing = call(&c, "browser_plugins.list", json!({})).unwrap();
+    assert_eq!(plugin(&listing, ID_A)["name"], "Ad Blocker Pro");
+
+    // The direct method does the same (after removing it once more).
+    let bid2 = remove_a(&c);
+    let r = call(&c, "browser_plugins.restore_backup", json!({"id": bid2})).unwrap();
+    assert_eq!(r["ok"], true);
+    assert_eq!(tree(&ch.ext(ID_A)), dir_before);
+    assert_eq!(read_json(&ch.prefs()), prefs_before);
+}
+
+#[test]
+fn chromium_restore_keeps_changes_made_to_preferences_since() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let bid = remove_a(&c);
+    // Something else changed while A was gone: B was disabled-by-edit and a new key appeared.
+    let mut p = read_json(&ch.prefs());
+    p["browser"]["new_key"] = json!("kept");
+    p["extensions"]["settings"][ID_B]["state"] = json!(1);
+    fs::write(ch.prefs(), p.to_string()).unwrap();
+    call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap();
+    let after = read_json(&ch.prefs());
+    assert_eq!(after["browser"]["new_key"], "kept");
+    assert_eq!(after["extensions"]["settings"][ID_B]["state"], 1);
+    assert_eq!(after["extensions"]["settings"][ID_A]["state"], 1);
+    assert_eq!(after["extensions"]["settings"][ID_A]["from_webstore"], true);
+}
+
+#[test]
+fn chromium_restore_puts_the_mac_record_back_too() {
+    let d = tempfile::tempdir().unwrap();
+    let files = chromium::ProfileFiles {
+        dir: d.path().join("Default"),
+    };
+    let saved = json!({
+        "extensions": {"settings": {ID_A: {"state": 1}}},
+        "protection": {"macs": {"extensions": {"settings": {ID_A: "MAC"}}}}
+    });
+    write(&files.prefs(), r#"{"keep": 1}"#);
+    assert!(chromium::restore_pref_entry(&files, ID_A, &saved).unwrap());
+    let after = read_json(&files.prefs());
+    assert_eq!(after["keep"], 1);
+    assert_eq!(after["extensions"]["settings"][ID_A]["state"], 1);
+    assert_eq!(
+        after["protection"]["macs"]["extensions"]["settings"][ID_A],
+        "MAC"
+    );
+    // Nothing saved for the id: nothing written.
+    assert!(!chromium::restore_pref_entry(&files, ID_B, &saved).unwrap());
+}
+
+#[test]
+fn chromium_secure_entry_removal_restores_only_the_folder_and_says_so() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let r = call(&c, "browser_plugins.remove", json!({"id": pid(ID_C)})).unwrap();
+    let bid = r["backupId"].as_str().unwrap();
+    assert!(!ch.ext(ID_C).exists());
+    let secure = fs::read(ch.secure()).unwrap();
+    let prefs = fs::read(ch.prefs()).unwrap();
+    let out = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap();
+    assert!(ch.ext(ID_C).join("3.0_0/manifest.json").is_file());
+    assert_eq!(fs::read(ch.prefs()).unwrap(), prefs);
+    assert_eq!(fs::read(ch.secure()).unwrap(), secure);
+    assert!(!out["notes"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn firefox_restore_round_trip_xpi_extensions_json_and_startup_cache() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let fx = firefox_fixture(&c);
+    let db_before = read_json(&fx.profile.join("extensions.json"));
+    let startup_before = startup_json(&fx);
+    let xpi = fx.profile.join("extensions").join(format!("{FX_UBO}.xpi"));
+    let bid = remove_ubo(&c);
+    assert!(!xpi.exists());
+    assert_ne!(read_json(&fx.profile.join("extensions.json")), db_before);
+
+    let list = call(&c, "restore.list_points", json!({})).unwrap();
+    let pt = list["points"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == format!("clearsweep:{bid}"))
+        .unwrap();
+    assert_eq!(
+        pt["description"],
+        "Removed browser add-on: uBlock Origin (Firefox)"
+    );
+    assert_eq!(pt["restorable"], true);
+
+    call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap();
+    assert_eq!(fs::read_to_string(&xpi).unwrap(), "PK-zip-bytes");
+    assert_eq!(read_json(&fx.profile.join("extensions.json")), db_before);
+    assert_eq!(startup_json(&fx), startup_before);
+    let raw = fs::read(fx.profile.join("addonStartup.json.lz4")).unwrap();
+    assert_eq!(&raw[..8], b"mozLz40\0");
+    let listing = call(&c, "browser_plugins.list", json!({})).unwrap();
+    let u = plugin(&listing, FX_UBO);
+    assert_eq!(u["enabled"], true);
+    assert_eq!(u["canRemove"], true);
+}
+
+#[test]
+fn firefox_restore_adds_the_record_when_firefox_already_dropped_it() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let fx = firefox_fixture(&c);
+    let bid = remove_ubo(&c);
+    // Firefox started in between: it forgot the add-on and its startup entry.
+    let ej = fx.profile.join("extensions.json");
+    let mut db = read_json(&ej);
+    db["addons"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|a| a["id"] != FX_UBO);
+    db["schemaVersion"] = json!(37);
+    fs::write(&ej, db.to_string()).unwrap();
+    let mut st = startup_json(&fx);
+    st["app-profile"]["addons"]
+        .as_object_mut()
+        .unwrap()
+        .remove(FX_UBO);
+    fs::write(
+        fx.profile.join("addonStartup.json.lz4"),
+        mozlz4::compress(st.to_string().as_bytes()),
+    )
+    .unwrap();
+    call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap();
+    let db = read_json(&ej);
+    assert_eq!(db["schemaVersion"], 37, "other keys are kept");
+    let back = db["addons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|a| a["id"] == FX_UBO)
+        .unwrap();
+    assert_eq!(back["active"], true);
+    assert_eq!(back["unknownKey"], json!({"keep": [1, 2, 3]}));
+    assert_eq!(
+        startup_json(&fx)["app-profile"]["addons"][FX_UBO]["enabled"],
+        true
+    );
+}
+
+#[test]
+fn restore_refuses_while_the_browser_is_running_and_changes_nothing() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let fx = firefox_fixture(&c);
+    let a = remove_a(&c);
+    let u = remove_ubo(&c);
+    let prefs = fs::read(ch.prefs()).unwrap();
+    let ejson = fs::read(fx.profile.join("extensions.json")).unwrap();
+    let busy = ctx(d.path(), &["chrome", "firefox"]);
+    for bid in [&a, &u] {
+        let e = call(&busy, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+        assert_eq!(e.code, ErrorCode::PermissionDenied);
+        assert!(e.message.contains("Close"), "{}", e.message);
+        let e = call(
+            &busy,
+            "restore.restore",
+            json!({"id": format!("clearsweep:{bid}")}),
+        )
+        .unwrap_err();
+        assert_eq!(e.code, ErrorCode::PermissionDenied);
+    }
+    assert!(!ch.ext(ID_A).exists());
+    assert!(!fx
+        .profile
+        .join("extensions")
+        .join(format!("{FX_UBO}.xpi"))
+        .exists());
+    assert_eq!(fs::read(ch.prefs()).unwrap(), prefs);
+    assert_eq!(fs::read(fx.profile.join("extensions.json")).unwrap(), ejson);
+}
+
+#[test]
+fn restore_never_overwrites_an_existing_extension() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let fx = firefox_fixture(&c);
+    let a = remove_a(&c);
+    let u = remove_ubo(&c);
+    // The user reinstalled newer versions in the meantime.
+    write(
+        &ch.ext(ID_A).join("9.9_0/manifest.json"),
+        r#"{"name":"Newer","version":"9.9"}"#,
+    );
+    let xpi = fx.profile.join("extensions").join(format!("{FX_UBO}.xpi"));
+    write(&xpi, "newer xpi");
+    let prefs = fs::read(ch.prefs()).unwrap();
+    let ejson = fs::read(fx.profile.join("extensions.json")).unwrap();
+    for bid in [&a, &u] {
+        let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+        assert_eq!(e.code, ErrorCode::InvalidParams);
+        assert!(e.message.contains("already has"), "{}", e.message);
+        assert!(e.message.contains("not replaced"), "{}", e.message);
+    }
+    assert_eq!(fs::read_to_string(&xpi).unwrap(), "newer xpi");
+    assert!(ch.ext(ID_A).join("9.9_0/manifest.json").is_file());
+    assert!(!ch.ext(ID_A).join("1.2.3_0").exists());
+    assert_eq!(fs::read(ch.prefs()).unwrap(), prefs);
+    assert_eq!(fs::read(fx.profile.join("extensions.json")).unwrap(), ejson);
+}
+
+#[test]
+fn restore_refuses_manifest_paths_outside_the_recorded_profile() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let outside = d.path().join("outside");
+    fs::create_dir_all(&outside).unwrap();
+
+    // 1. The payload's recorded target points somewhere else.
+    let bid = remove_a(&c);
+    let evil = outside.join(ID_A);
+    edit_manifest(&c, &bid, |m| {
+        m["items"][0]["original"] = json!(evil.to_string_lossy());
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(!evil.exists());
+    assert!(!ch.ext(ID_A).exists());
+
+    // 2. A `..` escape that looks like it starts inside the profile.
+    let bid = remove_a_again(&c, &ch);
+    let sneaky = ch
+        .profile
+        .join("Extensions")
+        .join("..")
+        .join("..")
+        .join("escaped");
+    edit_manifest(&c, &bid, |m| {
+        m["items"][0]["original"] = json!(sneaky.to_string_lossy());
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(!d.path().join("escaped").exists());
+
+    // 3. The Preferences item aimed at another file.
+    let bid = remove_a_again(&c, &ch);
+    let target = outside.join("Preferences");
+    edit_manifest(&c, &bid, |m| {
+        let items = m["items"].as_array_mut().unwrap();
+        let pref = items.iter_mut().find(|i| i["role"] == "prefs").unwrap();
+        pref["original"] = json!(target.to_string_lossy());
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(!target.exists());
+    assert!(!ch.ext(ID_A).exists());
+
+    // 4. The recorded profile is not one of the machine's profiles.
+    let bid = remove_a_again(&c, &ch);
+    edit_manifest(&c, &bid, |m| {
+        m["plugin"]["profileDir"] = json!(outside.to_string_lossy());
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::NotFound);
+    assert!(fs::read_dir(&outside).unwrap().next().is_none());
+
+    // 5. The saved copy is outside the backup folder.
+    let bid = remove_a_again(&c, &ch);
+    edit_manifest(&c, &bid, |m| {
+        m["items"][0]["backup"] = json!("../../../etc/passwd");
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::Io);
+    assert!(!ch.ext(ID_A).exists());
+
+    // 6. An item with a role this browser does not use.
+    let bid = remove_a_again(&c, &ch);
+    edit_manifest(&c, &bid, |m| {
+        m["items"][0]["role"] = json!("extensions-json");
+    });
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+}
+
+/// The fixture's A was restored or is gone: make sure it is installed, then remove it again.
+fn remove_a_again(c: &Ctx, ch: &Chrome) -> String {
+    if !ch.ext(ID_A).exists() {
+        manifest(
+            &ch.ext(ID_A).join("1.2.3_0"),
+            r#"{"name":"Ad Blocker Pro","version":"1.2.3"}"#,
+        );
+        let mut p = read_json(&ch.prefs());
+        p["extensions"]["settings"][ID_A] =
+            json!({"location": 1, "path": format!("{ID_A}/1.2.3_0"), "state": 1});
+        fs::write(ch.prefs(), p.to_string()).unwrap();
+    }
+    remove_a(c)
+}
+
+#[test]
+fn restore_rejects_bad_ids_other_kinds_and_backups_that_are_not_removals() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    for bad in [
+        "plugins-../x",
+        "plugins-1/2",
+        "startup-1700000000",
+        "../plugins-1",
+        "",
+    ] {
+        let e = call(&c, "browser_plugins.restore_backup", json!({"id": bad})).unwrap_err();
+        assert_eq!(e.code, ErrorCode::InvalidParams, "{bad}");
+    }
+    let e = call(
+        &c,
+        "browser_plugins.restore_backup",
+        json!({"id": "plugins-1"}),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::NotFound);
+
+    // A plain disable is a backup too, but there is nothing to put back.
+    let r = call(
+        &c,
+        "browser_plugins.set_enabled",
+        json!({"id": pid(ID_A), "enabled": false}),
+    )
+    .unwrap();
+    let bid = r["backupId"].as_str().unwrap();
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::Unsupported);
+    assert!(ch.ext(ID_A).exists());
+    let list = call(&c, "restore.list_points", json!({})).unwrap();
+    assert!(
+        list["points"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|p| p["id"] != format!("clearsweep:{bid}")),
+        "an enable/disable backup is not offered in System Restore"
+    );
+}
+
+#[test]
+fn backups_without_the_profile_record_are_listed_but_not_restorable() {
+    let d = tempfile::tempdir().unwrap();
+    let c = ctx(d.path(), &[]);
+    let ch = chrome_fixture(&c);
+    let bid = remove_a(&c);
+    edit_manifest(&c, &bid, |m| {
+        m.as_object_mut().unwrap().remove("plugin");
+        m["description"] = json!("Removed Ad Blocker Pro from Google Chrome");
+    });
+    let list = call(&c, "restore.list_points", json!({})).unwrap();
+    let pt = list["points"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == format!("clearsweep:{bid}"))
+        .unwrap();
+    assert_eq!(pt["restorable"], false);
+    let e = call(&c, "browser_plugins.restore_backup", json!({"id": bid})).unwrap_err();
+    assert_eq!(e.code, ErrorCode::Unsupported);
+    assert!(!ch.ext(ID_A).exists());
+}

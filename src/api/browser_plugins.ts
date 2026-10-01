@@ -3,6 +3,7 @@ export const BROWSER_PLUGINS_METHODS = [
   'browser_plugins.list',
   'browser_plugins.set_enabled',
   'browser_plugins.remove',
+  'browser_plugins.restore_backup',
 ] as const;
 
 export type BrowserPluginsMethod = (typeof BROWSER_PLUGINS_METHODS)[number];
@@ -41,4 +42,13 @@ export interface RemovePluginResult {
   backupId: string;
   backupPath: string;
   note?: string | null;
+}
+
+export interface RestorePluginResult {
+  ok: boolean;
+  id: string;
+  name: string;
+  browser: string;
+  restored: number;
+  notes: string[];
 }

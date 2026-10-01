@@ -4,7 +4,7 @@
  * list. Runs at 380 and 320 px.
  */
 import { test as base, expect, type Page } from '@playwright/test';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { noHorizontalScroll } from './fixtures';
 import { bootMachine, type MachineOptions, type StartupMachine } from './helpers/startupMachine';
@@ -397,5 +397,172 @@ test.describe('Browser Plugins', () => {
     await page.getByTestId('plugins-search').fill('zzzz');
     await expect(page.getByTestId('plugins-empty')).toContainText('Nothing matches');
     await fits(page);
+  });
+});
+
+// ---------------------------------------------------------------- Undo and System Restore
+
+const UBO = 'ubo@example.net';
+
+function firefoxSetup(m: StartupMachine): { profile: string } {
+  const profile = path.join(m.home, '.mozilla/firefox/abcd1234.default-release');
+  write(path.join(m.home, '.mozilla/firefox/profiles.ini'), '[Profile0]\nName=default\nIsRelative=1\nPath=abcd1234.default-release\nDefault=1\n');
+  write(path.join(profile, 'prefs.js'), '');
+  write(
+    path.join(profile, 'extensions.json'),
+    JSON.stringify({
+      schemaVersion: 36,
+      addons: [{ id: UBO, type: 'extension', active: true, userDisabled: false, location: 'app-profile', version: '1.60', visible: true, defaultLocale: { name: 'uBlock Origin' } }],
+    }),
+  );
+  write(path.join(profile, 'extensions', `${UBO}.xpi`), 'zip-bytes');
+  return { profile };
+}
+
+test.describe('Restoring removed items', () => {
+  test('deleting a startup item offers Undo, which puts the file back', async ({ page, boot }) => {
+    const m = await boot(startupSetup);
+    await open(page, m, { tool: 'startup', page: 'page-startup' });
+    const file = path.join(m.autostartDir, 'slack.desktop');
+    const row = page.getByTestId('startup-row-xdg:user:slack.desktop');
+    await page.getByTestId('startup-menu-xdg:user:slack.desktop').click();
+    await page.getByTestId('startup-action-delete').click();
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(row).toHaveCount(0);
+    expect(existsSync(file)).toBe(false);
+    await expect(page.getByTestId('startup-undo')).toBeVisible();
+    await fits(page);
+    await page.getByTestId('startup-undo').click();
+    await expect(row).toBeVisible();
+    await expect(page.getByTestId('startup-note')).toContainText('Slack is back.');
+    await expect(page.getByTestId('startup-undo')).toHaveCount(0);
+    expect(readFileSync(file, 'utf8')).toBe(SLACK);
+    await fits(page);
+  });
+
+  test('a deleted startup item is listed in System Restore and restored from there', async ({ page, boot }) => {
+    const m = await boot(startupSetup);
+    await open(page, m, { tool: 'startup', page: 'page-startup' });
+    const file = path.join(m.autostartDir, 'slack.desktop');
+    await page.getByTestId('startup-menu-xdg:user:slack.desktop').click();
+    await page.getByTestId('startup-action-delete').click();
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(page.getByTestId('startup-undo')).toBeVisible();
+    expect(existsSync(file)).toBe(false);
+
+    await open(page, m, { tool: 'restore', page: 'page-restore' });
+    const card = page.getByTestId('restore-backups');
+    await expect(card).toContainText('Removed startup item: Slack');
+    await expect(card).toContainText('Startup item');
+    await fits(page);
+    await card.locator('[data-testid^="point-restore-"]').click();
+    await expect(page.getByTestId('confirm-sheet')).toContainText('put back as it was');
+    await fits(page);
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(page.getByTestId('restore-note')).toContainText('Restored startup item Slack.');
+    expect(readFileSync(file, 'utf8')).toBe(SLACK);
+    await fits(page);
+  });
+
+  test('removing a Chromium add-on offers Undo', async ({ page, boot }) => {
+    let profile = '';
+    let prefsBefore = '';
+    const m = await boot((mm) => {
+      const c = chromeSetup(mm);
+      profile = c.profile;
+      prefsBefore = readFileSync(c.prefs, 'utf8');
+    });
+    await open(page, m, { tool: 'plugins', page: 'page-plugins' });
+    const row = page.getByTestId(`plugin-row-chrome:Default:${EXT_A}`);
+    await page.getByTestId(`plugin-remove-chrome:Default:${EXT_A}`).click();
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(row).toHaveCount(0);
+    expect(existsSync(path.join(profile, 'Extensions', EXT_A))).toBe(false);
+    await fits(page);
+    await page.getByTestId('plugins-undo').click();
+    await expect(row).toBeVisible();
+    await expect(page.getByTestId('plugins-note')).toContainText('Ad Blocker is back.');
+    expect(readFileSync(path.join(profile, 'Extensions', EXT_A, '1.0_0', 'manifest.json'), 'utf8')).toContain('Ad Blocker');
+    expect(JSON.parse(readFileSync(path.join(profile, 'Preferences'), 'utf8'))).toEqual(JSON.parse(prefsBefore));
+    await fits(page);
+  });
+
+  test('a removed Firefox add-on is restored from System Restore', async ({ page, boot }) => {
+    let profile = '';
+    const m = await boot((mm) => {
+      profile = firefoxSetup(mm).profile;
+    });
+    await open(page, m, { tool: 'plugins', page: 'page-plugins' });
+    const id = `firefox:abcd1234.default-release:${UBO}`;
+    await page.getByTestId(`plugin-remove-${id}`).click();
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(page.getByTestId('plugins-note')).toContainText('Backup saved as plugins-');
+    const xpi = path.join(profile, 'extensions', `${UBO}.xpi`);
+    expect(existsSync(xpi)).toBe(false);
+
+    await open(page, m, { tool: 'restore', page: 'page-restore' });
+    const card = page.getByTestId('restore-backups');
+    await expect(card).toContainText('Removed browser add-on: uBlock Origin (Firefox)');
+    await expect(card).toContainText('Browser add-on');
+    await fits(page);
+    await card.locator('[data-testid^="point-restore-"]').click();
+    await expect(page.getByTestId('confirm-sheet')).toContainText('browser must be closed');
+    await fits(page);
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(page.getByTestId('restore-note')).toContainText('Restored browser add-on uBlock Origin (Firefox).');
+    expect(readFileSync(xpi, 'utf8')).toBe('zip-bytes');
+    const db = JSON.parse(readFileSync(path.join(profile, 'extensions.json'), 'utf8'));
+    expect(db.addons[0].active).toBe(true);
+    await fits(page);
+
+    // back on the Browser Plugins page it is listed again
+    await open(page, m, { tool: 'plugins', page: 'page-plugins' });
+    await expect(page.getByTestId(`plugin-row-${id}`)).toContainText('uBlock Origin');
+  });
+
+  test('restoring an add-on while its browser is running is refused and changes nothing', async ({ page, boot }) => {
+    let profile = '';
+    const m = await boot(
+      (mm) => {
+        // A profile whose add-on was removed earlier, with the backup that removal left behind.
+        profile = firefoxSetup(mm).profile;
+        const dbPath = path.join(profile, 'extensions.json');
+        const saved = readFileSync(dbPath, 'utf8');
+        const backup = path.join(mm.dataDir, 'backups', 'plugins-1700000000');
+        write(path.join(backup, 'files', `1-${UBO}.xpi`), 'zip-bytes');
+        write(path.join(backup, 'files', '2-extensions.json'), saved);
+        write(
+          path.join(backup, 'manifest.json'),
+          JSON.stringify({
+            kind: 'plugins',
+            createdAt: '2026-01-01T00:00:00Z',
+            description: 'Removed browser add-on: uBlock Origin (Firefox)',
+            plugin: {
+              action: 'remove',
+              browser: 'firefox',
+              browserLabel: 'Firefox',
+              family: 'firefox',
+              profile: 'abcd1234.default-release',
+              profileDir: profile,
+              extensionId: UBO,
+              name: 'uBlock Origin',
+            },
+            items: [
+              { type: 'file', role: 'payload', original: path.join(profile, 'extensions', `${UBO}.xpi`), backup: `files/1-${UBO}.xpi` },
+              { type: 'file', role: 'extensions-json', original: dbPath, backup: 'files/2-extensions.json' },
+            ],
+          }),
+        );
+        rmSync(path.join(profile, 'extensions', `${UBO}.xpi`));
+      },
+      { processes: 'firefox|/usr/lib/firefox/firefox|300|1' },
+    );
+    await open(page, m, { tool: 'restore', page: 'page-restore' });
+    await expect(page.getByTestId('restore-backups')).toContainText('Removed browser add-on: uBlock Origin (Firefox)');
+    await page.getByTestId('restore-backups').locator('[data-testid^="point-restore-"]').click();
+    await page.getByTestId('confirm-sheet-confirm').click();
+    await expect(page.getByTestId('error-banner')).toContainText('Close Firefox first');
+    await fits(page);
+    expect(existsSync(path.join(profile, 'extensions', `${UBO}.xpi`))).toBe(false);
   });
 });

@@ -9,7 +9,8 @@
 //! - `restore.delete_point { id }`: never the most recent operating-system point; Windows cannot
 //!   delete single points (see `restore.delete_old`).
 //! - `restore.delete_old`: Windows, deletes every restore point except the most recent one.
-//! - `restore.restore { id }`: ClearSweep backups only. An operating-system rollback must be done
+//! - `restore.restore { id }`: ClearSweep backups only (registry / configuration, uninstall entries,
+//!   drivers, removed startup items and removed browser add-ons). An operating-system rollback must be done
 //!   with the system's own tool (`restore.open_system_tool` opens it where there is one).
 //!
 //! Ids sent by the client are validated against a strict grammar and, for anything that changes
@@ -25,8 +26,11 @@ use crate::api::Registry;
 use crate::ctx::{Ctx, Os};
 use crate::elevate::{powershell_encode, run_privileged};
 use crate::error::{ApiError, Result};
+use crate::features::browser_plugins::restore as plugin_restore;
 use crate::features::registry_cleaner::backup::{self, classify_name, BackupKind};
 use crate::features::registry_cleaner::regcmd::{run_direct, run_privileged_batch, RegCmd};
+use crate::features::startup;
+use crate::features::startup::backup::read_manifest as read_ops_manifest;
 use crate::job::Job;
 use crate::pkgutil::{path_size, summarize};
 use crate::runner::CmdOutput;
@@ -80,7 +84,8 @@ pub struct Point {
     pub is_newest: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    /// For ClearSweep backups: `registry`, `config`, `uninstall-entry` or `drivers`.
+    /// For ClearSweep backups: `registry`, `config`, `uninstall-entry`, `drivers`, `startup` or
+    /// `plugins`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backup_kind: Option<&'static str>,
 }
@@ -389,6 +394,38 @@ fn ts_of(name: &str) -> Option<i64> {
     digits.parse().ok()
 }
 
+fn manifest_description(m: &Value, fallback: &str) -> String {
+    m.get("description")
+        .and_then(Value::as_str)
+        .filter(|d| !d.trim().is_empty())
+        .unwrap_or(fallback)
+        .to_string()
+}
+
+fn manifest_created(m: &Value, name: &str) -> Option<String> {
+    m.get("createdAt")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| ts_of(name).and_then(iso_from_unix))
+}
+
+/// A startup backup can be put back on the operating system it was made on.
+fn startup_restorable(m: &Value, os: Os) -> bool {
+    let Some(items) = m.get("items").and_then(Value::as_array) else {
+        return false;
+    };
+    !items.is_empty()
+        && items.iter().all(
+            |it| match it.get("type").and_then(Value::as_str).unwrap_or("") {
+                "file" => true,
+                "regfile" | "schtask" => os == Os::Windows,
+                "cronline" => os != Os::Windows,
+                "loginitem" => os == Os::MacOs,
+                _ => false,
+            },
+        )
+}
+
 /// ClearSweep's own backups.
 fn list_backups(ctx: &Ctx) -> Vec<Point> {
     let mut out = Vec::new();
@@ -446,6 +483,31 @@ fn list_backups(ctx: &Ctx) -> Vec<Point> {
                 windows,
                 "drivers",
             ),
+            BackupKind::Startup => {
+                let Ok((_, m)) = read_ops_manifest(ctx, "startup", &name) else {
+                    continue;
+                };
+                (
+                    manifest_description(&m, "Removed startup item"),
+                    manifest_created(&m, &name),
+                    startup_restorable(&m, ctx.env.os),
+                    "startup",
+                )
+            }
+            BackupKind::Plugins => {
+                let Ok((_, m)) = read_ops_manifest(ctx, "plugins", &name) else {
+                    continue;
+                };
+                if !plugin_restore::listed(&m) {
+                    continue; // a plain enable/disable, nothing to put back
+                }
+                (
+                    manifest_description(&m, "Removed browser add-on"),
+                    manifest_created(&m, &name),
+                    plugin_restore::restorable(&m),
+                    "plugins",
+                )
+            }
         };
         out.push(Point {
             id: format!("clearsweep:{name}"),
@@ -849,6 +911,54 @@ fn restore_handler(ctx: &Ctx, params: Value, job: &Job) -> Result<Value> {
             Ok(
                 json!({ "ok": ok, "message": if ok { "Drivers reinstalled from the backup.".to_string() } else { format!("Reinstalling drivers failed: {}", summarize(&o)) } }),
             )
+        }
+        Some(BackupKind::Startup) => {
+            // The same id and manifest checks as `startup.restore_backup`.
+            let mut v = startup::restore_backup(ctx, &name)?;
+            let restored = v["restored"].as_u64().unwrap_or(0);
+            let notes: Vec<String> = v["notes"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|n| n.as_str().map(str::to_string))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let what = v["name"]
+                .as_str()
+                .map(|n| format!("startup item {n}"))
+                .unwrap_or_else(|| "startup item".to_string());
+            v["message"] = json!(if restored > 0 {
+                format!("Restored {what}.")
+            } else if notes.is_empty() {
+                format!("Nothing to restore for {what}.")
+            } else {
+                format!("{what} was not changed: {}.", notes.join("; "))
+            });
+            Ok(v)
+        }
+        Some(BackupKind::Plugins) => {
+            let mut v = plugin_restore::restore_backup(ctx, &name)?;
+            let note = v["notes"]
+                .as_array()
+                .map(|a| {
+                    a.iter()
+                        .filter_map(Value::as_str)
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                })
+                .unwrap_or_default();
+            v["message"] = json!(format!(
+                "Restored browser add-on {} ({}).{}",
+                v["name"].as_str().unwrap_or(""),
+                v["browser"].as_str().unwrap_or(""),
+                if note.is_empty() {
+                    String::new()
+                } else {
+                    format!(" {note}")
+                }
+            ));
+            Ok(v)
         }
         None => Err(ApiError::invalid_params("not a ClearSweep backup")),
     }

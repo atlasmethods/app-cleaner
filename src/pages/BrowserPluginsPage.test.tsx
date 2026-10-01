@@ -123,6 +123,45 @@ describe('BrowserPluginsPage', () => {
     expect(screen.getByTestId('plugins-note')).toHaveTextContent('plugins-7');
   });
 
+  it('offers Undo after a removal and restores the add-on from its backup', async () => {
+    api.current.handlers['browser_plugins.remove'] = () => {
+      plugins = plugins.filter((p) => p.id !== ABP.id);
+      return { ok: true, backupId: 'plugins-8', backupPath: '/x', note: null };
+    };
+    api.current.handlers['browser_plugins.restore_backup'] = () => {
+      plugins = [ABP, SEC, FOX];
+      return { ok: true, id: 'plugins-8', name: 'Ad Blocker', browser: 'Google Chrome', restored: 1, notes: [] };
+    };
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('plugins-browser-chrome');
+    expect(screen.queryByTestId('plugins-undo')).toBeNull();
+    await user.click(screen.getByTestId(`plugin-remove-${ABP.id}`));
+    await user.click(screen.getByTestId('confirm-sheet-confirm'));
+    await waitFor(() => expect(screen.queryByTestId(`plugin-row-${ABP.id}`)).toBeNull());
+    await user.click(screen.getByTestId('plugins-undo'));
+    await waitFor(() => expect(screen.getByTestId(`plugin-row-${ABP.id}`)).toBeInTheDocument());
+    expect(api.current.paramsOf('browser_plugins.restore_backup')).toEqual([{ id: 'plugins-8' }]);
+    expect(screen.getByTestId('plugins-note')).toHaveTextContent('Ad Blocker is back.');
+    expect(screen.queryByTestId('plugins-undo')).toBeNull();
+  });
+
+  it('asks to close the browser when Undo is refused and keeps Undo available', async () => {
+    api.current.handlers['browser_plugins.remove'] = () => ({ ok: true, backupId: 'plugins-9', backupPath: '/x', note: null });
+    api.current.handlers['browser_plugins.restore_backup'] = () => {
+      throw new ApiCallError('PermissionDenied', 'Close Google Chrome first: while it is running it would undo this change.');
+    };
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('plugins-browser-chrome');
+    await user.click(screen.getByTestId(`plugin-remove-${ABP.id}`));
+    await user.click(screen.getByTestId('confirm-sheet-confirm'));
+    await user.click(await screen.findByTestId('plugins-undo'));
+    expect(await screen.findByTestId('plugins-close-notice')).toHaveTextContent('Close Google Chrome first');
+    expect(screen.getByTestId('plugins-undo')).toBeInTheDocument();
+    expect(screen.queryByTestId('error-banner')).toBeNull();
+  });
+
   it('searches and shows an empty state', async () => {
     renderPage();
     const user = userEvent.setup();

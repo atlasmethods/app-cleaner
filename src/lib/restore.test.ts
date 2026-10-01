@@ -7,6 +7,7 @@ import {
   hasOlderWindowsPoints,
   kindLabel,
   restorablePoints,
+  restoreMessage,
   splitPoints,
 } from './restore';
 
@@ -37,12 +38,22 @@ describe('delete rules', () => {
   });
 });
 
+describe('restore confirmation copy', () => {
+  it('is specific to what is put back', () => {
+    expect(restoreMessage(pt({ backupKind: 'startup' }))).toContain('already exists');
+    expect(restoreMessage(pt({ backupKind: 'plugins' }))).toContain('browser must be closed');
+    expect(restoreMessage(pt({ backupKind: 'config' }))).toContain('overwritten');
+  });
+});
+
 describe('labels and grouping', () => {
   it('kind labels', () => {
     expect(kindLabel('tmutil')).toBe('Time Machine');
     expect(kindLabel('windows-restore-point')).toBe('Windows');
     expect(backupKindLabel(pt({ backupKind: 'registry' }))).toBe('Registry backup');
     expect(backupKindLabel(pt({ backupKind: 'drivers' }))).toBe('Driver backup');
+    expect(backupKindLabel(pt({ backupKind: 'startup' }))).toBe('Startup item');
+    expect(backupKindLabel(pt({ backupKind: 'plugins' }))).toBe('Browser add-on');
     expect(backupKindLabel(pt({}))).toBe('Backup');
   });
 

@@ -424,8 +424,9 @@ pub fn remove_entry(ctx: &Ctx, e: &Entry) -> Result<Committed> {
     let mut b = Backup::create(
         ctx,
         "startup",
-        &format!("Removed startup item {}", e.item.name),
+        &format!("Removed startup item: {}", e.item.name),
     )?;
+    b.set_field("startup", json!({ "name": e.item.name, "id": e.item.id }));
     if let Err(err) = stage_backup(ctx, e, &mut b) {
         b.abort();
         return Err(err);
@@ -529,7 +530,18 @@ fn restore_target_ok(ctx: &Ctx, original: &Path) -> bool {
 
 fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
     let p: IdParams = serde_json::from_value(params)?;
-    let (dir, manifest) = read_manifest(ctx, "startup", &p.id)?;
+    restore_backup(ctx, &p.id)
+}
+
+/// Put a removed startup item back from `<data>/backups/<id>/`. The id and the manifest are
+/// validated here (shared by `startup.restore_backup` and `restore.restore`).
+pub fn restore_backup(ctx: &Ctx, id: &str) -> Result<Value> {
+    let (dir, manifest) = read_manifest(ctx, "startup", id)?;
+    let name = manifest
+        .get("startup")
+        .and_then(|s| s.get("name"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
     let items = manifest
         .get("items")
         .and_then(Value::as_array)
@@ -649,5 +661,5 @@ fn restore_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
             other => notes.push(format!("unknown backup item type `{other}` skipped")),
         }
     }
-    Ok(json!({ "ok": true, "id": p.id, "restored": restored, "notes": notes }))
+    Ok(json!({ "ok": true, "id": id, "restored": restored, "notes": notes, "name": name }))
 }

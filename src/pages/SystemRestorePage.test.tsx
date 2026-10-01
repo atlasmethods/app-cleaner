@@ -252,4 +252,37 @@ describe('Windows extras', () => {
     await screen.findByTestId('restore-list');
     expect(screen.queryByTestId('restore-delete-old')).toBeNull();
   });
+
+  it('lists removed startup items and browser add-ons with their descriptions and restores them', async () => {
+    const STARTUP = point({
+      id: 'clearsweep:startup-100',
+      description: 'Removed startup item: Slack',
+      kind: 'clearsweep-backup',
+      backupKind: 'startup',
+      restorable: true,
+    });
+    const ADDON = point({
+      id: 'clearsweep:plugins-101',
+      description: 'Removed browser add-on: uBlock Origin (Firefox)',
+      kind: 'clearsweep-backup',
+      backupKind: 'plugins',
+      restorable: true,
+    });
+    current = listing({ points: [NEWEST, STARTUP, ADDON] });
+    api.current.handlers['restore.restore'] = (p) => ok(`Restored ${(p as { id: string }).id}.`);
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByTestId('restore-backups');
+    expect(screen.getByTestId(`point-${STARTUP.id}`)).toHaveTextContent('Removed startup item: Slack');
+    expect(screen.getByTestId(`point-kind-${STARTUP.id}`)).toHaveTextContent('Startup item');
+    expect(screen.getByTestId(`point-${ADDON.id}`)).toHaveTextContent('Removed browser add-on: uBlock Origin (Firefox)');
+    expect(screen.getByTestId(`point-kind-${ADDON.id}`)).toHaveTextContent('Browser add-on');
+    await user.click(screen.getByTestId(`point-restore-${ADDON.id}`));
+    expect(screen.getByTestId('confirm-sheet')).toHaveTextContent('browser must be closed');
+    expect(screen.getByTestId('confirm-sheet')).not.toHaveTextContent('overwritten');
+    await user.click(screen.getByTestId('confirm-sheet-confirm'));
+    await waitFor(() => expect(api.current.paramsOf('restore.restore')).toEqual([{ id: ADDON.id }]));
+    await user.click(screen.getByTestId(`point-restore-${STARTUP.id}`));
+    expect(screen.getByTestId('confirm-sheet')).toHaveTextContent('already exists it is left alone');
+  });
 });

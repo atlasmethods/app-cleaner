@@ -543,6 +543,58 @@ pub fn remove_pref_entry(files: &ProfileFiles, id: &str) -> Result<bool> {
     Ok(true)
 }
 
+/// Put `extensions.settings.<id>` (and its MAC record) from a backed-up `Preferences` back into
+/// the current `Preferences`. Every other key of the current file is kept. Returns whether the
+/// backup had an entry (it does not when the extension was registered in `Secure Preferences`).
+pub fn restore_pref_entry(files: &ProfileFiles, id: &str, backed_up: &Value) -> Result<bool> {
+    let Some(entry) = settings_of(backed_up).and_then(|s| s.get(id)).cloned() else {
+        return Ok(false);
+    };
+    let mac = backed_up
+        .get("protection")
+        .and_then(|p| p.get("macs"))
+        .and_then(|m| m.get("extensions"))
+        .and_then(|e| e.get("settings"))
+        .and_then(|s| s.get(id))
+        .cloned();
+    let path = files.prefs();
+    let mut prefs = read_json(&path)
+        .ok_or_else(|| ApiError::io(format!("could not read {}", path.display())))?;
+    fn obj<'a>(v: &'a mut Value, key: &str) -> Result<&'a mut Map<String, Value>> {
+        if !v.is_object() {
+            return Err(ApiError::io("Preferences has an unexpected layout"));
+        }
+        let m = v.as_object_mut().expect("checked");
+        m.entry(key.to_string())
+            .or_insert_with(|| Value::Object(Map::new()))
+            .as_object_mut()
+            .ok_or_else(|| ApiError::io("Preferences has an unexpected layout"))
+    }
+    obj(obj_value(&mut prefs, "extensions")?, "settings")?.insert(id.to_string(), entry);
+    if let Some(mac) = mac {
+        let macs = obj_value(&mut prefs, "protection")?;
+        let macs = obj_value(macs, "macs")?;
+        let macs = obj_value(macs, "extensions")?;
+        obj(macs, "settings")?.insert(id.to_string(), mac);
+    }
+    write_json(&path, &prefs)?;
+    Ok(true)
+}
+
+/// `v[key]` as an object value (created when missing), for walking down a path.
+fn obj_value<'a>(v: &'a mut Value, key: &str) -> Result<&'a mut Value> {
+    let m = v
+        .as_object_mut()
+        .ok_or_else(|| ApiError::io("Preferences has an unexpected layout"))?;
+    let child = m
+        .entry(key.to_string())
+        .or_insert_with(|| Value::Object(Map::new()));
+    if !child.is_object() {
+        return Err(ApiError::io("Preferences has an unexpected layout"));
+    }
+    Ok(child)
+}
+
 /// Where the settings entry of `id` lives: `"Preferences"`, `"Secure Preferences"` or `None`.
 pub fn entry_location(files: &ProfileFiles, id: &str) -> Option<&'static str> {
     let has = |p: PathBuf| {

@@ -14,6 +14,7 @@ import {
   descriptionProblem,
   hasOlderWindowsPoints,
   kindLabel,
+  restoreMessage,
   splitPoints,
 } from '../lib/restore';
 
@@ -129,7 +130,7 @@ export default function SystemRestorePage() {
       case 'restore':
         return {
           title: 'Restore this backup?',
-          message: 'The saved items are put back as they were. Changes made to them since then are overwritten.',
+          message: restoreMessage(pending.point),
           label: 'Restore',
           danger: false,
         };
