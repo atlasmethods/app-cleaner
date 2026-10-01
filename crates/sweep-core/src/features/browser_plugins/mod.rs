@@ -8,6 +8,10 @@
 //!   looked up again on the server, and a backup goes to `<data>/backups/plugins-<ts>/`
 //!   first.
 //!
+//! - `browser_plugins.restore_backup { id }`: put a removed add-on back from its
+//!   `plugins-<ts>` backup (see [`restore`]); the browser must be closed and nothing is
+//!   overwritten.
+//!
 //! Chromium: only entries in the plain `Preferences` file are edited. Extension settings in
 //! `Secure Preferences` are protected by HMACs and are never touched (`canDisable: false`
 //! plus a note). Firefox: `extensions.json` and `addonStartup.json.lz4` are edited together.
@@ -30,6 +34,7 @@ use crate::safety::{ExcludeSet, SafeDeleter};
 pub mod chromium;
 pub mod firefox;
 pub mod mozlz4;
+pub mod restore;
 
 #[cfg(test)]
 mod tests;
@@ -39,12 +44,14 @@ pub const METHODS: &[&str] = &[
     "browser_plugins.list",
     "browser_plugins.set_enabled",
     "browser_plugins.remove",
+    "browser_plugins.restore_backup",
 ];
 
 pub fn register(r: &mut Registry) {
     r.add("browser_plugins.list", list_handler);
     r.add("browser_plugins.set_enabled", set_enabled_handler);
     r.add("browser_plugins.remove", remove_handler);
+    r.add("browser_plugins.restore_backup", restore::restore_handler);
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -341,12 +348,13 @@ fn set_enabled_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
         profile.def.label
     );
     let mut b = Backup::create(ctx, "plugins", &desc)?;
+    b.set_field("plugin", restore::meta(&profile, &plugin, "set_enabled"));
     match profile.def.family {
         Family::Chromium => {
             let files = chromium::ProfileFiles {
                 dir: profile.dir.clone(),
             };
-            if let Err(e) = stage_file(&mut b, &files.prefs()) {
+            if let Err(e) = stage_file(&mut b, &files.prefs(), restore::ROLE_PREFS) {
                 b.abort();
                 return Err(e);
             }
@@ -370,9 +378,12 @@ fn set_enabled_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
                     return Err(e);
                 }
             };
-            for f in [ejson.clone(), firefox::startup_lz4(&profile.dir)] {
+            for (f, role) in [
+                (ejson.clone(), restore::ROLE_EXTENSIONS_JSON),
+                (firefox::startup_lz4(&profile.dir), restore::ROLE_STARTUP),
+            ] {
                 if f.exists() {
-                    if let Err(e) = stage_file(&mut b, &f) {
+                    if let Err(e) = stage_file(&mut b, &f, role) {
                         b.abort();
                         return Err(e);
                     }
@@ -386,11 +397,12 @@ fn set_enabled_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
     }
 }
 
-fn stage_file(b: &mut Backup, src: &Path) -> Result<()> {
+fn stage_file(b: &mut Backup, src: &Path, role: &str) -> Result<()> {
     let copy = b.copy_file(src)?;
     let rel = b.rel(&copy);
     b.add_item(json!({
         "type": "file",
+        "role": role,
         "original": src.to_string_lossy(),
         "backup": rel,
     }));
@@ -406,6 +418,7 @@ fn stage_tree(b: &mut Backup, src: &Path) -> Result<()> {
     let rel = b.rel(&copy);
     b.add_item(json!({
         "type": if src.is_dir() { "dir" } else { "file" },
+        "role": restore::ROLE_PAYLOAD,
         "original": src.to_string_lossy(),
         "backup": rel,
     }));
@@ -448,8 +461,12 @@ fn remove_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
             "This add-on cannot be removed here; remove it from the browser's own page",
         ));
     }
-    let desc = format!("Removed {} from {}", plugin.name, profile.def.label);
+    let desc = format!(
+        "Removed browser add-on: {} ({})",
+        plugin.name, profile.def.label
+    );
     let mut b = Backup::create(ctx, "plugins", &desc)?;
+    b.set_field("plugin", restore::meta(&profile, &plugin, "remove"));
     match profile.def.family {
         Family::Chromium => {
             let files = chromium::ProfileFiles {
@@ -458,7 +475,7 @@ fn remove_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
             let ext_dir = files.extensions().join(&plugin.extension_id);
             let staged = stage_tree(&mut b, &ext_dir).and_then(|_| {
                 if files.prefs().is_file() {
-                    stage_file(&mut b, &files.prefs())
+                    stage_file(&mut b, &files.prefs(), restore::ROLE_PREFS)
                 } else {
                     Ok(())
                 }
@@ -500,9 +517,12 @@ fn remove_handler(ctx: &Ctx, params: Value, _job: &Job) -> Result<Value> {
                 }
             };
             let mut staged = stage_tree(&mut b, &payload);
-            for f in [ejson.clone(), firefox::startup_lz4(&profile.dir)] {
+            for (f, role) in [
+                (ejson.clone(), restore::ROLE_EXTENSIONS_JSON),
+                (firefox::startup_lz4(&profile.dir), restore::ROLE_STARTUP),
+            ] {
                 if staged.is_ok() && f.exists() {
-                    staged = stage_file(&mut b, &f);
+                    staged = stage_file(&mut b, &f, role);
                 }
             }
             if let Err(e) = staged {

@@ -20,6 +20,8 @@ pub struct Backup {
     kind: String,
     description: String,
     items: Vec<Value>,
+    /// Extra top-level manifest fields (`startup`, `plugin`): what was removed and where from.
+    fields: Vec<(String, Value)>,
     staged: usize,
 }
 
@@ -70,6 +72,7 @@ impl Backup {
                         kind: kind.to_string(),
                         description: description.to_string(),
                         items: Vec::new(),
+                        fields: Vec::new(),
                         staged: 0,
                     });
                 }
@@ -143,16 +146,27 @@ impl Backup {
         self.items.push(item);
     }
 
+    /// Record an extra top-level manifest field (describes what the backup is of).
+    pub fn set_field(&mut self, key: &str, value: Value) {
+        self.fields.push((key.to_string(), value));
+    }
+
     /// Write `manifest.json`. After this the backup is complete and the caller may change
     /// the system.
     pub fn commit(self) -> Result<Committed> {
-        let manifest = json!({
+        let mut manifest = json!({
             "kind": self.kind,
             "createdAt": now_rfc3339(),
             "createdAtUnix": now_unix(),
             "description": self.description,
             "items": self.items,
         });
+        for (k, v) in &self.fields {
+            // The fixed keys above always win.
+            if manifest.get(k).is_none() {
+                manifest[k.as_str()] = v.clone();
+            }
+        }
         let text = serde_json::to_vec_pretty(&manifest)?;
         if let Err(e) = atomic_write(&self.dir.join("manifest.json"), &text) {
             let _ = fs::remove_dir_all(&self.dir);
@@ -176,7 +190,7 @@ pub struct Committed {
     pub dir: PathBuf,
 }
 
-fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+pub(crate) fn copy_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
     fs::create_dir_all(dst)?;
     for e in fs::read_dir(src)? {
         let e = e?;

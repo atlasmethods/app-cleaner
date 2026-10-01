@@ -164,6 +164,10 @@ pub enum BackupKind {
     UninstallEntry,
     /// `drivers-<ts>/` (exported driver packages)
     Drivers,
+    /// `startup-<ts>/`: a removed startup item (`startup.remove`).
+    Startup,
+    /// `plugins-<ts>/`: a browser add-on removed or switched (`browser_plugins.*`).
+    Plugins,
 }
 
 pub fn classify_name(name: &str) -> Option<BackupKind> {
@@ -182,6 +186,14 @@ pub fn classify_name(name: &str) -> Option<BackupKind> {
         let (first, second, third) = (it.next(), it.next(), it.next());
         if first.is_some_and(digits) && second.is_none_or(digits) && third.is_none() {
             return Some(BackupKind::UninstallEntry);
+        }
+    }
+    for (kind, what) in [
+        ("startup", BackupKind::Startup),
+        ("plugins", BackupKind::Plugins),
+    ] {
+        if name.len() <= 48 && crate::features::startup::backup::valid_backup_id(kind, name) {
+            return Some(what);
         }
     }
     if let Some(rest) = name.strip_prefix("drivers-") {
@@ -720,7 +732,19 @@ mod tests {
             classify_name("drivers-1700000000"),
             Some(BackupKind::Drivers)
         );
+        assert_eq!(
+            classify_name("startup-1700000000"),
+            Some(BackupKind::Startup)
+        );
+        assert_eq!(
+            classify_name("plugins-1700000000-2"),
+            Some(BackupKind::Plugins)
+        );
         for bad in [
+            "startup-",
+            "startup-1-2-3",
+            "plugins-../x",
+            "plugins-1700000000.reg",
             "uninstall-1.txt",
             "uninstall-.reg",
             "drivers-",

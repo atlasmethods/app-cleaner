@@ -837,3 +837,169 @@ fn helper_functions() {
     assert!(!reg_file_needs_admin("[HKEY_CURRENT_USER\\x]"));
     assert!(windows_create_script("a").contains("Checkpoint-Computer"));
 }
+
+// ---------------------------------------------------------------- startup + add-on backups
+
+const SLACK_DESKTOP: &str =
+    "[Desktop Entry]\nType=Application\nName=Slack\nExec=/usr/bin/slack --startup\n";
+
+fn slack_ctx() -> (tempfile::TempDir, Ctx, std::path::PathBuf) {
+    let (d, c, _m) = ctx(Os::Linux);
+    let f = crate::features::startup::linux::user_autostart_dir(&c).join("slack.desktop");
+    fs::create_dir_all(f.parent().unwrap()).unwrap();
+    fs::write(&f, SLACK_DESKTOP).unwrap();
+    (d, c, f)
+}
+
+#[test]
+fn removed_startup_items_are_listed_and_restored_through_the_restore_feature() {
+    let (_d, c, f) = slack_ctx();
+    let r = call(
+        &c,
+        "startup.remove",
+        json!({"id": "xdg:user:slack.desktop"}),
+    )
+    .unwrap();
+    let bid = r["backupId"].as_str().unwrap().to_string();
+    assert!(!f.exists());
+
+    let v = call(&c, "restore.list_points", json!({})).unwrap();
+    let pt = points(&v)
+        .into_iter()
+        .find(|p| p["id"] == format!("clearsweep:{bid}"))
+        .unwrap_or_else(|| panic!("startup backup not listed: {v}"));
+    assert_eq!(pt["description"], "Removed startup item: Slack");
+    assert_eq!(pt["kind"], "clearsweep-backup");
+    assert_eq!(pt["backupKind"], "startup");
+    assert_eq!(pt["restorable"], true);
+    assert_eq!(pt["deletable"], true);
+    assert!(pt["createdAt"].as_str().unwrap().ends_with('Z'));
+
+    let out = call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap();
+    assert_eq!(out["ok"], true);
+    assert_eq!(out["restored"], 1);
+    assert_eq!(out["message"], "Restored startup item Slack.");
+    assert_eq!(fs::read_to_string(&f).unwrap(), SLACK_DESKTOP);
+
+    // A second restore leaves the existing file alone and says so.
+    fs::write(
+        &f,
+        "[Desktop Entry]\nType=Application\nName=Slack\nExec=newer\n",
+    )
+    .unwrap();
+    let out = call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap();
+    assert_eq!(out["restored"], 0);
+    assert!(out["message"].as_str().unwrap().contains("already exists"));
+    assert!(fs::read_to_string(&f).unwrap().contains("Exec=newer"));
+
+    // And it can be deleted like any other backup.
+    let del = call(
+        &c,
+        "restore.delete_point",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap();
+    assert_eq!(del["ok"], true);
+    assert!(!c.env.data_dir.join("backups").join(&bid).exists());
+}
+
+#[test]
+fn restore_of_a_startup_backup_revalidates_the_manifest_server_side() {
+    let (_d, c, f) = slack_ctx();
+    let r = call(
+        &c,
+        "startup.remove",
+        json!({"id": "xdg:user:slack.desktop"}),
+    )
+    .unwrap();
+    let bid = r["backupId"].as_str().unwrap().to_string();
+    let mpath = c
+        .env
+        .data_dir
+        .join("backups")
+        .join(&bid)
+        .join("manifest.json");
+    let mut m: Value = serde_json::from_str(&fs::read_to_string(&mpath).unwrap()).unwrap();
+    // A forged target outside the startup folders is refused, exactly as startup refuses it.
+    m["items"][0]["original"] = json!(c.env.home.join(".bashrc").to_string_lossy());
+    fs::write(&mpath, m.to_string()).unwrap();
+    let e = call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::PermissionDenied);
+    assert!(!c.env.home.join(".bashrc").exists());
+    assert!(!f.exists());
+    // A damaged manifest fails cleanly.
+    fs::write(&mpath, "{ not json").unwrap();
+    let e = call(
+        &c,
+        "restore.restore",
+        json!({"id": format!("clearsweep:{bid}")}),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::Io);
+    // Names that only look like backups are not backups.
+    for bad in [
+        "clearsweep:startup-1/../x",
+        "clearsweep:startup-",
+        "clearsweep:startup-1-2-3",
+        "clearsweep:plugins-x",
+    ] {
+        let e = call(&c, "restore.restore", json!({"id": bad})).unwrap_err();
+        assert_eq!(e.code, ErrorCode::InvalidParams, "{bad}");
+    }
+    // Missing backup.
+    let e = call(
+        &c,
+        "restore.restore",
+        json!({"id": "clearsweep:startup-1700000000"}),
+    )
+    .unwrap_err();
+    assert_eq!(e.code, ErrorCode::NotFound);
+}
+
+#[test]
+fn startup_backups_that_cannot_be_applied_here_are_not_offered_as_restorable() {
+    let (_d, c, _f) = slack_ctx();
+    let r = call(
+        &c,
+        "startup.remove",
+        json!({"id": "xdg:user:slack.desktop"}),
+    )
+    .unwrap();
+    let bid = r["backupId"].as_str().unwrap().to_string();
+    let mpath = c
+        .env
+        .data_dir
+        .join("backups")
+        .join(&bid)
+        .join("manifest.json");
+    let mut m: Value = serde_json::from_str(&fs::read_to_string(&mpath).unwrap()).unwrap();
+    m["items"] = json!([{"type": "regfile", "backup": "files/1-x.reg", "admin": false}]);
+    fs::write(&mpath, m.to_string()).unwrap();
+    let v = call(&c, "restore.list_points", json!({})).unwrap();
+    let pt = points(&v)
+        .into_iter()
+        .find(|p| p["id"] == format!("clearsweep:{bid}"))
+        .unwrap();
+    assert_eq!(pt["restorable"], false);
+    // A backup folder without a manifest (an aborted attempt) is not listed at all.
+    fs::remove_file(&mpath).unwrap();
+    let v = call(&c, "restore.list_points", json!({})).unwrap();
+    assert!(points(&v)
+        .iter()
+        .all(|p| p["id"] != format!("clearsweep:{bid}")));
+}
